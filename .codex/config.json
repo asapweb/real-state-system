@@ -1,0 +1,13 @@
+{
+  "packages": [
+    {
+      "name": "api",
+      "path": "api"
+    },
+    {
+      "name": "front",
+      "path": "front"
+    }
+  ]
+}
+

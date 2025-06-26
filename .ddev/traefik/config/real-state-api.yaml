@@ -1,0 +1,104 @@
+#ddev-generated
+# If you remove the ddev-generated line above you
+# are responsible for maintaining this file. DDEV will not then
+# update it, for example if you add `additional_hostnames`, etc.
+
+http:
+  routers:
+    real-state-api-web-80-http:
+      entrypoints:
+        - http-80
+      rule: HostRegexp(`^real-state-api\.ddev\.site$`)
+      
+      service: "real-state-api-web-80"
+      ruleSyntax: v3
+      tls: false
+      # middlewares:
+      #   - "real-state-api-redirectHttps"
+    real-state-api-web-8025-http:
+      entrypoints:
+        - http-8025
+      rule: HostRegexp(`^real-state-api\.ddev\.site$`)
+      
+      service: "real-state-api-web-8025"
+      ruleSyntax: v3
+      tls: false
+      # middlewares:
+      #   - "real-state-api-redirectHttps"
+    real-state-api-web-8080-http:
+      entrypoints:
+        - http-8081
+      rule: HostRegexp(`^real-state-api\.ddev\.site$`)
+      
+      service: "real-state-api-web-8080"
+      ruleSyntax: v3
+      tls: false
+      # middlewares:
+      #   - "real-state-api-redirectHttps"
+    
+    
+    
+    
+    real-state-api-web-80-https:
+      entrypoints:
+        - http-443
+      rule: HostRegexp(`^real-state-api\.ddev\.site$`)
+      
+      service: "real-state-api-web-80"
+      ruleSyntax: v3
+      
+      tls: true
+      
+    real-state-api-web-8025-https:
+      entrypoints:
+        - http-8026
+      rule: HostRegexp(`^real-state-api\.ddev\.site$`)
+      
+      service: "real-state-api-web-8025"
+      ruleSyntax: v3
+      
+      tls: true
+      
+    real-state-api-web-8080-https:
+      entrypoints:
+        - http-8080
+      rule: HostRegexp(`^real-state-api\.ddev\.site$`)
+      
+      service: "real-state-api-web-8080"
+      ruleSyntax: v3
+      
+      tls: true
+      
+    
+
+  middlewares:
+    real-state-api-redirectHttps:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+  services:
+    real-state-api-web-80:
+      loadbalancer:
+        servers:
+          - url: http://ddev-real-state-api-web:80
+        
+    real-state-api-web-8025:
+      loadbalancer:
+        servers:
+          - url: http://ddev-real-state-api-web:8025
+        
+    real-state-api-web-8080:
+      loadbalancer:
+        servers:
+          - url: http://ddev-real-state-api-web:8080
+        
+    
+    
+    
+    
+
+tls:
+  certificates:
+    - certFile: /mnt/ddev-global-cache/traefik/certs/real-state-api.crt
+      keyFile: /mnt/ddev-global-cache/traefik/certs/real-state-api.key

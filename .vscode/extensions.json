@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "one-dark-pro",                    // Tema visual
+    "esbenp.prettier-vscode",         // Formateo automático
+    "mhutchie.git-graph",             // Visualización de git
+    "eamodio.gitlens",                // Git avanzado
+    "EditorConfig.EditorConfig",      // Soporte para .editorconfig
+    "ms-azuretools.vscode-docker",    // Soporte para contenedores
+    "streetsidesoftware.code-spell-checker", // Corrector ortográfico
+    "shd101wyy.markdown-preview-enhanced",   // Vista previa de Markdown
+    "bradlc.vscode-tailwindcss"       // Tailwind CSS si lo usás
+  ]
+}

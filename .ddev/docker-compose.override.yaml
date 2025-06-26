@@ -1,0 +1,4 @@
+services:
+  web: # El nombre del servicio web, usualmente 'web'
+    volumes:
+      - ~/.ssh/id_rsa:/home/arielalvarezperez/.ssh/id_rsa:ro

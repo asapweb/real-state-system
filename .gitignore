@@ -1,0 +1,20 @@
+# General
+.DS_Store
+node_modules/
+dist/
+.env
+vendor/
+*.log
+
+# Laravel
+/storage/*.key
+/storage/*.log
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/bootstrap/cache/*.php
+
+# Vue
+/.output/
+/build/
+/public/build/

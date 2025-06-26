@@ -1,0 +1,33 @@
+name: real-state
+type: laravel
+docroot: api/public
+php_version: "8.3"
+webserver_type: nginx-fpm
+xdebug_enabled: false
+omit_containers: ["db"]
+use_dns_when_possible: true
+composer_version: "2"
+nodejs_version: "22"
+corepack_enable: false
+
+upload_dirs:
+  - api/public/uploads
+  - api/storage/app
+
+web_extra_exposed_ports:
+  - name: reverb
+    container_port: 8080
+    http_port: 8081
+    https_port: 8080
+  - name: vite
+    container_port: 5173
+    http_port: 5172
+    https_port: 5173
+
+web_extra_daemons:
+  - name: reverb
+    command: bash -c 'php artisan reverb:start'
+    directory: /var/www/html/api
+  - name: vite
+    command: bash -c 'npm install && npm run dev -- --host'
+    directory: /var/www/html/front

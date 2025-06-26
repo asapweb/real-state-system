@@ -4,7 +4,6 @@ import { ref, onMounted } from 'vue'
 import ClientAutocomplete from '@/components/ClientAutocomplete.vue'
 import UserAutocomplete from '@/components/UserAutocomplete.vue'
 import DepartmentAutocomplete from '@/components/DepartmentAutocomplete.vue'
-import moment from 'moment'
 const emit = defineEmits(['saved', 'close'])
 
 import { sendRequest } from '@/functions'

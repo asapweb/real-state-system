@@ -12,15 +12,15 @@
         <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </v-btn>
-    <h2 class="">Cliente <span class="font-weight-light">/ {{ client.name }} {{ client.last_name }}</span></h2>
+    <h2 class="">Cliente <span class="font-weight-light">/ {{ client?.name }} {{ client?.last_name }}</span></h2>
 
   </div>
   <VRow>
     <VCol cols="6" class="mb-4">
-      <ClientInfoCard :client="client" @edit="goToEdit" />
+      <ClientInfoCard v-if="client" :client="client" @edit="goToEdit" />
     </VCol>
     <v-col>
-      <AttachmentManager v-if="client" :attachable-type="'client'" :attachable-id="12" />
+      <AttachmentManager v-if="client" :attachable-type="'client'" :attachable-id="client?.id" />
     </v-col>
   </VRow>
 
@@ -36,7 +36,7 @@ import ClientInfoCard from './components/ClientInfoCard.vue';
 const route = useRoute()
 const router = useRouter()
 
-const client = ref({})
+const client = ref(null)
 
 const fetchClient = async () => {
   try {
@@ -55,7 +55,7 @@ const goToEdit = () => {
   router.push(`/clients/${client.value.id}/edit`)
 }
 
-onMounted(() => {
-  fetchClient()
+onMounted(async () => {
+  await fetchClient()
 })
 </script>

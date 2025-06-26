@@ -186,7 +186,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
-import { required, numeric, minValue } from '@vuelidate/validators';
+import { required, numeric } from '@vuelidate/validators';
 import PropertyAutocomplete from '@/views/components/PropertyAutocomplete.vue';
 
 const props = defineProps({

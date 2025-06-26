@@ -1,4 +1,4 @@
-<template>
+  <template>
   <v-data-table-server
     v-model:items-per-page="options.itemsPerPage"
     v-model:sort-by="options.sortBy"
@@ -10,38 +10,38 @@
     item-value="id"
     @update:options="fetchCollections"
   >
-    <template #item.issue_date="{ item }">
+    <template #[`item.issue_date`]="{ item }">
       {{ formatDate(item.issue_date) }}
     </template>
 
-<template #item.id="{ item }">
+    <template #[`item.id`]="{ item }">
       <RouterLink :to="`/collections/${item.id}`" class="text-primary font-weight-bold text-decoration-none">
         {{ formatModelId(item.id, 'COB') }}
       </RouterLink>
     </template>
 
-    <template #item.period="{ item }">
+    <template #[`item.period`]="{ item }">
       <span v-if="item.period">
         {{ formatPeriod(item.period) }}
       </span>
       <span v-else class="text-grey">Manual</span>
     </template>
 
-    <template #item.client="{ item }">
+    <template #[`item.client`]="{ item }">
       <span v-if="item.client">{{ item.client?.last_name }} {{ item.client?.name }}</span>
       <span v-else class="text-grey">—</span>
     </template>
 
-    <template #item.contract="{ item }">
+    <template #[`item.contract`]="{ item }">
       <span v-if="item.contract">{{ formatModelId(item.contract.id, 'CON') }}</span>
       <span v-else class="text-grey">—</span>
     </template>
 
-    <template #item.total_amount="{ item }">
+    <template #[`item.total_amount`]="{ item }">
       {{ formatMoney(item.total_amount, item.currency) }}
     </template>
 
-    <template #item.status="{ item }">
+    <template #[`item.status`]="{ item }">
       <v-chip size="small" :color="statusColor(item.status)" variant="flat">
         {{ formatStatus(item.status) }}
       </v-chip>

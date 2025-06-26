@@ -43,29 +43,12 @@
   import AttachmentManager from '@/views/components/AttachmentManager.vue';
   import { useSnackbar } from '@/composables/useSnackbar';
   import { formatModelId } from '@/utils/models-formatter';
-  import RentalApplicationTable from '@/views/rental-applications/components/RentalApplicationTable.vue'
 
   const route = useRoute()
   const router = useRouter()
   const snackbar = useSnackbar();
   const offer = ref(null);
-  const tab = ref('info');
 
-  const statusOptions = [
-    { label: 'Borrador', value: 'draft' },
-    { label: 'Publicado', value: 'published' },
-    { label: 'Pausado', value: 'paused' },
-    { label: 'Cerrado', value: 'closed' }
-  ];
-
-  const statusLabel = (status) =>
-    statusOptions.find(s => s.value === status)?.label || status;
-
-  const formatAmount = (amount, currency) => {
-    if (isNaN(Number(amount))) return '—';
-    const value = Number(amount).toFixed(2);
-    return currency === 'ARS' ? `$${value}` : `${value} ${currency}`;
-  };
 
   const goBack = () => {
     router.push('/rental-offers')

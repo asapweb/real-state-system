@@ -7,37 +7,37 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/Login.vue'),
+      component: () => import('../views/LoginPage.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/forgot-password',
       name: 'forgot',
-      component: () => import('../views/Login.vue'),
+      component: () => import('../views/LoginPage.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/register',
       name: 'register',
-      component: () => import('../views/Register.vue'),
+      component: () => import('../views/RegisterPage.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/display',
       name: 'display',
-      component: () => import('../views/Screen.vue'),
+      component: () => import('../views/ScreenPage.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/test2',
       name: 'test2',
-      component: () => import('../views/Test.vue'),
+      component: () => import('../views/TestPage.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/unauthorized',
       name: 'unauthorized',
-      component: () => import('../views/Unauthorized.vue'),
+      component: () => import('../views/UnauthorizedPage.vue'),
       meta: { requiresAuth: false },
     },
     {
@@ -290,7 +290,7 @@ const router = createRouter({
         {
           path: 'test',
           name: 'test',
-          component: () => import('../views/Test.vue'),
+          component: () => import('../views/TestPage.vue'),
           meta: { requiresAuth: true },
         },
         {

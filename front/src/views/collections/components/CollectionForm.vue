@@ -57,7 +57,7 @@
 
           <CollectionItemForm
             v-model="itemDialog.model"
-            :dialog.sync="itemDialog.open"
+            v-model:dialog="itemDialog.open"
             @save="saveItem"
           />
         </v-container>

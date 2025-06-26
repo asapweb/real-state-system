@@ -16,7 +16,7 @@ const cambiarContraseña = async () => {
   success.value = null
 
   try {
-    const response = await sendRequest('POST', form, `/api/change-password`, '')
+    await sendRequest('POST', form, `/api/change-password`, '')
   } catch (err) {
     error.value = err.response.data.message || 'Error al cambiar la contraseña'
   }

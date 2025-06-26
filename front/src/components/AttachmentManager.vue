@@ -102,7 +102,12 @@ const pluralMap = {
 };
 
 function getResourcePath() {
-  return pluralMap[props.attachableType] || `${props.attachableType}s`;
+  switch (props.attachableType) {
+  case 'client': return 'clients';
+  case 'property': return 'properties';
+  case 'contract': return 'contracts';
+  default: throw new Error(`Tipo de recurso desconocido: ${props.attachableType}`);
+
 }
 
 const attachments = ref([]);
@@ -130,6 +135,8 @@ async function fetchCategories() {
   try {
     const { data } = await axios.get('/api/attachment-categories', { params: { context: props.context } });
     categories.value = Array.isArray(data) ? data : (data.data || []);
+  } catch (error) {
+    console.error('Error fetching attachment-categories:', error);
   } finally {
     loadingCategories.value = false;
   }
@@ -141,6 +148,8 @@ async function fetchAttachments() {
     const url = `/api/${getResourcePath()}/${props.attachableId}/attachments`;
     const { data } = await axios.get(url);
     attachments.value = Array.isArray(data) ? data : (data.data || []);
+  } catch (error) {
+    console.error('Error fetching attachments:', error);
   } finally {
     loadingAttachments.value = false;
   }

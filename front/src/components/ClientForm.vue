@@ -96,7 +96,6 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { sendRequest } from '@/functions'
 import { VDateInput } from 'vuetify/labs/VDateInput'

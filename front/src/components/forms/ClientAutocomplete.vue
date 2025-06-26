@@ -7,7 +7,7 @@
       item-value="id"
       :label="label"
       :loading="isLoading"
-      :search-input.sync="search"
+      v-model:search-input="search"
       :clearable="clearable"
       @update:search="handleSearch"
       @update:model-value="handleSelect"
@@ -66,7 +66,7 @@ async function fetchClients(query) {
     const arr = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
     // Si no hay búsqueda, cargar algunos clientes por defecto
     clients.value = arr;
-  } catch (e) {
+  } catch () {
     clients.value = [];
   } finally {
     isLoading.value = false;

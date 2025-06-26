@@ -9,11 +9,11 @@
       class="elevation-1"
       density="compact"
     >
-      <template #item.service="{ item }">
+      <template #[`item.service`]="{ item }">
         {{ item.property_service?.service_type }}
       </template>
 
-      <template #item.is_active="{ item }">
+      <template #[`item.is_active`]="{ item }">
         <v-switch
           v-model="item.is_active"
           hide-details
@@ -22,7 +22,7 @@
         />
       </template>
 
-      <template #item.has_debt="{ item }">
+      <template #[`item.has_debt`]="{ item }">
         <v-switch
           v-model="item.has_debt"
           hide-details
@@ -31,7 +31,7 @@
         />
       </template>
 
-      <template #item.debt_amount="{ item }">
+      <template #[`item.debt_amount`]="{ item }">
         <v-text-field
           v-model="item.debt_amount"
           type="number"
@@ -42,7 +42,7 @@
         />
       </template>
 
-      <template #item.paid_by="{ item }">
+      <template #[`item.paid_by`]="{ item }">
         <v-select
           v-model="item.paid_by"
           :items="payerOptions"
@@ -54,7 +54,7 @@
         />
       </template>
 
-      <template #item.notes="{ item }">
+      <template #[`item.notes`]="{ item }">
         <v-text-field
           v-model="item.notes"
           density="compact"

@@ -125,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import axios from '@/services/axios';
 import { formatDateTime } from '@/utils/date-formatter';
 const props = defineProps({
@@ -185,6 +185,8 @@ const loadAttachments = async () => {
     });
     attachments.value = data.data;
     total.value = data.total;
+   } catch (error) {
+    snackbar.value = { show: true, text: 'Error al cargar archivos', color: 'error' };
   } finally {
     loading.value = false;
   }

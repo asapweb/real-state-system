@@ -74,12 +74,11 @@
 </template>
 
 <script setup>
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   application: { type: Object, required: true, default: null }
 })
-const route = useRoute()
 const router = useRouter()
 
 const statusLabel = (status) => {

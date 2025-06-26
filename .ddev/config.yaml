@@ -28,6 +28,3 @@ web_extra_daemons:
   - name: reverb
     command: bash -c 'php artisan reverb:start'
     directory: /var/www/html/api
-  - name: vite
-    command: bash -c 'npm install && npm run dev -- --host'
-    directory: /var/www/html/front

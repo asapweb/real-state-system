@@ -50,8 +50,13 @@ const secondaryNavLinks = [
   <v-navigation-drawer permanent :rail="rail">
     <v-list>
       <v-list-item class="font-weight-regular text-h6" >
-        <div class="font-weight-light">
-          C<span v-if="!rail">ASSA</span>
+        <v-btn  v-if="rail" class=""
+          variant="text"
+          :icon="rail ? 'mdi-chevron-right' : 'mdi-chevron-left'"
+          @click.stop="rail = !rail"
+        ></v-btn>
+        <div v-if="!rail" class="font-weight-light">
+          <span>CASSA</span>
         </div>
          <template v-slot:append>
           <v-btn

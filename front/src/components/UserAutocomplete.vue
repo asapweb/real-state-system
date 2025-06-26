@@ -35,18 +35,6 @@ const selectedUser = ref(props.modelValue) // Valor inicial desde el padre
 const isLoading = ref(false)
 const isSelecting = ref(false) // Bandera para evitar búsquedas al seleccionar
 
-// Función para formatear el nombre del usere
-const getUserName = (user) => {
-  if (user) {
-    if (user.user_type === 'person' && user.name && user.last_name) {
-      return `${user.name} ${user.last_name}`
-    } else if (user.user_type === 'company' && user.company_name) {
-      return user.company_name
-    }
-  }
-  return ''
-}
-
 // Función para buscar useres
 const searchUsers = async (query) => {
   if (query && !isSelecting.value) {

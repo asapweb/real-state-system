@@ -53,7 +53,7 @@ import RentalApplicationTable from '@/views/rental-applications/components/Renta
 import RentalApplicationForm from '@/views/rental-applications/components/RentalApplicationForm.vue'
 import axios from '@/services/axios'
 
-const props = defineProps({
+defineProps({
   rentalOfferId: { type: Number, required: true }
 })
 

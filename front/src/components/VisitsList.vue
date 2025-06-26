@@ -2,14 +2,14 @@
 import axios from '@/services/axios'
 import { ref, watch, reactive, onMounted } from 'vue'
 import { debounce } from 'lodash-es'
-import appointmentForm from '@/components/AppointmentForm.vue'
-import appointmentShow from '@/components/AppointmentShow.vue'
+import AppointmentForm from '@/components/AppointmentForm.vue'
+import AppointmentShow from '@/components/AppointmentShow.vue'
 // import moment from 'moment-timezone'
 import moment from 'moment'
 import 'moment/locale/es'
 import echo from '../services/sockets'
 import { formatReducedDateTime } from '@/utils/date-formatter';
-echo.channel('visits').listen('.visit-status', (data) => {
+echo.channel('visits').listen('.visit-status', () => {
   fetchAppointments()
 })
 
@@ -41,9 +41,7 @@ const page = ref(1)
 
 const appointmentDialog = ref(false)
 
-const name = ref(null)
 const isSubmitting = reactive({})
-const search = ref({})
 const options = ref({})
 
 const formDialog = ref(false)
@@ -51,7 +49,7 @@ const usuarioSeleccionado = ref(null)
 
 watch(
   [props.filters],
-  (newValue) => {
+  () => {
     debouncedFetchAppointments()
   },
   { deep: true },

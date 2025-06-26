@@ -66,6 +66,7 @@ const submitForm = async () => {
     // Redirigir o mostrar un mensaje de éxito
   } catch (error) {
     // Mostrar mensajes de error
+    console.log(error)
   }
 }
 </script>

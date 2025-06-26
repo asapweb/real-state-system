@@ -6,10 +6,10 @@
  * de valores por defecto para los componentes (como la densidad de VTextField).
  */
 
-import { createVuetify } from 'vuetify';
-import * as components from 'vuetify/components';
-import * as directives from 'vuetify/directives';
-import 'vuetify/styles';
+import { createVuetify } from 'vuetify'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
+import 'vuetify/styles'
 
 const vuetify = createVuetify({
   components,
@@ -27,6 +27,6 @@ const vuetify = createVuetify({
 
     // Aquí puedes agregar defaults para otros componentes si lo necesitas
   },
-});
+})
 
-export default vuetify;
+export default vuetify

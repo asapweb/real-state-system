@@ -9,11 +9,11 @@
           Nueva Solicitud
         </v-btn>
       </div>
-    <p class="text-medium-emphasis mt-1" >
-      Representan el proceso de postulación de una persona a una oferta o propiedad.<br>
-      Permiten capturar garantías, reservas, notas internas y documentos
-    </p>
-  </div>
+      <p class="text-medium-emphasis mt-1">
+        Representan el proceso de postulación de una persona a una oferta o propiedad.<br />
+        Permiten capturar garantías, reservas, notas internas y documentos
+      </p>
+    </div>
 
     <RentalApplicationTable
       ref="tableRef"
@@ -32,8 +32,7 @@
       <v-card>
         <v-card-title class="text-h5">Confirmar eliminación</v-card-title>
         <v-card-text>
-          ¿Estás seguro de que querés eliminar la solicitud?
-          Esta acción no se puede deshacer.
+          ¿Estás seguro de que querés eliminar la solicitud? Esta acción no se puede deshacer.
         </v-card-text>
         <v-card-actions>
           <v-spacer />

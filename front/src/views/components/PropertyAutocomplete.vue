@@ -45,106 +45,113 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import axios from '@/services/axios';
-import { debounce } from 'lodash';
-import PropertyForm from '@/views/properties/components/PropertyForm.vue';
+import { ref, watch } from 'vue'
+import axios from '@/services/axios'
+import { debounce } from 'lodash'
+import PropertyForm from '@/views/properties/components/PropertyForm.vue'
 
 const props = defineProps({
   modelValue: [Number, Object, null],
-  errorMessages: Array
-});
+  errorMessages: Array,
+})
 
-const emit = defineEmits(['update:modelValue', 'blur']);
+const emit = defineEmits(['update:modelValue', 'blur'])
 
-const selected = ref(null);
-const search = ref('');
-const items = ref([]);
-const loading = ref(false);
-const dialog = ref(false);
-const saving = ref(false);
+const selected = ref(null)
+const search = ref('')
+const items = ref([])
+const loading = ref(false)
+const dialog = ref(false)
+const saving = ref(false)
 
 const fetchProperties = async (query) => {
   if (!query || query.length < 2) {
-    items.value = [];
-    return;
+    items.value = []
+    return
   }
 
-  loading.value = true;
+  loading.value = true
   try {
     const { data } = await axios.get('/api/properties', {
-      params: { 'search[text]': query }
-    });
+      params: { 'search[text]': query },
+    })
 
-    const results = data.data.map(p => ({
+    const results = data.data.map((p) => ({
       ...p,
-      label: `${p.street ?? ''} ${p.number ?? ''}`.trim()
-    }));
+      label: `${p.street ?? ''} ${p.number ?? ''}`.trim(),
+    }))
 
     items.value = results.length
       ? results
-      : [{ id: '__new__', label: `Crear nueva propiedad "${query}"` }];
+      : [{ id: '__new__', label: `Crear nueva propiedad "${query}"` }]
   } catch (e) {
-    console.error('Error buscando propiedades:', e);
+    console.error('Error buscando propiedades:', e)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const fetchPropertyById = async (id) => {
-  if (!id) return;
+  if (!id) return
   try {
-    const { data } = await axios.get(`/api/properties/${id}`);
+    const { data } = await axios.get(`/api/properties/${id}`)
     selected.value = {
       ...data,
-      label: `${data.street ?? ''} ${data.number ?? ''}`.trim()
-    };
-    items.value = [selected.value];
+      label: `${data.street ?? ''} ${data.number ?? ''}`.trim(),
+    }
+    items.value = [selected.value]
   } catch (e) {
-    console.error('Error cargando propiedad:', e);
+    console.error('Error cargando propiedad:', e)
   }
-};
+}
 
-watch(() => props.modelValue, async (val) => {
-  if (typeof val === 'number') {
-    await fetchPropertyById(val);
-  } else if (val === null) {
-    selected.value = null;
-    items.value = [];
-  }
-}, { immediate: true });
+watch(
+  () => props.modelValue,
+  async (val) => {
+    if (typeof val === 'number') {
+      await fetchPropertyById(val)
+    } else if (val === null) {
+      selected.value = null
+      items.value = []
+    }
+  },
+  { immediate: true },
+)
 
 watch(selected, (val) => {
   if (val?.id === '__new__') {
-    dialog.value = true;
-    selected.value = null;
-    emit('update:modelValue', null);
+    dialog.value = true
+    selected.value = null
+    emit('update:modelValue', null)
   } else {
-    emit('update:modelValue', val?.id ?? null);
+    emit('update:modelValue', val?.id ?? null)
   }
-});
+})
 
-watch(search, debounce((val) => {
-  fetchProperties(val);
-}, 300));
+watch(
+  search,
+  debounce((val) => {
+    fetchProperties(val)
+  }, 300),
+)
 
 const handleCreateProperty = async (formData) => {
-  saving.value = true;
+  saving.value = true
   try {
-    const { data } = await axios.post('/api/properties', formData);
+    const { data } = await axios.post('/api/properties', formData)
     const created = {
       ...data,
-      label: `${data.street ?? ''} ${data.number ?? ''}`.trim()
-    };
+      label: `${data.street ?? ''} ${data.number ?? ''}`.trim(),
+    }
 
-    selected.value = created;
-    items.value = [created];
-    emit('update:modelValue', created.id);
-    dialog.value = false;
+    selected.value = created
+    items.value = [created]
+    emit('update:modelValue', created.id)
+    dialog.value = false
   } catch (e) {
-    console.error('Error creando propiedad:', e);
+    console.error('Error creando propiedad:', e)
   } finally {
-    saving.value = false;
+    saving.value = false
   }
-};
+}
 </script>

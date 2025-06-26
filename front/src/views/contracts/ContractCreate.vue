@@ -17,30 +17,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import axios from '@/services/axios';
-import ContractForm from './components/ContractForm.vue';
-import { useSnackbar } from '@/composables/useSnackbar';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from '@/services/axios'
+import ContractForm from './components/ContractForm.vue'
+import { useSnackbar } from '@/composables/useSnackbar'
 
-const router = useRouter();
-const snackbar = useSnackbar();
-const isSubmitting = ref(false);
+const router = useRouter()
+const snackbar = useSnackbar()
+const isSubmitting = ref(false)
 
 const save = async (formData) => {
-  isSubmitting.value = true;
+  isSubmitting.value = true
   try {
-    const { data } = await axios.post('/api/contracts', formData);
-    router.push(`/contracts/${data.id}`);
+    const { data } = await axios.post('/api/contracts', formData)
+    router.push(`/contracts/${data.id}`)
   } catch (error) {
-    let message = 'Hubo un error al crear el contrato';
-    if (error.response?.data?.message) message = error.response.data.message;
-    snackbar.error(message);
-    console.error(error);
+    let message = 'Hubo un error al crear el contrato'
+    if (error.response?.data?.message) message = error.response.data.message
+    snackbar.error(message)
+    console.error(error)
   } finally {
-    isSubmitting.value = false;
+    isSubmitting.value = false
   }
-};
+}
 
-const goBack = () => router.push('/contracts');
+const goBack = () => router.push('/contracts')
 </script>

@@ -10,7 +10,7 @@
       flat
       hide-details
       clearable
-      style="max-width: 200px;"
+      style="max-width: 200px"
     />
 
     <v-text-field
@@ -22,7 +22,7 @@
       class="ml-2"
       hide-details
       single-line
-      style="flex: 1;"
+      style="flex: 1"
     />
   </div>
 
@@ -37,40 +37,57 @@
     item-value="id"
     @update:options="fetchApplications"
   >
-    <template #item.id="{ item }">
-      <RouterLink :to="`/rental-applications/${item.id}`" class="text-primary font-weight-bold text-decoration-none">
+    <template #[`item.id`]="{ item }">
+      <RouterLink
+        :to="`/rental-applications/${item.id}`"
+        class="text-primary font-weight-bold text-decoration-none"
+      >
         SOL-{{ String(item.id).padStart(8, '0') }}
       </RouterLink>
     </template>
 
-    <template #item.created_at="{ item }">
+    <template #[`item.created_at`]="{ item }">
       {{ formatDateTime(item.created_at) }}
     </template>
-    <template #item.property.street="{ item }">
-      <RouterLink :to="`/properties/${item.property?.id}`" class="text-primary text-decoration-none font-weight-bold">
-        <span v-if="item.property?.neighborhood?.name">{{ item.property?.neighborhood?.name }}, </span>
+    <template #[`item.property.street`]="{ item }">
+      <RouterLink
+        :to="`/properties/${item.property?.id}`"
+        class="text-primary text-decoration-none font-weight-bold"
+      >
+        <span v-if="item.property?.neighborhood?.name"
+          >{{ item.property?.neighborhood?.name }},
+        </span>
         {{ item.property?.street }} {{ item.property?.number || '' }}
       </RouterLink>
     </template>
 
-    <template #item.rental_offer.id="{ item }">
-      <RouterLink v-if="item.rental_offer?.id" :to="`/rental-offers/${item.rental_offer?.id}`" class="text-primary font-weight-bold text-decoration-none">
+    <template #[`item.rental_offer.id`]="{ item }">
+      <RouterLink
+        v-if="item.rental_offer?.id"
+        :to="`/rental-offers/${item.rental_offer?.id}`"
+        class="text-primary font-weight-bold text-decoration-none"
+      >
         OFE-{{ String(item.rental_offer?.id).padStart(8, '0') }}
       </RouterLink>
     </template>
 
-    <template #item.applicant.name="{ item }">
+    <template #[`item.applicant.name`]="{ item }">
       {{ item.applicant?.last_name }} {{ item.applicant?.name }}
     </template>
 
-    <template #item.status="{ item }">
+    <template #[`item.status`]="{ item }">
       <v-chip :color="statusColor(item.status)" size="small" variant="flat">
         {{ statusLabel(item.status) }}
       </v-chip>
     </template>
 
-    <template #item.actions="{ item }">
-      <v-icon class="me-2" size="small" @click="emit('edit-application', item)" title="Editar Solicitud">
+    <template #[`item.actions`]="{ item }">
+      <v-icon
+        class="me-2"
+        size="small"
+        @click="emit('edit-application', item)"
+        title="Editar Solicitud"
+      >
         mdi-pencil
       </v-icon>
       <v-icon size="small" @click="openDeleteDialog(item)" title="Eliminar Solicitud">
@@ -84,8 +101,10 @@
       <v-card-title class="text-h5">Confirmar Eliminación</v-card-title>
       <v-card-text>
         ¿Estás seguro de que deseas eliminar la solicitud para la propiedad
-        <strong>{{ applicationToDelete?.property?.street }} {{ applicationToDelete?.property?.number }}</strong>?
-        Esta acción no se puede deshacer.
+        <strong
+          >{{ applicationToDelete?.property?.street }}
+          {{ applicationToDelete?.property?.number }}</strong
+        >? Esta acción no se puede deshacer.
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -100,15 +119,14 @@
 <script setup>
 import { ref, watch, reactive, onMounted } from 'vue'
 import axios from '@/services/axios'
-import { formatDateTime } from '@/utils/date-formatter';
+import { formatDateTime } from '@/utils/date-formatter'
 
 const emit = defineEmits(['edit-application', 'delete-application', 'error'])
 
 const props = defineProps({
   rentalOfferId: { type: Number, default: null },
-  showFilters: { type: Boolean, default: true }
+  showFilters: { type: Boolean, default: true },
 })
-
 
 const applications = ref([])
 const total = ref(0)
@@ -120,7 +138,7 @@ const searchStatus = ref(null)
 const options = reactive({
   page: 1,
   itemsPerPage: 10,
-  sortBy: [{ key: 'id', order: 'asc' }]
+  sortBy: [{ key: 'id', order: 'asc' }],
 })
 
 const headers = [
@@ -130,27 +148,32 @@ const headers = [
   { title: 'Oferta', key: 'rental_offer.id', sortable: true },
   { title: 'Creación', key: 'created_at', sortable: true },
   { title: 'Estado', key: 'status', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' }
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
 
 const statusOptions = [
   { label: 'Borrador', value: 'draft' },
   { label: 'En evaluación', value: 'under_review' },
   { label: 'Aprobado', value: 'approved' },
-  { label: 'Rechazado', value: 'rejected' }
+  { label: 'Rechazado', value: 'rejected' },
 ]
 
 const statusLabel = (status) => {
-  return statusOptions.find(s => s.value === status)?.label || '—'
+  return statusOptions.find((s) => s.value === status)?.label || '—'
 }
 
 const statusColor = (status) => {
   switch (status) {
-    case 'draft': return 'grey'
-    case 'under_review': return 'blue'
-    case 'approved': return 'green'
-    case 'rejected': return 'red'
-    default: return 'default'
+    case 'draft':
+      return 'grey'
+    case 'under_review':
+      return 'blue'
+    case 'approved':
+      return 'green'
+    case 'rejected':
+      return 'red'
+    default:
+      return 'default'
   }
 }
 
@@ -163,7 +186,7 @@ const fetchApplications = async () => {
     sort_direction: options.sortBy[0]?.order || 'asc',
     'search[status]': searchStatus.value,
     'search[text]': searchText.value,
-    'search[rental_offer_id]': props.rentalOfferId
+    'search[rental_offer_id]': props.rentalOfferId,
   }
 
   try {

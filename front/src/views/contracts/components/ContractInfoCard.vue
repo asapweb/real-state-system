@@ -70,32 +70,37 @@
 </template>
 
 <script setup>
-import { formatMoney } from '@/utils/money';
-import { formatDate } from '@/utils/date-formatter';
+import { formatMoney } from '@/utils/money'
+import { formatDate } from '@/utils/date-formatter'
 
-const props = defineProps({
-  contract: { type: Object, required: true }
-});
+defineProps({
+  contract: { type: Object, required: true },
+})
 
-const emit = defineEmits(['edit']);
+const emit = defineEmits(['edit'])
 
 const statusLabel = (status) => {
   const map = {
     draft: 'Borrador',
     active: 'Vigente',
     closed: 'Finalizado',
-    canceled: 'Cancelado'
-  };
-  return map[status] || status;
-};
+    canceled: 'Cancelado',
+  }
+  return map[status] || status
+}
 
 const statusColor = (status) => {
   switch (status) {
-    case 'draft': return 'grey';
-    case 'active': return 'green';
-    case 'closed': return 'blue-grey';
-    case 'canceled': return 'red';
-    default: return 'default';
+    case 'draft':
+      return 'grey'
+    case 'active':
+      return 'green'
+    case 'closed':
+      return 'blue-grey'
+    case 'canceled':
+      return 'red'
+    default:
+      return 'default'
   }
-};
+}
 </script>

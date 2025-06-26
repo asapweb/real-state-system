@@ -149,7 +149,7 @@
 </template>
 
 <script setup>
-import { formatReducedDateTime } from '@/utils/date-formatter';
+import { formatReducedDateTime } from '@/utils/date-formatter'
 import axios from '@/services/axios'
 import { ref, reactive, onMounted } from 'vue'
 import moment from 'moment'

@@ -1,36 +1,34 @@
 <template>
   <v-card v-if="application">
     <v-card-title class="d-flex align-center">
-            <span>Información General</span>
-            <v-spacer></v-spacer>
-            <div class="d-flex">
-              <v-btn
-                class="text-none"
-                color="primary"
-                text="Editar"
-                variant="text"
-                slim
-                @click="goToEdit"
-              ></v-btn>
-              </div>
-          </v-card-title>
+      <span>Información General</span>
+      <v-spacer></v-spacer>
+      <div class="d-flex">
+        <v-btn
+          class="text-none"
+          color="primary"
+          text="Editar"
+          variant="text"
+          slim
+          @click="goToEdit"
+        ></v-btn>
+      </div>
+    </v-card-title>
     <v-card-text>
       <v-row>
         <!-- Propiedad -->
         <v-col cols="12" md="6">
           <strong>Propiedad:</strong>
           <div>
-            {{ application.property?.street }} {{ application.property?.number }}
-            - {{ application.property?.city?.name }}
+            {{ application.property?.street }} {{ application.property?.number }} -
+            {{ application.property?.city?.name }}
           </div>
         </v-col>
 
         <!-- Postulante -->
         <v-col cols="12" md="6">
           <strong>Postulante:</strong>
-          <div>
-            {{ application.applicant?.last_name }} {{ application.applicant?.name }}
-          </div>
+          <div>{{ application.applicant?.last_name }} {{ application.applicant?.name }}</div>
         </v-col>
 
         <!-- Estado -->
@@ -77,36 +75,50 @@
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
-  application: { type: Object, required: true, default: null }
+  application: { type: Object, required: true, default: null },
 })
 const router = useRouter()
 
 const statusLabel = (status) => {
   switch (status) {
-    case 'draft': return 'Borrador'
-    case 'under_review': return 'En evaluación'
-    case 'approved': return 'Aprobado'
-    case 'rejected': return 'Rechazado'
-    default: return status
+    case 'draft':
+      return 'Borrador'
+    case 'under_review':
+      return 'En evaluación'
+    case 'approved':
+      return 'Aprobado'
+    case 'rejected':
+      return 'Rechazado'
+    default:
+      return status
   }
 }
 
 const statusColor = (status) => {
   switch (status) {
-    case 'draft': return 'grey'
-    case 'under_review': return 'blue'
-    case 'approved': return 'green'
-    case 'rejected': return 'red'
-    default: return 'default'
+    case 'draft':
+      return 'grey'
+    case 'under_review':
+      return 'blue'
+    case 'approved':
+      return 'green'
+    case 'rejected':
+      return 'red'
+    default:
+      return 'default'
   }
 }
 
 const insuranceLabel = (val) => {
   switch (val) {
-    case 'tenant': return 'Inquilino'
-    case 'owner': return 'Propietario'
-    case 'agency': return 'Inmobiliaria'
-    default: return '—'
+    case 'tenant':
+      return 'Inquilino'
+    case 'owner':
+      return 'Propietario'
+    case 'agency':
+      return 'Inmobiliaria'
+    default:
+      return '—'
   }
 }
 
@@ -118,5 +130,4 @@ const formatMoney = (amount, currency) => {
 const goToEdit = () => {
   router.push(`/rental-applications/${props.application.id}/edit`)
 }
-
 </script>

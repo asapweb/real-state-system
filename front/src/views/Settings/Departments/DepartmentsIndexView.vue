@@ -8,58 +8,65 @@
       min-width="0"
       @click="$router.push('/settings')"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M15 18L9 12L15 6"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </svg>
     </v-btn>
     <h2 class="">Departamentos</h2>
   </div>
 
-      <v-row class="">
-        <v-col>
-          <v-text-field
-          clearable
-            variant="solo-filled"
-            placeholder="Buscar"
-            class="elevation-0"
-            hide-details
-            v-model="name"
-          ></v-text-field>
-        </v-col>
+  <v-row class="">
+    <v-col>
+      <v-text-field
+        clearable
+        variant="solo-filled"
+        placeholder="Buscar"
+        class="elevation-0"
+        hide-details
+        v-model="name"
+      ></v-text-field>
+    </v-col>
 
-        <v-col class="text-right">
-          <v-btn
-            prepend-icon="mdi-plus"
-            color="primary"
-            variant="tonal"
-            @click="showFormDialog(null)"
-          >
-            Departamento</v-btn
-          >
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col>
-          <v-data-table
-          class="mt-4"
-          v-model:options="options"
-          :headers="headers"
-          :items="departments"
-          :items-length="totalItems"
-          :loading="loading"
-          :page="tablePage"
-          @update:options="fetchDepartments"
-          >
-          <template v-slot:loading>
-            <v-skeleton-loader type="table-row@4"></v-skeleton-loader>
-          </template>
-          <template v-slot:item.actions="{ item }">
-            <v-icon class="me-2" size="small" @click="showFormDialog(item)"> mdi-pencil </v-icon>
-            <v-icon size="small" @click="showDeleteDialog(item)"> mdi-delete </v-icon>
-          </template>
-        </v-data-table>
-      </v-col>
-    </v-row>
+    <v-col class="text-right">
+      <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" @click="showFormDialog(null)">
+        Departamento</v-btn
+      >
+    </v-col>
+  </v-row>
+  <v-row>
+    <v-col>
+      <v-data-table
+        class="mt-4"
+        v-model:options="options"
+        :headers="headers"
+        :items="departments"
+        :items-length="totalItems"
+        :loading="loading"
+        :page="tablePage"
+        @update:options="fetchDepartments"
+      >
+        <template v-slot:loading>
+          <v-skeleton-loader type="table-row@4"></v-skeleton-loader>
+        </template>
+        <template #[`item.actions`]="{ item }">
+          <v-icon class="me-2" size="small" @click="showFormDialog(item)"> mdi-pencil </v-icon>
+          <v-icon size="small" @click="showDeleteDialog(item)"> mdi-delete </v-icon>
+        </template>
+      </v-data-table>
+    </v-col>
+  </v-row>
 
   <v-container>
     <v-dialog v-model="deleteDialog" max-width="290">

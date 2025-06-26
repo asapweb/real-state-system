@@ -1,7 +1,5 @@
 <template>
-<RentalApplicationClientTable
-          :application-id="2"
-        />
+  <RentalApplicationClientTable :application-id="2" />
 </template>
 
 <script setup>

@@ -12,21 +12,27 @@
           subtitle="Crear y gestionar los usuarios"
           to="/settings/users"
         >
-          <template v-slot:append><v-btn color="grey-lighten-1" icon="mdi-chevron-right" variant="text"></v-btn> </template>
+          <template v-slot:append
+            ><v-btn color="grey-lighten-1" icon="mdi-chevron-right" variant="text"></v-btn>
+          </template>
         </v-list-item>
         <v-list-item
           title="Roles y Permisos"
           subtitle="Gestionar los roles de usuario"
           to="/settings/roles"
-          >
-          <template v-slot:append><v-btn color="grey-lighten-1" icon="mdi-chevron-right" variant="text"></v-btn> </template>
+        >
+          <template v-slot:append
+            ><v-btn color="grey-lighten-1" icon="mdi-chevron-right" variant="text"></v-btn>
+          </template>
         </v-list-item>
         <v-list-item
           title="Departamentos"
           subtitle="Crear y gestionar los departamentos"
           to="/settings/departments"
-          >
-          <template v-slot:append><v-btn color="grey-lighten-1" icon="mdi-chevron-right" variant="text"></v-btn> </template>
+        >
+          <template v-slot:append
+            ><v-btn color="grey-lighten-1" icon="mdi-chevron-right" variant="text"></v-btn>
+          </template>
         </v-list-item>
       </v-list>
     </v-col>
@@ -37,17 +43,9 @@
 import axios from '@/services/axios'
 import { ref, watch } from 'vue'
 import { debounce } from 'lodash-es'
-import { sendRequest } from '@/functions'
-import clientForm from '@/components/ClientForm.vue'
 
 // Server table
-const headers = [
-  { title: 'Nombre', key: 'name' },
-  { title: 'Departamentos', key: 'departments', sortable: false },
-  { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
-]
 const clientes = ref([])
-const tablePage = ref(1)
 const loading = ref(false)
 const totalItems = ref(0)
 
@@ -64,21 +62,6 @@ watch(
   },
   { deep: true },
 )
-
-const formDialog = ref(false)
-const usuarioSeleccionado = ref(null)
-
-let itemToDelete = null
-const deleteDialog = ref(false)
-
-const showFormDialog = (aClient) => {
-  usuarioSeleccionado.value = aClient
-  formDialog.value = true
-}
-const showDeleteDialog = (aClient) => {
-  itemToDelete = aClient
-  deleteDialog.value = true
-}
 
 const debouncedFetchClients = debounce(() => {
   fetchClients() // Reinicia siempre en la página 1 al filtrar
@@ -106,18 +89,5 @@ const fetchClients = async () => {
     .finally(() => {
       loading.value = false
     })
-}
-
-const deleteClient = async () => {
-  let res = await sendRequest('DELETE', '', 'api/clients/' + itemToDelete.id, '', '')
-  if (res) {
-    deleteDialog.value = false
-    fetchClients()
-  }
-}
-
-const onSaved = () => {
-  fetchClients()
-  formDialog.value = false
 }
 </script>

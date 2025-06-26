@@ -25,11 +25,14 @@
       />
     </v-card-title>
     <v-card-text>
-      <RentalApplicationTable :rental-offer-id="rentalOfferId" :show-filters="showFilters" ref="tableRef" />
+      <RentalApplicationTable
+        :rental-offer-id="rentalOfferId"
+        :show-filters="showFilters"
+        ref="tableRef"
+      />
     </v-card-text>
   </v-card>
   <div>
-
     <v-dialog v-model="dialog" max-width="800px">
       <v-card>
         <v-card-title>Crear nueva solicitud</v-card-title>
@@ -54,14 +57,14 @@ import RentalApplicationForm from '@/views/rental-applications/components/Rental
 import axios from '@/services/axios'
 
 defineProps({
-  rentalOfferId: { type: Number, required: true }
+  rentalOfferId: { type: Number, required: true },
 })
 
 const router = useRouter()
 const dialog = ref(false)
 const saving = ref(false)
 const tableRef = ref(null)
-const showFilters = ref(false);
+const showFilters = ref(false)
 
 const openCreateDialog = () => {
   dialog.value = true

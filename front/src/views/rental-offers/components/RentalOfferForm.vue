@@ -8,7 +8,7 @@
             <v-col cols="12" md="6">
               <PropertyAutocomplete
                 v-model="formData.property_id"
-                :error-messages="v$.property_id.$errors.map(e => e.$message)"
+                :error-messages="v$.property_id.$errors.map((e) => e.$message)"
               />
             </v-col>
           </v-row>
@@ -22,7 +22,7 @@
                 v-model="formData.price"
                 label="Precio mensual"
                 type="number"
-                :error-messages="v$.price.$errors.map(e => e.$message)"
+                :error-messages="v$.price.$errors.map((e) => e.$message)"
                 @blur="v$.price.$touch"
               />
             </v-col>
@@ -40,7 +40,7 @@
                 v-model="formData.duration_months"
                 label="Duración (meses)"
                 type="number"
-                :error-messages="v$.duration_months.$errors.map(e => e.$message)"
+                :error-messages="v$.duration_months.$errors.map((e) => e.$message)"
                 @blur="v$.duration_months.$touch"
               />
             </v-col>
@@ -65,10 +65,7 @@
           <!-- Sellado -->
           <v-row>
             <v-col cols="12" md="2">
-              <v-switch
-                v-model="formData.seal_required"
-                label="Requiere sellado"
-              />
+              <v-switch v-model="formData.seal_required" label="Requiere sellado" />
             </v-col>
             <v-col cols="12" md="3">
               <v-text-field
@@ -111,10 +108,7 @@
           <!-- Seguro y depósito -->
           <v-row>
             <v-col cols="12" md="3">
-              <v-switch
-                v-model="formData.includes_insurance"
-                label="Incluye seguro"
-              />
+              <v-switch v-model="formData.includes_insurance" label="Incluye seguro" />
             </v-col>
             <v-col cols="12" md="3">
               <v-text-field
@@ -135,11 +129,7 @@
               />
             </v-col>
             <v-col cols="12" md="6">
-              <v-textarea
-                v-model="formData.deposit_policy"
-                label="Política de depósito"
-                rows="2"
-              />
+              <v-textarea v-model="formData.deposit_policy" label="Política de depósito" rows="2" />
             </v-col>
           </v-row>
 
@@ -154,7 +144,7 @@
                 item-title="label"
                 item-value="value"
                 label="Estado"
-                :error-messages="v$.status.$errors.map(e => e.$message)"
+                :error-messages="v$.status.$errors.map((e) => e.$message)"
                 @blur="v$.status.$touch"
               />
             </v-col>
@@ -184,17 +174,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { useVuelidate } from '@vuelidate/core';
-import { required, numeric } from '@vuelidate/validators';
-import PropertyAutocomplete from '@/views/components/PropertyAutocomplete.vue';
+import { ref, reactive, onMounted } from 'vue'
+import { useVuelidate } from '@vuelidate/core'
+import { required, numeric } from '@vuelidate/validators'
+import PropertyAutocomplete from '@/views/components/PropertyAutocomplete.vue'
 
 const props = defineProps({
   initialData: { type: Object, default: () => ({}) },
-  loading: { type: Boolean, default: false }
-});
+  loading: { type: Boolean, default: false },
+})
 
-const emit = defineEmits(['submit', 'cancel']);
+const emit = defineEmits(['submit', 'cancel'])
 
 const formData = reactive({
   property_id: null,
@@ -215,41 +205,41 @@ const formData = reactive({
   allow_pets: false,
   status: 'draft',
   published_at: null,
-  notes: ''
-});
+  notes: '',
+})
 
 const rules = {
   property_id: { required },
   price: { required, numeric, minValue: 0 },
   duration_months: { required, numeric, minValue: 1 },
-  status: { required }
-};
+  status: { required },
+}
 
-const v$ = useVuelidate(rules, formData);
-const formRef = ref(null);
+const v$ = useVuelidate(rules, formData)
+const formRef = ref(null)
 
 const statusOptions = [
   { value: 'draft', label: 'Borrador' },
   { value: 'published', label: 'Publicado' },
   { value: 'paused', label: 'Pausado' },
-  { value: 'closed', label: 'Cerrado' }
-];
+  { value: 'closed', label: 'Cerrado' },
+]
 
 const currencyOptions = [
   { value: 'ARS', label: 'Pesos (ARS)' },
   { value: 'USD', label: 'Dólares (USD)' },
-  { value: 'EUR', label: 'Euros (EUR)' }
-];
+  { value: 'EUR', label: 'Euros (EUR)' },
+]
 
 const handleSubmit = async () => {
-  const isValid = await v$.value.$validate();
-  if (!isValid) return;
-  emit('submit', { ...formData });
-};
+  const isValid = await v$.value.$validate()
+  if (!isValid) return
+  emit('submit', { ...formData })
+}
 
 onMounted(() => {
   if (props.initialData?.id) {
-    Object.assign(formData, props.initialData);
+    Object.assign(formData, props.initialData)
   }
-});
+})
 </script>

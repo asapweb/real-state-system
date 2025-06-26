@@ -1,5 +1,5 @@
 // src/services/billingDetailService.js
-import api from './axios'; // <--- ¡Importa desde tu axios.js!
+import api from './axios' // <--- ¡Importa desde tu axios.js!
 
 export default {
   /**
@@ -9,8 +9,7 @@ export default {
    * @returns {Promise<Array>} - Una promesa que resuelve con un array de detalles de facturación
    */
   getBillingDetailsByClient(clientId) {
-    return api.get(`/api/clients/${clientId}/billing-details`)
-      .then(response => response.data);
+    return api.get(`/api/clients/${clientId}/billing-details`).then((response) => response.data)
   },
 
   /**
@@ -23,8 +22,9 @@ export default {
   createBillingDetail(clientId, data) {
     // Asegúrate de que 'data' solo contenga los campos de tu migración simplificada
     // (billing_name, document_type_id, document_number, billing_address, is_default, tax_condition_id)
-    return api.post(`/api/clients/${clientId}/billing-details`, data)
-      .then(response => response.data);
+    return api
+      .post(`/api/clients/${clientId}/billing-details`, data)
+      .then((response) => response.data)
   },
 
   /**
@@ -38,8 +38,9 @@ export default {
   updateBillingDetail(clientId, billingDetailId, data) {
     // Es CRUCIAL que clientId esté aquí para construir la URL correctamente.
     // Asegúrate de que 'data' solo contenga los campos de tu migración simplificada
-    return api.put(`/api/clients/${clientId}/billing-details/${billingDetailId}`, data)
-      .then(response => response.data);
+    return api
+      .put(`/api/clients/${clientId}/billing-details/${billingDetailId}`, data)
+      .then((response) => response.data)
   },
 
   /**
@@ -51,7 +52,8 @@ export default {
    */
   deleteBillingDetail(clientId, billingDetailId) {
     // Es CRUCIAL que clientId esté aquí para construir la URL correctamente.
-    return api.delete(`/api/clients/${clientId}/billing-details/${billingDetailId}`)
-      .then(response => response.data);
+    return api
+      .delete(`/api/clients/${clientId}/billing-details/${billingDetailId}`)
+      .then((response) => response.data)
   },
-};
+}

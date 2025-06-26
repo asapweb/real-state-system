@@ -8,12 +8,25 @@
       min-width="0"
       @click="goBack"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M15 18L9 12L15 6"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </svg>
     </v-btn>
-    <h2 class="">Cliente <span class="font-weight-light">/ {{ client?.name }} {{ client?.last_name }}</span></h2>
-
+    <h2 class="">
+      Cliente <span class="font-weight-light">/ {{ client?.name }} {{ client?.last_name }}</span>
+    </h2>
   </div>
   <VRow>
     <VCol cols="6" class="mb-4">
@@ -23,15 +36,14 @@
       <AttachmentManager v-if="client" :attachable-type="'client'" :attachable-id="client?.id" />
     </v-col>
   </VRow>
-
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '@/services/axios'
-import AttachmentManager from '@/views/components/AttachmentManager.vue';
-import ClientInfoCard from './components/ClientInfoCard.vue';
+import AttachmentManager from '@/views/components/AttachmentManager.vue'
+import ClientInfoCard from './components/ClientInfoCard.vue'
 
 const route = useRoute()
 const router = useRouter()

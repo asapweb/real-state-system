@@ -9,7 +9,7 @@
       class="mr-2"
       hide-details
       single-line
-      style="flex: 1;"
+      style="flex: 1"
     />
 
     <v-select
@@ -22,7 +22,7 @@
       flat
       hide-details
       clearable
-      style="max-width: 200px;"
+      style="max-width: 200px"
     />
   </div>
 
@@ -37,38 +37,46 @@
     item-value="id"
     @update:options="fetchOffers"
   >
-    <template #item.id="{ item }">
-      <RouterLink :to="`/rental-offers/${item.id}`" class="text-primary text-decoration-none font-weight-bold">
+    <template #[`item.id`]="{ item }">
+      <RouterLink
+        :to="`/rental-offers/${item.id}`"
+        class="text-primary text-decoration-none font-weight-bold"
+      >
         {{ formatModelId(item.id, 'OFE') }}
       </RouterLink>
     </template>
 
-    <template #item.property.street="{ item }">
-      <RouterLink :to="`/properties/${item.property?.id}`" class="text-primary text-decoration-none font-weight-bold">
-        <span v-if="item.property?.neighborhood?.name">{{ item.property?.neighborhood?.name }}, </span>
+    <template #[`item.property.street`]="{ item }">
+      <RouterLink
+        :to="`/properties/${item.property?.id}`"
+        class="text-primary text-decoration-none font-weight-bold"
+      >
+        <span v-if="item.property?.neighborhood?.name"
+          >{{ item.property?.neighborhood?.name }},
+        </span>
         {{ item.property?.street }} {{ item.property?.number || '' }}
       </RouterLink>
     </template>
 
-    <template #item.created_at="{ item }">
+    <template #[`item.created_at`]="{ item }">
       {{ formatDateTime(item.created_at) }}
     </template>
 
-    <template #item.availability_date="{ item }">
+    <template #[`item.availability_date`]="{ item }">
       {{ formatDateTime(item.availability_date) }}
     </template>
 
-    <template #item.price="{ item }">
+    <template #[`item.price`]="{ item }">
       {{ formatMoney(item.price, item.currency) }}
     </template>
 
-    <template #item.status="{ item }">
+    <template #[`item.status`]="{ item }">
       <v-chip :color="statusColor(item.status)" size="small" variant="flat">
         {{ statusLabel(item.status) }}
       </v-chip>
     </template>
 
-    <template #item.actions="{ item }">
+    <template #[`item.actions`]="{ item }">
       <v-icon class="me-2" size="small" @click="emit('edit', item)" title="Editar Oferta">
         mdi-pencil
       </v-icon>
@@ -84,8 +92,8 @@
       <v-card-title class="text-h5">Confirmar Eliminación</v-card-title>
       <v-card-text>
         ¿Estás seguro de que deseas eliminar la oferta de
-        <strong>{{ offerToDelete?.property?.street }} {{ offerToDelete?.property?.number }}</strong>?
-        Esta acción no se puede deshacer.
+        <strong>{{ offerToDelete?.property?.street }} {{ offerToDelete?.property?.number }}</strong
+        >? Esta acción no se puede deshacer.
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -100,9 +108,9 @@
 <script setup>
 import { ref, watch, reactive, onMounted } from 'vue'
 import axios from '@/services/axios'
-import { formatMoney } from '@/utils/money';
-import { formatDateTime } from '@/utils/date-formatter';
-import { formatModelId } from '@/utils/models-formatter';
+import { formatMoney } from '@/utils/money'
+import { formatDateTime } from '@/utils/date-formatter'
+import { formatModelId } from '@/utils/models-formatter'
 const emit = defineEmits(['edit', 'delete', 'error'])
 
 const offers = ref([])
@@ -115,7 +123,7 @@ const searchStatus = ref(null)
 const options = reactive({
   page: 1,
   itemsPerPage: 10,
-  sortBy: [{ key: 'id', order: 'desc' }]
+  sortBy: [{ key: 'id', order: 'desc' }],
 })
 
 const headers = [
@@ -125,36 +133,34 @@ const headers = [
   { title: 'Disponible', key: 'availability_date', sortable: true },
   { title: 'Creación', key: 'created_at', sortable: true },
   { title: 'Estado', key: 'status', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' }
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
 
 const statusOptions = [
   { label: 'Borrador', value: 'draft' },
   { label: 'Publicado', value: 'published' },
   { label: 'Pausado', value: 'paused' },
-  { label: 'Cerrado', value: 'closed' }
+  { label: 'Cerrado', value: 'closed' },
 ]
 
 const statusLabel = (status) => {
-  return statusOptions.find(s => s.value === status)?.label || '—'
+  return statusOptions.find((s) => s.value === status)?.label || '—'
 }
 
 const statusColor = (status) => {
   switch (status) {
-    case 'draft': return 'grey';
-    case 'published': return 'green';
-    case 'paused': return 'orange';
-    case 'closed': return 'red';
-    default: return 'default';
+    case 'draft':
+      return 'grey'
+    case 'published':
+      return 'green'
+    case 'paused':
+      return 'orange'
+    case 'closed':
+      return 'red'
+    default:
+      return 'default'
   }
 }
-
-const formatPrice = (price, currency) => {
-  if (isNaN(Number(price))) return '—';
-  const value = Number(price).toFixed(2);
-  return `${value} ${currency}`;
-};
-
 
 const fetchOffers = async () => {
   loading.value = true
@@ -165,7 +171,7 @@ const fetchOffers = async () => {
     sort_direction: options.sortBy[0]?.order || 'desc',
     'search[status]': searchStatus.value,
     'search[text]': searchText.value,
-    with_property: true
+    with_property: true,
   }
   try {
     const { data } = await axios.get('/api/rental-offers', { params })

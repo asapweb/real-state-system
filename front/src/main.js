@@ -5,17 +5,15 @@ import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
 // Vuetify
-import vuetify from './plugins/vuetify';
+import vuetify from './plugins/vuetify'
 import 'vuetify/styles'
 
 import App from './App.vue'
 import router from './router'
-import axios from './services/axios'
 
 import '@mdi/font/css/materialdesignicons.css'
 
 import { initializeNotificationsListener } from './listeners/notificationsListener'
-
 
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)

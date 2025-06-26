@@ -8,7 +8,7 @@ import AppointmentShow from '@/components/AppointmentShow.vue'
 import moment from 'moment'
 import 'moment/locale/es'
 import echo from '../services/sockets'
-import { formatReducedDateTime } from '@/utils/date-formatter';
+import { formatReducedDateTime } from '@/utils/date-formatter'
 echo.channel('visits').listen('.visit-status', () => {
   fetchAppointments()
 })

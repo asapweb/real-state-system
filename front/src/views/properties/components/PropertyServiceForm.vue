@@ -11,7 +11,7 @@
                 item-title="label"
                 item-value="value"
                 label="Tipo de servicio"
-                :error-messages="v$.service_type.$errors.map(e => e.$message)"
+                :error-messages="v$.service_type.$errors.map((e) => e.$message)"
                 @blur="v$.service_type.$touch"
               />
             </v-col>
@@ -20,7 +20,7 @@
               <v-text-field
                 v-model="form.account_number"
                 label="Número de cuenta"
-                :error-messages="v$.account_number.$errors.map(e => e.$message)"
+                :error-messages="v$.account_number.$errors.map((e) => e.$message)"
                 @blur="v$.account_number.$touch"
               />
             </v-col>
@@ -29,7 +29,7 @@
               <v-text-field
                 v-model="form.provider_name"
                 label="Nombre del proveedor"
-                :error-messages="v$.provider_name.$errors.map(e => e.$message)"
+                :error-messages="v$.provider_name.$errors.map((e) => e.$message)"
                 @blur="v$.provider_name.$touch"
               />
             </v-col>
@@ -38,16 +38,13 @@
               <v-text-field
                 v-model="form.owner_name"
                 label="Titular del servicio"
-                :error-messages="v$.owner_name.$errors.map(e => e.$message)"
+                :error-messages="v$.owner_name.$errors.map((e) => e.$message)"
                 @blur="v$.owner_name.$touch"
               />
             </v-col>
 
             <v-col cols="12">
-              <v-switch
-                v-model="form.is_active"
-                label="¿Servicio activo?"
-              />
+              <v-switch v-model="form.is_active" label="¿Servicio activo?" />
             </v-col>
           </v-row>
         </v-container>
@@ -65,15 +62,15 @@
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue';
-import { useVuelidate } from '@vuelidate/core';
-import { required } from '@vuelidate/validators';
+import { reactive, watch } from 'vue'
+import { useVuelidate } from '@vuelidate/core'
+import { required } from '@vuelidate/validators'
 
 const props = defineProps({
   loading: Boolean,
-  initialData: Object
-});
-const emit = defineEmits(['submit', 'cancel']);
+  initialData: Object,
+})
+const emit = defineEmits(['submit', 'cancel'])
 
 const form = reactive({
   service_type: '',
@@ -81,48 +78,48 @@ const form = reactive({
   provider_name: '',
   owner_name: '',
   is_active: true, // nuevo campo
-});
+})
 
 const rules = {
   service_type: { required },
   account_number: { required },
   provider_name: { required },
-  owner_name: { required }
-};
+  owner_name: { required },
+}
 
-const v$ = useVuelidate(rules, form);
+const v$ = useVuelidate(rules, form)
 
 watch(
   () => props.initialData,
   (data) => {
     if (data) {
-      form.service_type = data.service_type ?? '';
-      form.account_number = data.account_number ?? '';
-      form.provider_name = data.provider_name ?? '';
-      form.owner_name = data.owner_name ?? '';
-      form.is_active = data.is_active ?? true;
+      form.service_type = data.service_type ?? ''
+      form.account_number = data.account_number ?? ''
+      form.provider_name = data.provider_name ?? ''
+      form.owner_name = data.owner_name ?? ''
+      form.is_active = data.is_active ?? true
     } else {
-      form.service_type = '';
-      form.account_number = '';
-      form.provider_name = '';
-      form.owner_name = '';
-      form.is_active = true;
+      form.service_type = ''
+      form.account_number = ''
+      form.provider_name = ''
+      form.owner_name = ''
+      form.is_active = true
     }
   },
-  { immediate: true }
-);
+  { immediate: true },
+)
 
 const serviceTypes = [
   { label: 'Electricidad', value: 'electricity' },
   { label: 'Agua', value: 'water' },
   { label: 'Gas', value: 'gas' },
   { label: 'Internet', value: 'internet' },
-  { label: 'Teléfono', value: 'phone' }
-];
+  { label: 'Teléfono', value: 'phone' },
+]
 
 const handleSubmit = async () => {
-  const isValid = await v$.value.$validate();
-  if (!isValid) return;
-  emit('submit', { ...form });
-};
+  const isValid = await v$.value.$validate()
+  if (!isValid) return
+  emit('submit', { ...form })
+}
 </script>

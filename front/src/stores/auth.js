@@ -68,11 +68,11 @@ export const useAuthStore = defineStore(
     }
 
     const hasAnyRole = (rolesArray) => {
-      return rolesArray.some(role => authRoles.value.includes(role))
+      return rolesArray.some((role) => authRoles.value.includes(role))
     }
 
     const checkAnyPermission = (permissionsArray) => {
-      return permissionsArray.some(permission => authPermissions.value.includes(permission))
+      return permissionsArray.some((permission) => authPermissions.value.includes(permission))
     }
 
     // Persistir el estado

@@ -17,7 +17,7 @@ onMounted(async () => {
     const res = await sendRequest('get', {}, '/api/version', '')
     api_version.value = res.data.api_version
   } catch (error) {
-    console.error("No se pudo obtener la versión de la API:", error)
+    console.error('No se pudo obtener la versión de la API:', error)
     api_version.value = 'Error'
   }
 })

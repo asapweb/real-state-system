@@ -2,27 +2,23 @@
   <div class="mb-8">
     <div class="mb-1 d-flex justify-space-between align-center">
       <h2>Clientes</h2>
-      <v-btn
-        color="primary"
-        prepend-icon="mdi-plus"
-        @click="router.push('/clients/create')"
-      >
+      <v-btn color="primary" prepend-icon="mdi-plus" @click="router.push('/clients/create')">
         Crear Cliente
       </v-btn>
     </div>
-    <p class="text-medium-emphasis mt-1" >
-      Personas físicas o jurídicas. <br> Pueden ser propietarios, inquilinos, garantes, proveedores o combinaciones.
-
+    <p class="text-medium-emphasis mt-1">
+      Personas físicas o jurídicas. <br />
+      Pueden ser propietarios, inquilinos, garantes, proveedores o combinaciones.
     </p>
   </div>
   <v-row>
     <v-col cols="12" class="mb-4">
-          <ClientTable
-            ref="clientTableRef"
-            @edit-client="handleEdit"
-            @delete-client="handleDelete"
-            @error="handleError"
-          />
+      <ClientTable
+        ref="clientTableRef"
+        @edit-client="handleEdit"
+        @delete-client="handleDelete"
+        @error="handleError"
+      />
     </v-col>
   </v-row>
 </template>

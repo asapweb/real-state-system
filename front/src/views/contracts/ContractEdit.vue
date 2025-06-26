@@ -10,7 +10,10 @@
     >
       <v-icon>mdi-arrow-left</v-icon>
     </v-btn>
-    <h2 class="">Editar Contrato <span class="font-weight-light">/ {{ formatModelId(contract?.id, 'CON') }}</span></h2>
+    <h2 class="">
+      Editar Contrato
+      <span class="font-weight-light">/ {{ formatModelId(contract?.id, 'CON') }}</span>
+    </h2>
   </div>
 
   <ContractForm
@@ -23,48 +26,48 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import axios from '@/services/axios';
-import ContractForm from './components/ContractForm.vue';
-import { useSnackbar } from '@/composables/useSnackbar';
-import { formatModelId } from '@/utils/models-formatter';
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import axios from '@/services/axios'
+import ContractForm from './components/ContractForm.vue'
+import { useSnackbar } from '@/composables/useSnackbar'
+import { formatModelId } from '@/utils/models-formatter'
 
-const route = useRoute();
-const router = useRouter();
-const snackbar = useSnackbar();
+const route = useRoute()
+const router = useRouter()
+const snackbar = useSnackbar()
 
-const contract = ref(null);
-const isSubmitting = ref(false);
-const id = route.params.id;
+const contract = ref(null)
+const isSubmitting = ref(false)
+const id = route.params.id
 
-const goBack = () => router.push('/contracts');
+const goBack = () => router.push('/contracts')
 
 const fetchContract = async () => {
   try {
-    const { data } = await axios.get(`/api/contracts/${id}`);
-    contract.value = data;
+    const { data } = await axios.get(`/api/contracts/${id}`)
+    contract.value = data
   } catch (error) {
-    snackbar.error('No se pudo cargar el contrato');
-    console.error(error);
-    goBack();
+    snackbar.error('No se pudo cargar el contrato')
+    console.error(error)
+    goBack()
   }
-};
+}
 
 const update = async (formData) => {
-  isSubmitting.value = true;
+  isSubmitting.value = true
   try {
-    await axios.put(`/api/contracts/${id}`, formData);
-    router.push(`/contracts/${id}`);
+    await axios.put(`/api/contracts/${id}`, formData)
+    router.push(`/contracts/${id}`)
   } catch (error) {
-    let message = 'Hubo un error al actualizar el contrato';
-    if (error.response?.data?.message) message = error.response.data.message;
-    snackbar.error(message);
-    console.error(error);
+    let message = 'Hubo un error al actualizar el contrato'
+    if (error.response?.data?.message) message = error.response.data.message
+    snackbar.error(message)
+    console.error(error)
   } finally {
-    isSubmitting.value = false;
+    isSubmitting.value = false
   }
-};
+}
 
-onMounted(fetchContract);
+onMounted(fetchContract)
 </script>

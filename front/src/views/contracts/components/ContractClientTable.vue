@@ -31,25 +31,25 @@
         item-value="id"
         @update:options="fetchClients"
       >
-        <template #item.client.full_name="{ item }">
+        <template #[`item.client.full_name`]="{ item }">
           {{ item.client?.last_name }}, {{ item.client?.name }}
         </template>
 
-        <template #item.role="{ item }">
+        <template #[`item.role`]="{ item }">
           {{ roleLabel(item.role) }}
         </template>
 
-        <template #item.ownership_percentage="{ item }">
+        <template #[`item.ownership_percentage`]="{ item }">
           <span v-if="item.ownership_percentage !== null">{{ item.ownership_percentage }}%</span>
           <span v-else>—</span>
         </template>
 
-        <template #item.is_primary="{ item }">
+        <template #[`item.is_primary`]="{ item }">
           <v-icon color="green" v-if="item.is_primary">mdi-check-circle</v-icon>
           <v-icon color="grey" v-else>mdi-minus-circle</v-icon>
         </template>
 
-        <template #item.actions="{ item }">
+        <template #[`item.actions`]="{ item }">
           <v-icon size="small" class="me-2" @click="editClient(item)">mdi-pencil</v-icon>
           <v-icon size="small" @click="confirmDelete(item)">mdi-delete</v-icon>
         </template>
@@ -89,7 +89,7 @@ import ContractClientForm from './ContractClientForm.vue'
 
 const props = defineProps({
   contractId: { type: Number, required: true },
-  editable: { type: Boolean, default: true }
+  editable: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['updated'])
@@ -108,7 +108,7 @@ const clientToDelete = ref(null)
 const options = reactive({
   page: 1,
   itemsPerPage: 10,
-  sortBy: [{ key: 'id', order: 'asc' }]
+  sortBy: [{ key: 'id', order: 'asc' }],
 })
 
 const headers = [
@@ -116,14 +116,14 @@ const headers = [
   { title: 'Rol', key: 'role', sortable: true },
   { title: '% Titularidad', key: 'ownership_percentage', sortable: true },
   { title: 'Responsable principal', key: 'is_primary', sortable: false },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' }
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
 
 const roleLabel = (role) => {
   const map = {
     owner: 'Propietario',
     tenant: 'Inquilino',
-    guarantor: 'Garante'
+    guarantor: 'Garante',
   }
   return map[role] || role
 }
@@ -136,12 +136,13 @@ const fetchClients = async () => {
         page: options.page,
         per_page: options.itemsPerPage,
         sort_by: options.sortBy[0]?.key || 'id',
-        sort_direction: options.sortBy[0]?.order || 'asc'
-      }
+        sort_direction: options.sortBy[0]?.order || 'asc',
+      },
     })
     clients.value = data.data
     total.value = data.total
-  } catch (e) {
+  } catch (error) {
+    console.log(error)
     snackbar.error('No se pudieron cargar los clientes del contrato.')
   } finally {
     loading.value = false
@@ -167,7 +168,10 @@ const handleSave = async (formData) => {
   saving.value = true
   try {
     if (selectedClient.value?.id) {
-      await axios.put(`/api/contracts/${props.contractId}/clients/${selectedClient.value.id}`, formData)
+      await axios.put(
+        `/api/contracts/${props.contractId}/clients/${selectedClient.value.id}`,
+        formData,
+      )
     } else {
       await axios.post(`/api/contracts/${props.contractId}/clients`, formData)
     }
@@ -194,7 +198,8 @@ const deleteClient = async () => {
     snackbar.success('Eliminado con éxito')
     fetchClients()
     emit('updated')
-  } catch (e) {
+  } catch (error) {
+    console.log(error)
     snackbar.error('Error al eliminar')
   } finally {
     dialogDelete.value = false

@@ -30,9 +30,7 @@
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="close">Cancelar</v-btn>
-        <v-btn color="primary" @click="submitForm" :loading="loading">
-          Guardar
-        </v-btn>
+        <v-btn color="primary" @click="submitForm" :loading="loading"> Guardar </v-btn>
       </v-card-actions>
       <v-divider class="my-2" />
       <v-card-text class="text-caption text-medium-emphasis">
@@ -49,76 +47,74 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
-import axios from '@/services/axios';
+import { ref, watch, computed } from 'vue'
+import axios from '@/services/axios'
 
-const emit = defineEmits(['update:modelValue', 'updated', 'error']);
+const emit = defineEmits(['update:modelValue', 'updated', 'error'])
 
 const props = defineProps({
   modelValue: Boolean,
   adjustment: Object,
-});
+})
 
 const modelValue = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val),
-});
+})
 
-const formRef = ref(null);
-const loading = ref(false);
+const formRef = ref(null)
+const loading = ref(false)
 
 const form = ref({
   value: null,
   notes: '',
-});
+})
 
 const rules = {
   requiredIfApplicable: (v) => {
     if (props.adjustment?.type !== 'index' && (v === null || v === '')) {
-      return 'Este campo es obligatorio';
+      return 'Este campo es obligatorio'
     }
-    return true;
+    return true
   },
-};
+}
 
 const title = computed(() =>
-  props.adjustment?.value === null
-    ? 'Cargar valor del ajuste'
-    : 'Editar valor del ajuste'
-);
+  props.adjustment?.value === null ? 'Cargar valor del ajuste' : 'Editar valor del ajuste',
+)
 
 watch(
   () => props.adjustment,
   (adj) => {
     if (adj) {
-      form.value.value = adj.value;
-      form.value.notes = adj.notes || '';
+      form.value.value = adj.value
+      form.value.notes = adj.notes || ''
     }
   },
-  { immediate: true }
-);
+  { immediate: true },
+)
 
 const submitForm = async () => {
-  const isValid = await formRef.value?.validate();
-  if (!isValid) return;
+  const isValid = await formRef.value?.validate()
+  if (!isValid) return
 
-  loading.value = true;
+  loading.value = true
   try {
     await axios.patch(
       `api/contracts/${props.adjustment.contract_id}/adjustments/${props.adjustment.id}/value`,
-      form.value
-    );
-    emit('updated');
-    close();
+      form.value,
+    )
+    emit('updated')
+    close()
   } catch (e) {
-    console.error(e);
-    emit('error', 'No se pudo guardar el ajuste');
+    console.error(e)
+    emit('error', 'No se pudo guardar el ajuste')
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const close = () => {
-  emit('update:modelValue', false);
-};
+  emit('update:modelValue', false)
+}
 </script>

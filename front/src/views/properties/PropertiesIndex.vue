@@ -2,16 +2,12 @@
   <div class="mb-8">
     <div class="d-flex justify-space-between align-center">
       <h2>Propiedades</h2>
-      <v-btn
-        color="primary"
-        prepend-icon="mdi-plus"
-        @click="router.push('/properties/create')"
-      >
+      <v-btn color="primary" prepend-icon="mdi-plus" @click="router.push('/properties/create')">
         Crear Propiedad
       </v-btn>
     </div>
-    <p class="text-medium-emphasis mt-1" >
-      Inmuebles administrados por la inmobiliaria. <br>
+    <p class="text-medium-emphasis mt-1">
+      Inmuebles administrados por la inmobiliaria. <br />
       Incluyen datos generales, ubicación, propietarios, servicios, estado y documentación.
     </p>
   </div>

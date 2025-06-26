@@ -19,8 +19,8 @@
 </template>
 
 <script setup>
-  import { RouterView } from 'vue-router'
-  import { reactive, watch } from 'vue'
+import { RouterView } from 'vue-router'
+import { reactive, watch } from 'vue'
 import { useSnackbar } from '@/composables/useSnackbar'
 
 const { queue } = useSnackbar()
@@ -38,7 +38,7 @@ watch(
       }
     })
   },
-  { deep: true }
+  { deep: true },
 )
 
 const onClose = (val, id) => {

@@ -10,7 +10,7 @@
       flat
       hide-details
       clearable
-      style="max-width: 200px;"
+      style="max-width: 200px"
     />
 
     <v-select
@@ -24,7 +24,7 @@
       hide-details
       clearable
       class="ml-2"
-      style="max-width: 200px;"
+      style="max-width: 200px"
     />
 
     <v-text-field
@@ -36,10 +36,9 @@
       class="ml-2"
       hide-details
       single-line
-      style="flex: 1;"
+      style="flex: 1"
     />
   </div>
-
 
   <v-data-table-server
     v-model:items-per-page="options.itemsPerPage"
@@ -52,33 +51,39 @@
     item-value="id"
     @update:options="fetchProperties"
   >
-    <template #item.property_type.name="{ item }">
+    <template #[`item.property_type.name`]="{ item }">
       {{ item.property_type?.name || '—' }}
     </template>
-    <template #item.created_at="{ item }">
+    <template #[`item.created_at`]="{ item }">
       {{ formatDateTime(item.created_at) }}
     </template>
-    <template #item.id="{ item }">
-      <RouterLink :to="`/properties/${item.id}`" class="text-primary font-weight-bold text-decoration-none">
+    <template #[`item.id`]="{ item }">
+      <RouterLink
+        :to="`/properties/${item.id}`"
+        class="text-primary font-weight-bold text-decoration-none"
+      >
         {{ formatModelId(item.id, 'PRO') }}
       </RouterLink>
     </template>
-    <template #item.street="{ item }">
-      {{ item.street }} {{ item.number || '' }}
-    </template>
+    <template #[`item.street`]="{ item }"> {{ item.street }} {{ item.number || '' }} </template>
 
-    <template #item.city.name="{ item }">
+    <template #[`item.city.name`]="{ item }">
       {{ item.city?.name || '—' }}
     </template>
 
-    <template #item.status="{ item }">
+    <template #[`item.status`]="{ item }">
       <v-chip :color="statusColor(item.status)" size="small" variant="flat">
         {{ statusLabel(item.status) }}
       </v-chip>
     </template>
 
-    <template #item.actions="{ item }">
-      <v-icon class="me-2" size="small" @click="emit('edit-property', item)" title="Editar Propiedad">
+    <template #[`item.actions`]="{ item }">
+      <v-icon
+        class="me-2"
+        size="small"
+        @click="emit('edit-property', item)"
+        title="Editar Propiedad"
+      >
         mdi-pencil
       </v-icon>
       <v-icon size="small" @click="openDeleteDialog(item)" title="Eliminar Propiedad">
@@ -92,8 +97,8 @@
       <v-card-title class="text-h5">Confirmar Eliminación</v-card-title>
       <v-card-text>
         ¿Estás seguro de que deseas eliminar la propiedad
-        <strong>{{ propertyToDelete?.street }} {{ propertyToDelete?.number }}</strong>?
-        Esta acción no se puede deshacer.
+        <strong>{{ propertyToDelete?.street }} {{ propertyToDelete?.number }}</strong
+        >? Esta acción no se puede deshacer.
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -108,8 +113,8 @@
 <script setup>
 import { ref, watch, reactive, onMounted } from 'vue'
 import axios from 'axios'
-import { formatDateTime } from '@/utils/date-formatter';
-import { formatModelId } from '@/utils/models-formatter';
+import { formatDateTime } from '@/utils/date-formatter'
+import { formatModelId } from '@/utils/models-formatter'
 
 const emit = defineEmits(['edit-property', 'delete-property', 'error'])
 
@@ -119,13 +124,13 @@ const loading = ref(false)
 
 const searchText = ref('')
 const searchStatus = ref(null)
-const searchType = ref(null);
-const propertyTypes = ref([]);
+const searchType = ref(null)
+const propertyTypes = ref([])
 
 const options = reactive({
   page: 1,
   itemsPerPage: 10,
-  sortBy: [{ key: 'id', order: 'asc' }]
+  sortBy: [{ key: 'id', order: 'asc' }],
 })
 
 const headers = [
@@ -136,25 +141,29 @@ const headers = [
   { title: 'Barrio', key: 'neighborhood.name', sortable: false },
   { title: 'Creación', key: 'created_at', sortable: true },
   { title: 'Estado', key: 'status', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' }
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
 
 const statusOptions = [
   { label: 'Borrador', value: 'draft' },
   { label: 'Publicado', value: 'published' },
-  { label: 'Archivado', value: 'archived' }
+  { label: 'Archivado', value: 'archived' },
 ]
 
 const statusLabel = (status) => {
-  return statusOptions.find(s => s.value === status)?.label || '—'
+  return statusOptions.find((s) => s.value === status)?.label || '—'
 }
 
 const statusColor = (status) => {
   switch (status) {
-    case 'draft': return 'grey';
-    case 'published': return 'green';
-    case 'archived': return 'red';
-    default: return 'default';
+    case 'draft':
+      return 'grey'
+    case 'published':
+      return 'green'
+    case 'archived':
+      return 'red'
+    default:
+      return 'default'
   }
 }
 
@@ -183,14 +192,13 @@ const fetchProperties = async () => {
 
 onMounted(async () => {
   try {
-    const { data } = await axios.get('/api/property-types');
-    propertyTypes.value = data;
+    const { data } = await axios.get('/api/property-types')
+    propertyTypes.value = data
   } catch (error) {
-    console.error('Error al cargar tipos de propiedad:', error);
-    emit('error', 'No se pudieron cargar los tipos de propiedad.');
+    console.error('Error al cargar tipos de propiedad:', error)
+    emit('error', 'No se pudieron cargar los tipos de propiedad.')
   }
-});
-
+})
 
 defineExpose({ reload: fetchProperties })
 
@@ -229,8 +237,7 @@ watch(searchStatus, () => {
 })
 
 watch(searchType, () => {
-  options.page = 1;
-  fetchProperties();
-});
-
+  options.page = 1
+  fetchProperties()
+})
 </script>

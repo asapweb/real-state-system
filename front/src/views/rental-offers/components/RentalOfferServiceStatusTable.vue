@@ -14,21 +14,11 @@
       </template>
 
       <template #[`item.is_active`]="{ item }">
-        <v-switch
-          v-model="item.is_active"
-          hide-details
-          density="compact"
-          @change="save(item)"
-        />
+        <v-switch v-model="item.is_active" hide-details density="compact" @change="save(item)" />
       </template>
 
       <template #[`item.has_debt`]="{ item }">
-        <v-switch
-          v-model="item.has_debt"
-          hide-details
-          density="compact"
-          @change="save(item)"
-        />
+        <v-switch v-model="item.has_debt" hide-details density="compact" @change="save(item)" />
       </template>
 
       <template #[`item.debt_amount`]="{ item }">
@@ -55,12 +45,7 @@
       </template>
 
       <template #[`item.notes`]="{ item }">
-        <v-text-field
-          v-model="item.notes"
-          density="compact"
-          hide-details
-          @blur="save(item)"
-        />
+        <v-text-field v-model="item.notes" density="compact" hide-details @blur="save(item)" />
       </template>
     </v-data-table>
   </v-card>
@@ -71,7 +56,7 @@ import { ref, onMounted, watch } from 'vue'
 import axios from '@/services/axios'
 
 const props = defineProps({
-  rentalOfferId: { type: Number, required: true }
+  rentalOfferId: { type: Number, required: true },
 })
 
 const services = ref([])
@@ -83,13 +68,13 @@ const headers = [
   { title: 'Con deuda', key: 'has_debt', sortable: false },
   { title: 'Monto deuda', key: 'debt_amount', sortable: false },
   { title: 'Pagado por', key: 'paid_by', sortable: false },
-  { title: 'Observaciones', key: 'notes', sortable: false }
+  { title: 'Observaciones', key: 'notes', sortable: false },
 ]
 
 const payerOptions = [
   { label: 'Inquilino', value: 'tenant' },
   { label: 'Propietario', value: 'owner' },
-  { label: 'Inmobiliaria', value: 'agency' }
+  { label: 'Inmobiliaria', value: 'agency' },
 ]
 
 const fetchServices = async () => {

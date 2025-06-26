@@ -9,11 +9,11 @@ const clientService = {
    */
   async getClients(params = {}) {
     try {
-      const response = await axios.get(`/api/clients`, { params });
-      return response.data;
+      const response = await axios.get(`/api/clients`, { params })
+      return response.data
     } catch (error) {
-      console.error("Error al obtener clients:", error);
-      throw error; // Propagar el error para que el componente lo maneje
+      console.error('Error al obtener clients:', error)
+      throw error // Propagar el error para que el componente lo maneje
     }
   },
 
@@ -24,11 +24,11 @@ const clientService = {
    */
   async getClient(id) {
     try {
-      const response = await axios.get(`/api/clients/${id}`);
-      return response.data;
+      const response = await axios.get(`/api/clients/${id}`)
+      return response.data
     } catch (error) {
-      console.error(`Error al obtener cliente con ID ${id}:`, error);
-      throw error;
+      console.error(`Error al obtener cliente con ID ${id}:`, error)
+      throw error
     }
   },
 
@@ -39,11 +39,11 @@ const clientService = {
    */
   async createClient(clientData) {
     try {
-      const response = await axios.post(`/api/clients`, clientData);
-      return response.data;
+      const response = await axios.post(`/api/clients`, clientData)
+      return response.data
     } catch (error) {
-      console.error("Error al crear cliente:", error);
-      throw error;
+      console.error('Error al crear cliente:', error)
+      throw error
     }
   },
 
@@ -55,11 +55,11 @@ const clientService = {
    */
   async updateClient(id, clientData) {
     try {
-      const response = await axios.put(`/api/clients/${id}`, clientData);
-      return response.data;
+      const response = await axios.put(`/api/clients/${id}`, clientData)
+      return response.data
     } catch (error) {
-      console.error(`Error al actualizar cliente con ID ${id}:`, error);
-      throw error;
+      console.error(`Error al actualizar cliente con ID ${id}:`, error)
+      throw error
     }
   },
 
@@ -70,12 +70,12 @@ const clientService = {
    */
   async deleteClient(id) {
     try {
-      await axios.delete(`/api/clients/${id}`);
+      await axios.delete(`/api/clients/${id}`)
     } catch (error) {
-      console.error(`Error al eliminar cliente con ID ${id}:`, error);
-      throw error;
+      console.error(`Error al eliminar cliente con ID ${id}:`, error)
+      throw error
     }
-  }
-};
+  },
+}
 
-export default clientService;
+export default clientService

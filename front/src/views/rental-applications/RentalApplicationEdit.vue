@@ -1,21 +1,35 @@
 <template>
-    <div class="mb-8 d-flex align-center">
-      <v-btn
-        variant="text"
-        class="mr-2 rounded-lg back-button"
-        height="40"
-        width="40"
-        min-width="0"
-        @click="goBack"
+  <div class="mb-8 d-flex align-center">
+    <v-btn
+      variant="text"
+      class="mr-2 rounded-lg back-button"
+      height="40"
+      width="40"
+      min-width="0"
+      @click="goBack"
+    >
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </v-btn>
-      <h2 class="">Solicitud de Alquiler <span class="font-weight-light">/ {{ formatModelId(application?.id, 'SOL') }}</span></h2>
-    </div>
+        <path
+          d="M15 18L9 12L15 6"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </v-btn>
+    <h2 class="">
+      Solicitud de Alquiler
+      <span class="font-weight-light">/ {{ formatModelId(application?.id, 'SOL') }}</span>
+    </h2>
+  </div>
   <div>
-
     <RentalApplicationForm
       v-if="application"
       :initial-data="application"
@@ -35,7 +49,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '@/services/axios'
 import RentalApplicationForm from './components/RentalApplicationForm.vue'
-import { formatModelId } from '@/utils/models-formatter';
+import { formatModelId } from '@/utils/models-formatter'
 
 const route = useRoute()
 const router = useRouter()

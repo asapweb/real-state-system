@@ -1,12 +1,14 @@
 <template>
   <div class="mb-8">
     <h2 class="">Visitas</h2>
-    <small><a class="text-decoration-none text-primary " href="visits">Ver todas las visitas</a></small>
+    <small
+      ><a class="text-decoration-none text-primary" href="visits">Ver todas las visitas</a></small
+    >
   </div>
   <v-row class="">
-    <v-col class="" cols="12" lg="5"  sm="5">
+    <v-col class="" cols="12" lg="5" sm="5">
       <v-text-field
-      clearable
+        clearable
         variant="solo-filled"
         placeholder="Buscar"
         class="elevation-0"
@@ -14,8 +16,12 @@
         v-model="filter.text"
       ></v-text-field>
     </v-col>
-    <v-col class="" cols="12" lg="7"  sm="7">
-      <DepartmentAutocomplete multiple="true" label="Departemento" v-model="filter.department_id" />
+    <v-col class="" cols="12" lg="7" sm="7">
+      <DepartmentAutocomplete
+        :multiple="true"
+        label="Departemento"
+        v-model="filter.department_id"
+      />
     </v-col>
   </v-row>
   <v-row height="100%">

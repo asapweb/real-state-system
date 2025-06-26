@@ -17,30 +17,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import axios from '@/services/axios';
-import RentalOfferForm from './components/RentalOfferForm.vue';
-import { useSnackbar } from '@/composables/useSnackbar';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from '@/services/axios'
+import RentalOfferForm from './components/RentalOfferForm.vue'
+import { useSnackbar } from '@/composables/useSnackbar'
 
-const router = useRouter();
-const snackbar = useSnackbar();
-const isSubmitting = ref(false);
+const router = useRouter()
+const snackbar = useSnackbar()
+const isSubmitting = ref(false)
 
 const save = async (formData) => {
-  isSubmitting.value = true;
+  isSubmitting.value = true
   try {
-    await axios.post('/api/rental-offers', formData);
-    router.push('/rental-offers');
+    await axios.post('/api/rental-offers', formData)
+    router.push('/rental-offers')
   } catch (error) {
-    let message = 'Hubo un error al crear la oferta';
-    if (error.response?.data?.message) message = error.response.data.message;
-    snackbar.error(message);
-    console.error(error);
+    let message = 'Hubo un error al crear la oferta'
+    if (error.response?.data?.message) message = error.response.data.message
+    snackbar.error(message)
+    console.error(error)
   } finally {
-    isSubmitting.value = false;
+    isSubmitting.value = false
   }
-};
+}
 
-const goBack = () => router.push('/rental-offers');
+const goBack = () => router.push('/rental-offers')
 </script>

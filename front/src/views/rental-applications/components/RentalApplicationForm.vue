@@ -8,7 +8,7 @@
             <v-col cols="12" md="6">
               <ClientAutocomplete
                 v-model="formData.applicant_id"
-                :error-messages="v$.applicant_id.$errors.map(e => e.$message)"
+                :error-messages="v$.applicant_id.$errors.map((e) => e.$message)"
               />
             </v-col>
 
@@ -20,14 +20,13 @@
                 @selected="handleRentalOfferSelected"
                 :disabled="!!props.initialData?.rental_offer_id"
               />
-
             </v-col>
 
             <!-- Propiedad (solo si no hay oferta seleccionada) -->
             <v-col cols="12" md="6" v-if="!formData.rental_offer_id">
               <PropertyAutocomplete
                 v-model="formData.property_id"
-                :error-messages="v$.property_id.$errors.map(e => e.$message)"
+                :error-messages="v$.property_id.$errors.map((e) => e.$message)"
               />
             </v-col>
           </v-row>
@@ -73,7 +72,7 @@
                 item-title="label"
                 item-value="value"
                 label="Moneda"
-                :error-messages="v$.currency.$errors.map(e => e.$message)"
+                :error-messages="v$.currency.$errors.map((e) => e.$message)"
               />
             </v-col>
           </v-row>
@@ -89,16 +88,11 @@
                 item-title="label"
                 item-value="value"
                 label="Estado"
-                :error-messages="v$.status.$errors.map(e => e.$message)"
+                :error-messages="v$.status.$errors.map((e) => e.$message)"
               />
             </v-col>
             <v-col cols="12">
-              <v-textarea
-                v-model="formData.notes"
-                label="Notas"
-                rows="3"
-                auto-grow
-              />
+              <v-textarea v-model="formData.notes" label="Notas" rows="3" auto-grow />
             </v-col>
           </v-row>
         </v-container>
@@ -125,7 +119,7 @@ import RentalOfferAutocomplete from '@/views/components/RentalOfferAutocomplete.
 
 const props = defineProps({
   initialData: { type: Object, default: () => ({}) },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -139,7 +133,7 @@ const formData = reactive({
   reservation_amount: null,
   currency: 'ARS',
   status: 'draft',
-  notes: ''
+  notes: '',
 })
 
 const rules = {
@@ -147,7 +141,7 @@ const rules = {
   rental_offer_id: {},
   property_id: { required: requiredIf(() => !formData.rental_offer_id) },
   status: { required },
-  currency: { required }
+  currency: { required },
 }
 
 const v$ = useVuelidate(rules, formData)
@@ -157,18 +151,18 @@ const statusOptions = [
   { label: 'Borrador', value: 'draft' },
   { label: 'En evaluación', value: 'under_review' },
   { label: 'Aprobado', value: 'approved' },
-  { label: 'Rechazado', value: 'rejected' }
+  { label: 'Rechazado', value: 'rejected' },
 ]
 
 const currencyOptions = [
   { label: 'Pesos Argentinos (ARS)', value: 'ARS' },
-  { label: 'Dólares (USD)', value: 'USD' }
+  { label: 'Dólares (USD)', value: 'USD' },
 ]
 
 const insuranceOptions = [
   { label: 'Inquilino', value: 'tenant' },
   { label: 'Propietario', value: 'owner' },
-  { label: 'Inmobiliaria', value: 'agency' }
+  { label: 'Inmobiliaria', value: 'agency' },
 ]
 
 const handleSubmit = async () => {
@@ -194,5 +188,4 @@ onMounted(() => {
     }
   }
 })
-
 </script>

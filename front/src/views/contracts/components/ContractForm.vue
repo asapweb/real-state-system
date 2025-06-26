@@ -13,16 +13,12 @@
             </v-col>
             <v-col cols="12" md="6">
               <template v-if="formData.rental_application_id && selectedProperty">
-                <v-text-field
-                  :model-value="selectedProperty"
-                  label="Propiedad"
-                  readonly
-                />
+                <v-text-field :model-value="selectedProperty" label="Propiedad" readonly />
               </template>
               <template v-else>
                 <PropertyAutocomplete
                   v-model="formData.property_id"
-                  :error-messages="v$.property_id.$errors.map(e => e.$message)"
+                  :error-messages="v$.property_id.$errors.map((e) => e.$message)"
                 />
               </template>
             </v-col>
@@ -37,7 +33,7 @@
                 v-model="formData.start_date"
                 label="Desde"
                 type="date"
-                :error-messages="v$.start_date.$errors.map(e => e.$message)"
+                :error-messages="v$.start_date.$errors.map((e) => e.$message)"
               />
             </v-col>
             <v-col cols="12" md="4">
@@ -45,7 +41,7 @@
                 v-model="formData.end_date"
                 label="Hasta"
                 type="date"
-                :error-messages="v$.end_date.$errors.map(e => e.$message)"
+                :error-messages="v$.end_date.$errors.map((e) => e.$message)"
               />
             </v-col>
             <v-col cols="12" md="4">
@@ -53,7 +49,7 @@
                 v-model="formData.monthly_amount"
                 label="Monto mensual"
                 type="number"
-                :error-messages="v$.monthly_amount.$errors.map(e => e.$message)"
+                :error-messages="v$.monthly_amount.$errors.map((e) => e.$message)"
               />
             </v-col>
             <v-col cols="12" md="2">
@@ -66,11 +62,7 @@
               />
             </v-col>
             <v-col cols="12" md="2">
-              <v-text-field
-                v-model="formData.payment_day"
-                label="Día de pago"
-                type="number"
-              />
+              <v-text-field v-model="formData.payment_day" label="Día de pago" type="number" />
             </v-col>
           </v-row>
 
@@ -104,10 +96,7 @@
               />
             </v-col>
             <v-col cols="12" md="4" v-if="formData.commission_payer === 'tenant'">
-              <v-checkbox
-                v-model="formData.is_one_time"
-                label="Cobrar comisión solo una vez"
-              />
+              <v-checkbox v-model="formData.is_one_time" label="Cobrar comisión solo una vez" />
             </v-col>
           </v-row>
 
@@ -134,10 +123,7 @@
           <!-- Seguro -->
           <v-row>
             <v-col cols="12" md="4">
-              <v-switch
-                v-model="formData.insurance_required"
-                label="¿Requiere seguro?"
-              />
+              <v-switch v-model="formData.insurance_required" label="¿Requiere seguro?" />
             </v-col>
             <v-col cols="12" md="4">
               <v-text-field
@@ -161,11 +147,7 @@
           <!-- Depósito -->
           <v-row>
             <v-col cols="12" md="3">
-              <v-text-field
-                v-model="formData.deposit_amount"
-                label="Depósito"
-                type="number"
-              />
+              <v-text-field v-model="formData.deposit_amount" label="Depósito" type="number" />
             </v-col>
             <v-col cols="12" md="2">
               <v-select
@@ -201,10 +183,7 @@
           <!-- Punitorios -->
           <v-row>
             <v-col cols="12" md="3">
-              <v-switch
-                v-model="formData.has_penalty"
-                label="¿Tiene punitorio?"
-              />
+              <v-switch v-model="formData.has_penalty" label="¿Tiene punitorio?" />
             </v-col>
             <v-col cols="12" md="3">
               <v-select
@@ -248,12 +227,7 @@
               />
             </v-col>
             <v-col cols="12">
-              <v-textarea
-                v-model="formData.notes"
-                label="Notas internas"
-                rows="2"
-                auto-grow
-              />
+              <v-textarea v-model="formData.notes" label="Notas internas" rows="2" auto-grow />
             </v-col>
           </v-row>
         </v-container>
@@ -262,7 +236,9 @@
       <v-card-actions>
         <v-spacer />
         <v-btn text @click="emit('cancel')">Cancelar</v-btn>
-        <v-btn color="primary" type="submit" :loading="loading" :disabled="v$.$invalid">Guardar</v-btn>
+        <v-btn color="primary" type="submit" :loading="loading" :disabled="v$.$invalid"
+          >Guardar</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-form>
@@ -277,7 +253,7 @@ import PropertyAutocomplete from '@/views/components/PropertyAutocomplete.vue'
 
 const props = defineProps({
   initialData: Object,
-  loading: Boolean
+  loading: Boolean,
 })
 const emit = defineEmits(['submit', 'cancel'])
 
@@ -308,7 +284,7 @@ const formData = reactive({
   penalty_value: null,
   penalty_grace_days: 0,
   status: 'draft',
-  notes: ''
+  notes: '',
 })
 
 const rules = {
@@ -317,7 +293,7 @@ const rules = {
   end_date: { required },
   monthly_amount: { required, numeric },
   currency: { required },
-  status: { required }
+  status: { required },
 }
 
 const v$ = useVuelidate(rules, formData)
@@ -327,50 +303,51 @@ const selectedProperty = ref(null)
 const handleRentalApplicationSelected = (application) => {
   if (application?.property_id && application?.property?.street) {
     formData.property_id = application.property_id
-    selectedProperty.value = `${application.property?.street} ${application.property?.number || ''}`.trim()
+    selectedProperty.value =
+      `${application.property?.street} ${application.property?.number || ''}`.trim()
   }
 }
 
 const currencyOptions = [
   { label: 'Pesos (ARS)', value: 'ARS' },
   { label: 'Dólares (USD)', value: 'USD' },
-  { label: 'Euros (EUR)', value: 'EUR' }
+  { label: 'Euros (EUR)', value: 'EUR' },
 ]
 
 const commissionTypeOptions = [
   { label: 'Ninguna', value: 'none' },
   { label: 'Fija', value: 'fixed' },
-  { label: 'Porcentaje', value: 'percentage' }
+  { label: 'Porcentaje', value: 'percentage' },
 ]
 
 const commissionPayerOptions = [
   { label: 'Inquilino', value: 'tenant' },
-  { label: 'Propietario', value: 'owner' }
+  { label: 'Propietario', value: 'owner' },
 ]
 
 const depositTypeOptions = [
   { label: 'Ninguno', value: 'none' },
   { label: 'Fijo', value: 'fixed' },
-  { label: 'Meses', value: 'months' }
+  { label: 'Meses', value: 'months' },
 ]
 
 const depositHolderOptions = [
   { label: 'Inquilino', value: 'tenant' },
   { label: 'Propietario', value: 'owner' },
-  { label: 'Inmobiliaria', value: 'agency' }
+  { label: 'Inmobiliaria', value: 'agency' },
 ]
 
 const penaltyTypeOptions = [
   { label: 'Ninguno', value: 'none' },
   { label: 'Fijo', value: 'fixed' },
-  { label: 'Porcentaje', value: 'percentage' }
+  { label: 'Porcentaje', value: 'percentage' },
 ]
 
 const statusOptions = [
   { label: 'Borrador', value: 'draft' },
   { label: 'Activo', value: 'active' },
   { label: 'Finalizado', value: 'completed' },
-  { label: 'Rescindido', value: 'terminated' }
+  { label: 'Rescindido', value: 'terminated' },
 ]
 
 onMounted(() => {
@@ -378,11 +355,10 @@ onMounted(() => {
     Object.assign(formData, {
       ...props.initialData,
       start_date: props.initialData.start_date?.substring(0, 10) || null,
-      end_date: props.initialData.end_date?.substring(0, 10) || null
+      end_date: props.initialData.end_date?.substring(0, 10) || null,
     })
   }
 })
-
 
 const handleSubmit = async () => {
   const isValid = await v$.value.$validate()

@@ -13,7 +13,8 @@
             <strong>Periodo:</strong> {{ formatPeriod(collection?.period) }}
           </v-col>
           <v-col cols="12" md="6">
-            <strong>Cliente:</strong> {{ collection?.client?.name }} {{ collection?.client?.last_name }}
+            <strong>Cliente:</strong> {{ collection?.client?.name }}
+            {{ collection?.client?.last_name }}
           </v-col>
           <v-col cols="12" md="6">
             <strong>Fecha de emisión:</strong> {{ formatDate(collection?.issue_date) }}
@@ -25,7 +26,8 @@
             <strong>Contrato:</strong> {{ formatModelId(collection?.contract_id, 'CON') }}
           </v-col>
           <v-col cols="12" md="6">
-            <strong>Importe total:</strong> {{ formatMoney(collection?.total_amount, collection?.currency) }}
+            <strong>Importe total:</strong>
+            {{ formatMoney(collection?.total_amount, collection?.currency) }}
           </v-col>
         </v-row>
       </v-card-text>
@@ -34,13 +36,13 @@
     <v-card>
       <v-card-title>Detalle de Items</v-card-title>
       <v-data-table :headers="headers" :items="collection?.items || []" class="elevation-1">
-        <template #item.amount="{ item }">
+        <template #[`item.amount`]="{ item }">
           {{ formatMoney(item.amount, item.currency) }}
         </template>
-        <template #item.unit_price="{ item }">
+        <template #[`item.unit_price`]="{ item }">
           {{ formatMoney(item.unit_price, item.currency) }}
         </template>
-        <template #item.meta="{ item }">
+        <template #[`item.meta`]="{ item }">
           <v-btn
             v-if="Object.keys(item.meta || {}).length"
             icon="mdi-information-outline"
@@ -68,16 +70,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import axios from '@/services/axios';
-import { useRoute } from 'vue-router';
-import { formatModelId } from '@/utils/models-formatter';
-import { formatDate } from '@/utils/date-formatter';
-import { formatMoney } from '@/utils/money';
-import { formatPeriod, formatStatus, statusColor } from '@/utils/collections-formatter';
+import { ref, reactive, onMounted } from 'vue'
+import axios from '@/services/axios'
+import { useRoute } from 'vue-router'
+import { formatModelId } from '@/utils/models-formatter'
+import { formatDate } from '@/utils/date-formatter'
+import { formatMoney } from '@/utils/money'
+import { formatPeriod, formatStatus, statusColor } from '@/utils/collections-formatter'
 
-const route = useRoute();
-const collection = ref(null);
+const route = useRoute()
+const collection = ref(null)
 
 const headers = [
   { title: 'Tipo', key: 'type' },
@@ -86,20 +88,20 @@ const headers = [
   { title: 'Precio unitario', key: 'unit_price' },
   { title: 'Importe', key: 'amount' },
   { title: 'Meta', key: 'meta', sortable: false, align: 'center' },
-];
+]
 
 const metaDialog = reactive({
   show: false,
   data: {},
-});
+})
 
 const showMeta = (meta) => {
-  metaDialog.data = meta;
-  metaDialog.show = true;
-};
+  metaDialog.data = meta
+  metaDialog.show = true
+}
 
 onMounted(async () => {
-  const response = await axios.get(`/api/collections/${route.params.id}`);
-  collection.value = response.data;
-});
+  const response = await axios.get(`/api/collections/${route.params.id}`)
+  collection.value = response.data
+})
 </script>

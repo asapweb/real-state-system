@@ -1,7 +1,9 @@
 <template>
   <v-dialog v-model="isOpen" max-width="500px">
     <v-card :title="title">
-      <v-card-text v-html="message" />
+      <v-card-text>
+        <div v-html="message"></div>
+      </v-card-text>
       <v-card-actions>
         <v-spacer />
         <v-btn text @click="cancel">Cancelar</v-btn>
@@ -14,7 +16,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -22,20 +24,23 @@ const props = defineProps({
   message: { type: String, required: true },
   confirmText: { type: String, default: 'Confirmar' },
   confirmColor: { type: String, default: 'primary' },
-  loading: { type: Boolean, default: false }
-});
+  loading: { type: Boolean, default: false },
+})
 
-const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);
+const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
 
-const isOpen = ref(props.modelValue);
+const isOpen = ref(props.modelValue)
 
-watch(() => props.modelValue, (val) => {
-  isOpen.value = val;
-});
+watch(
+  () => props.modelValue,
+  (val) => {
+    isOpen.value = val
+  },
+)
 watch(isOpen, (val) => {
-  emit('update:modelValue', val);
-});
+  emit('update:modelValue', val)
+})
 
-const confirm = () => emit('confirm');
-const cancel = () => emit('cancel');
+const confirm = () => emit('confirm')
+const cancel = () => emit('cancel')
 </script>

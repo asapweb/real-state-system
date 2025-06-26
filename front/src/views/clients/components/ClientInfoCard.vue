@@ -3,7 +3,14 @@
     <v-card-title class="d-flex align-center">
       <span>Información General</span>
       <v-spacer></v-spacer>
-      <v-btn class="text-none" color="primary" text="Editar" variant="text" slim @click="$emit('edit')" />
+      <v-btn
+        class="text-none"
+        color="primary"
+        text="Editar"
+        variant="text"
+        slim
+        @click="$emit('edit')"
+      />
     </v-card-title>
     <v-divider />
 
@@ -12,7 +19,9 @@
         <VCol cols="12" md="6">
           <p><strong>Tipo:</strong> {{ typeLabel(client.type) }}</p>
           <p><strong>Nombre:</strong> {{ client.name }}</p>
-          <p v-if="client.type === 'individual'"><strong>Apellido:</strong> {{ client.last_name }}</p>
+          <p v-if="client.type === 'individual'">
+            <strong>Apellido:</strong> {{ client.last_name }}
+          </p>
         </VCol>
         <VCol cols="12" md="6">
           <p><strong>Email:</strong> {{ client.email || '—' }}</p>
@@ -59,10 +68,9 @@
 </template>
 
 <script setup>
-const props = defineProps({
-  client: { type: Object, required: true }
-});
+defineProps({
+  client: { type: Object, required: true },
+})
 
-const typeLabel = (type) =>
-  type === 'individual' ? 'Persona física' : 'Empresa';
+const typeLabel = (type) => (type === 'individual' ? 'Persona física' : 'Empresa')
 </script>

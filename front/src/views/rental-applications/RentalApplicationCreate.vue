@@ -14,11 +14,7 @@
       <h2 class="text-h5">Nueva Solicitud de Alquiler</h2>
     </div>
 
-    <RentalApplicationForm
-      :loading="loading"
-      @submit="handleSubmit"
-      @cancel="goBack"
-    />
+    <RentalApplicationForm :loading="loading" @submit="handleSubmit" @cancel="goBack" />
 
     <v-snackbar v-model="snackbar.show" :timeout="6000" color="red" top>
       {{ snackbar.message }}

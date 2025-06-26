@@ -21,14 +21,13 @@
               <v-icon start class="me-2">mdi-plus</v-icon>
               Crear nueva solicitud "{{ search }}"
             </v-list-item-title>
-            <v-list-item-subtitle>
-              dasdasdas
-            </v-list-item-subtitle>
+            <v-list-item-subtitle> dasdasdas </v-list-item-subtitle>
           </template>
           <template v-else>
             <v-list-item-title>{{ item.label }}</v-list-item-title>
             <v-list-item-subtitle v-if="item.raw.statusLabel">
-              {{ item.raw.statusLabel }} · {{ item.raw.property?.street }} {{ item.raw.property?.number }} · {{ formatDate(item.raw.created_at) }}
+              {{ item.raw.statusLabel }} · {{ item.raw.property?.street }}
+              {{ item.raw.property?.number }} · {{ formatDate(item.raw.created_at) }}
             </v-list-item-subtitle>
           </template>
         </v-list-item>
@@ -59,7 +58,7 @@ import RentalApplicationForm from '@/views/rental-applications/components/Rental
 const props = defineProps({
   modelValue: [Number, Object, null],
   errorMessages: Array,
-  defaultOfferId: { type: Number, default: null }
+  defaultOfferId: { type: Number, default: null },
 })
 
 const emit = defineEmits(['update:modelValue', 'blur', 'selected'])
@@ -75,7 +74,7 @@ const statusLabels = {
   draft: 'Borrador',
   under_review: 'En evaluación',
   approved: 'Aprobada',
-  rejected: 'Rechazada'
+  rejected: 'Rechazada',
 }
 
 const fetchApplications = async (query) => {
@@ -87,13 +86,13 @@ const fetchApplications = async (query) => {
   loading.value = true
   try {
     const { data } = await axios.get('/api/rental-applications', {
-      params: { 'search[text]': query, with_property: true }
+      params: { 'search[text]': query, with_property: true },
     })
 
-    const results = data.data.map(app => ({
+    const results = data.data.map((app) => ({
       ...app,
       label: `#${String(app.id).padStart(8, '0')} - ${app.applicant?.last_name} ${app.applicant?.name}`,
-      statusLabel: statusLabels[app.status] || app.status
+      statusLabel: statusLabels[app.status] || app.status,
     }))
 
     items.value = results.length
@@ -113,7 +112,7 @@ const fetchApplicationById = async (id) => {
     const app = {
       ...data,
       label: `#${String(data.id).padStart(4, '0')} - ${data.applicant?.last_name} ${data.applicant?.name}`,
-      statusLabel: statusLabels[data.status] || data.status
+      statusLabel: statusLabels[data.status] || data.status,
     }
     selected.value = app
     items.value = [app]
@@ -123,14 +122,18 @@ const fetchApplicationById = async (id) => {
   }
 }
 
-watch(() => props.modelValue, async (val) => {
-  if (typeof val === 'number') {
-    await fetchApplicationById(val)
-  } else if (val === null) {
-    selected.value = null
-    items.value = []
-  }
-}, { immediate: true })
+watch(
+  () => props.modelValue,
+  async (val) => {
+    if (typeof val === 'number') {
+      await fetchApplicationById(val)
+    } else if (val === null) {
+      selected.value = null
+      items.value = []
+    }
+  },
+  { immediate: true },
+)
 
 watch(selected, (val) => {
   if (val?.id === '__new__') {
@@ -143,9 +146,12 @@ watch(selected, (val) => {
   }
 })
 
-watch(search, debounce((val) => {
-  fetchApplications(val)
-}, 300))
+watch(
+  search,
+  debounce((val) => {
+    fetchApplications(val)
+  }, 300),
+)
 
 const handleCreateApplication = async (formData) => {
   saving.value = true
@@ -154,7 +160,7 @@ const handleCreateApplication = async (formData) => {
     const app = {
       ...data,
       label: `#${String(data.id).padStart(4, '0')} - ${data.applicant?.last_name} ${data.applicant?.name}`,
-      statusLabel: statusLabels[data.status] || data.status
+      statusLabel: statusLabels[data.status] || data.status,
     }
 
     selected.value = app

@@ -28,17 +28,17 @@
         item-value="id"
         @update:options="fetchServices"
       >
-        <template #item.service_type="{ item }">
+        <template #[`item.service_type`]="{ item }">
           {{ formatServiceType(item.service_type) }}
         </template>
 
-        <template #item.is_active="{ item }">
+        <template #[`item.is_active`]="{ item }">
           <v-chip :color="item.is_active ? 'green' : 'grey'" size="small" variant="flat">
             {{ item.is_active ? 'Activo' : 'Inactivo' }}
           </v-chip>
         </template>
 
-        <template #item.actions="{ item }">
+        <template #[`item.actions`]="{ item }">
           <v-icon size="small" class="me-2" @click="editService(item)">mdi-pencil</v-icon>
           <v-icon size="small" @click="confirmDelete(item)">mdi-delete</v-icon>
         </template>
@@ -62,7 +62,8 @@
       <v-card-title>Confirmar eliminación</v-card-title>
       <v-card-text>
         ¿Estás seguro de que querés eliminar el servicio
-        <strong>{{ formatServiceType(serviceToDelete?.service_type) }}</strong>?
+        <strong>{{ formatServiceType(serviceToDelete?.service_type) }}</strong
+        >?
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -81,7 +82,7 @@ import ContractServiceForm from './ContractServiceForm.vue'
 
 const props = defineProps({
   contractId: { type: Number, required: true },
-  editable: { type: Boolean, default: true }
+  editable: { type: Boolean, default: true },
 })
 const emit = defineEmits(['updated'])
 
@@ -99,7 +100,7 @@ const serviceToDelete = ref(null)
 const options = reactive({
   page: 1,
   itemsPerPage: 10,
-  sortBy: [{ key: 'id', order: 'asc' }]
+  sortBy: [{ key: 'id', order: 'asc' }],
 })
 
 const headers = [
@@ -108,7 +109,7 @@ const headers = [
   { title: 'Titular', key: 'owner_name' },
   { title: 'Cuenta', key: 'account_number' },
   { title: 'Activo', key: 'is_active' },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' }
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
 
 const formatServiceType = (type) => {
@@ -117,7 +118,7 @@ const formatServiceType = (type) => {
     water: 'Agua',
     gas: 'Gas',
     internet: 'Internet',
-    phone: 'Teléfono'
+    phone: 'Teléfono',
   }
   return map[type] || type
 }
@@ -130,8 +131,8 @@ const fetchServices = async () => {
         page: options.page,
         per_page: options.itemsPerPage,
         sort_by: options.sortBy[0]?.key || 'id',
-        sort_direction: options.sortBy[0]?.order || 'asc'
-      }
+        sort_direction: options.sortBy[0]?.order || 'asc',
+      },
     })
     services.value = data.data
     total.value = data.total
@@ -162,7 +163,10 @@ const handleSave = async (formData) => {
   saving.value = true
   try {
     if (selectedService.value?.id) {
-      await axios.put(`/api/contracts/${props.contractId}/services/${selectedService.value.id}`, formData)
+      await axios.put(
+        `/api/contracts/${props.contractId}/services/${selectedService.value.id}`,
+        formData,
+      )
     } else {
       await axios.post(`/api/contracts/${props.contractId}/services`, formData)
     }

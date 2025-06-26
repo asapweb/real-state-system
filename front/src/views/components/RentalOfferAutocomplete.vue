@@ -53,7 +53,7 @@ import RentalOfferForm from '@/views/rental-offers/components/RentalOfferForm.vu
 
 const props = defineProps({
   modelValue: [Number, Object, null],
-  errorMessages: Array
+  errorMessages: Array,
 })
 
 const emit = defineEmits(['update:modelValue', 'blur', 'selected'])
@@ -74,10 +74,10 @@ const fetchOffers = async (query) => {
   loading.value = true
   try {
     const { data } = await axios.get('/api/rental-offers', {
-      params: { 'search[text]': query }
+      params: { 'search[text]': query },
     })
 
-    const results = data.data.map(offer => ({
+    const results = data.data.map((offer) => ({
       ...offer,
       label: `${offer.property?.street ?? ''} ${offer.property?.number ?? ''}`.trim(),
     }))
@@ -98,7 +98,7 @@ const fetchOfferById = async (id) => {
     const { data } = await axios.get(`/api/rental-offers/${id}`)
     const offer = {
       ...data,
-      label: `${data.property?.street ?? ''} ${data.property?.number ?? ''}`.trim()
+      label: `${data.property?.street ?? ''} ${data.property?.number ?? ''}`.trim(),
     }
     selected.value = offer
     items.value = [offer]
@@ -108,15 +108,18 @@ const fetchOfferById = async (id) => {
   }
 }
 
-
-watch(() => props.modelValue, async (val) => {
-  if (typeof val === 'number') {
-    await fetchOfferById(val)
-  } else if (val === null) {
-    selected.value = null
-    items.value = []
-  }
-}, { immediate: true })
+watch(
+  () => props.modelValue,
+  async (val) => {
+    if (typeof val === 'number') {
+      await fetchOfferById(val)
+    } else if (val === null) {
+      selected.value = null
+      items.value = []
+    }
+  },
+  { immediate: true },
+)
 
 watch(selected, (val) => {
   if (val?.id === '__new__') {
@@ -129,9 +132,12 @@ watch(selected, (val) => {
   }
 })
 
-watch(search, debounce((val) => {
-  fetchOffers(val)
-}, 300))
+watch(
+  search,
+  debounce((val) => {
+    fetchOffers(val)
+  }, 300),
+)
 
 const formatPrice = (value) => {
   if (!value) return '—'
@@ -144,7 +150,7 @@ const handleCreateOffer = async (formData) => {
     const { data } = await axios.post('/api/rental-offers', formData)
     const offer = {
       ...data,
-      label: `${data.property?.street ?? ''} ${data.property?.number ?? ''}`.trim()
+      label: `${data.property?.street ?? ''} ${data.property?.number ?? ''}`.trim(),
     }
 
     selected.value = offer

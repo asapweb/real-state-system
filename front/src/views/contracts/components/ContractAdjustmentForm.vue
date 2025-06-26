@@ -10,7 +10,7 @@
                 v-model="formData.effective_date"
                 label="Fecha de aplicación"
                 type="date"
-                :error-messages="v$.effective_date.$errors.map(e => e.$message)"
+                :error-messages="v$.effective_date.$errors.map((e) => e.$message)"
                 @blur="v$.effective_date.$touch"
                 required
               />
@@ -26,7 +26,7 @@
                 item-title="label"
                 item-value="value"
                 label="Tipo de ajuste"
-                :error-messages="v$.type.$errors.map(e => e.$message)"
+                :error-messages="v$.type.$errors.map((e) => e.$message)"
                 @blur="v$.type.$touch"
                 required
               />
@@ -39,7 +39,7 @@
                 item-title="name"
                 item-value="id"
                 label="Índice aplicado"
-                :error-messages="v$.index_type_id.$errors.map(e => e.$message)"
+                :error-messages="v$.index_type_id.$errors.map((e) => e.$message)"
                 @blur="v$.index_type_id.$touch"
                 required
               />
@@ -48,10 +48,12 @@
             <v-col cols="12" md="6">
               <v-text-field
                 v-model="formData.value"
-                :label="formData.type === 'index' ? 'Valor calculado del índice' : 'Valor del ajuste'"
+                :label="
+                  formData.type === 'index' ? 'Valor calculado del índice' : 'Valor del ajuste'
+                "
                 type="number"
                 min="0"
-                :error-messages="v$.value.$errors.map(e => e.$message)"
+                :error-messages="v$.value.$errors.map((e) => e.$message)"
                 @blur="v$.value.$touch"
                 :required="formData.type !== 'index'"
               />
@@ -61,11 +63,7 @@
           <!-- Notas -->
           <v-row>
             <v-col cols="12">
-              <v-textarea
-                v-model="formData.notes"
-                label="Notas"
-                rows="2"
-              />
+              <v-textarea v-model="formData.notes" label="Notas" rows="2" />
             </v-col>
           </v-row>
         </v-container>
@@ -90,7 +88,7 @@ import axios from '@/services/axios'
 
 const props = defineProps({
   initialData: { type: Object, default: () => ({}) },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -100,20 +98,20 @@ const formData = reactive({
   type: '',
   value: null,
   index_type_id: null,
-  notes: ''
+  notes: '',
 })
 
 const rules = {
   effective_date: { required },
   type: { required },
   value: {
-  required: () => formData.type !== 'index',
-  numeric,
-  minValue: minValue(0)
-},
+    required: () => formData.type !== 'index',
+    numeric,
+    minValue: minValue(0),
+  },
   index_type_id: {
-    required: () => formData.type === 'index'
-  }
+    required: () => formData.type === 'index',
+  },
 }
 
 const v$ = useVuelidate(rules, formData)
@@ -123,7 +121,7 @@ const adjustmentTypes = [
   { label: 'Fijo', value: 'fixed' },
   { label: 'Porcentaje', value: 'percentage' },
   { label: 'Índice', value: 'index' },
-  { label: 'Negociado', value: 'negotiated' }
+  { label: 'Negociado', value: 'negotiated' },
 ]
 
 const indexTypes = ref([])
@@ -147,7 +145,7 @@ watch(
     if (data?.id) {
       Object.assign(formData, {
         ...data,
-        effective_date: data.effective_date?.substring(0, 10) || ''
+        effective_date: data.effective_date?.substring(0, 10) || '',
       })
     } else {
       formData.effective_date = ''
@@ -157,36 +155,45 @@ watch(
       formData.notes = ''
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
-watch(() => formData.type, (type) => {
-  if (type === 'index') {
-    formData.value = null
-    v$.value.value.$reset()
-  } else {
-    formData.index_type_id = null
-    v$.value.index_type_id.$reset()
-  }
-  v$.value.$touch()
-})
+watch(
+  () => formData.type,
+  (type) => {
+    if (type === 'index') {
+      formData.value = null
+      v$.value.value.$reset()
+    } else {
+      formData.index_type_id = null
+      v$.value.index_type_id.$reset()
+    }
+    v$.value.$touch()
+  },
+)
 
-watch(() => formData.index_type_id, () => {
-  if (formData.type === 'index') v$.value.index_type_id.$touch()
-})
-watch(() => formData.value, () => {
-  if (formData.type !== 'index') v$.value.value.$touch()
-})
+watch(
+  () => formData.index_type_id,
+  () => {
+    if (formData.type === 'index') v$.value.index_type_id.$touch()
+  },
+)
+watch(
+  () => formData.value,
+  () => {
+    if (formData.type !== 'index') v$.value.value.$touch()
+  },
+)
 
 const isValidForm = computed(() => {
   if (formData.type === 'index') {
-    return !v$.value.effective_date.$invalid &&
-           !v$.value.type.$invalid &&
-           !v$.value.index_type_id.$invalid
+    return (
+      !v$.value.effective_date.$invalid &&
+      !v$.value.type.$invalid &&
+      !v$.value.index_type_id.$invalid
+    )
   }
-  return !v$.value.effective_date.$invalid &&
-         !v$.value.type.$invalid &&
-         !v$.value.value.$invalid
+  return !v$.value.effective_date.$invalid && !v$.value.type.$invalid && !v$.value.value.$invalid
 })
 
 const handleSubmit = async () => {

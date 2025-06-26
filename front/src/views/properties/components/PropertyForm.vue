@@ -12,7 +12,7 @@
                 item-title="name"
                 item-value="id"
                 label="Tipo de Propiedad"
-                :error-messages="v$.property_type_id.$errors.map(e => e.$message)"
+                :error-messages="v$.property_type_id.$errors.map((e) => e.$message)"
                 @blur="v$.property_type_id.$touch"
                 required
               />
@@ -26,7 +26,7 @@
               <v-text-field
                 v-model="formData.street"
                 label="Calle"
-                :error-messages="v$.street.$errors.map(e => e.$message)"
+                :error-messages="v$.street.$errors.map((e) => e.$message)"
                 @blur="v$.street.$touch"
               />
             </v-col>
@@ -54,7 +54,7 @@
                 item-title="name"
                 item-value="id"
                 label="País"
-                :error-messages="v$.country_id.$errors.map(e => e.$message)"
+                :error-messages="v$.country_id.$errors.map((e) => e.$message)"
                 @blur="v$.country_id.$touch"
                 @update:model-value="loadStates"
               />
@@ -66,7 +66,7 @@
                 item-title="name"
                 item-value="id"
                 label="Provincia"
-                :error-messages="v$.state_id.$errors.map(e => e.$message)"
+                :error-messages="v$.state_id.$errors.map((e) => e.$message)"
                 @blur="v$.state_id.$touch"
                 @update:model-value="loadCities"
               />
@@ -78,7 +78,7 @@
                 item-title="name"
                 item-value="id"
                 label="Ciudad"
-                :error-messages="v$.city_id.$errors.map(e => e.$message)"
+                :error-messages="v$.city_id.$errors.map((e) => e.$message)"
                 @blur="v$.city_id.$touch"
                 @update:model-value="loadNeighborhoods"
               />
@@ -90,7 +90,7 @@
                 item-title="name"
                 item-value="id"
                 label="Barrio"
-                :error-messages="v$.neighborhood_id.$errors.map(e => e.$message)"
+                :error-messages="v$.neighborhood_id.$errors.map((e) => e.$message)"
                 @blur="v$.neighborhood_id.$touch"
               />
             </v-col>
@@ -132,12 +132,17 @@
                 item-title="label"
                 item-value="value"
                 label="Estado"
-                :error-messages="v$.status.$errors.map(e => e.$message)"
+                :error-messages="v$.status.$errors.map((e) => e.$message)"
                 @blur="v$.status.$touch"
               />
             </v-col>
             <v-col cols="12">
-              <v-textarea v-model="formData.observations" label="Observaciones" rows="3" auto-grow />
+              <v-textarea
+                v-model="formData.observations"
+                label="Observaciones"
+                rows="3"
+                auto-grow
+              />
             </v-col>
           </v-row>
         </v-container>
@@ -155,14 +160,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useVuelidate } from '@vuelidate/core'
 import { required } from '@vuelidate/validators'
 import axios from '@/services/axios'
 
 const props = defineProps({
   initialData: { type: Object, default: () => ({}) },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -186,7 +191,7 @@ const formData = reactive({
   allows_pets: false,
   iva_condition: '',
   status: 'draft',
-  observations: ''
+  observations: '',
 })
 
 const rules = {
@@ -196,7 +201,7 @@ const rules = {
   state_id: { required },
   city_id: { required },
   neighborhood_id: { required },
-  status: { required }
+  status: { required },
 }
 
 const v$ = useVuelidate(rules, formData)
@@ -211,7 +216,7 @@ const neighborhoods = ref([])
 const statusOptions = [
   { value: 'draft', label: 'Borrador' },
   { value: 'published', label: 'Publicado' },
-  { value: 'archived', label: 'Archivado' }
+  { value: 'archived', label: 'Archivado' },
 ]
 
 const handleSubmit = async () => {
@@ -230,15 +235,15 @@ onMounted(() => {
 const loadSelects = async () => {
   const [types, countriesRes] = await Promise.all([
     axios.get('/api/property-types'),
-    axios.get('/api/countries')
+    axios.get('/api/countries'),
   ])
   propertyTypes.value = types.data
   countries.value = countriesRes.data
 
   if (!props.initialData?.id) {
-    const defType = propertyTypes.value.find(i => i.is_default)
+    const defType = propertyTypes.value.find((i) => i.is_default)
     if (defType) formData.property_type_id = defType.id
-    const defCountry = countries.value.find(i => i.is_default)
+    const defCountry = countries.value.find((i) => i.is_default)
     if (defCountry) formData.country_id = defCountry.id
   }
 
@@ -250,7 +255,7 @@ const loadStates = async () => {
   const { data } = await axios.get('/api/states', { params: { country_id: formData.country_id } })
   states.value = data
   if (!props.initialData?.id) {
-    const def = data.find(i => i.is_default)
+    const def = data.find((i) => i.is_default)
     if (def) formData.state_id = def.id
   }
   await loadCities()
@@ -261,7 +266,7 @@ const loadCities = async () => {
   const { data } = await axios.get('/api/cities', { params: { state_id: formData.state_id } })
   cities.value = data
   if (!props.initialData?.id) {
-    const def = data.find(i => i.is_default)
+    const def = data.find((i) => i.is_default)
     if (def) formData.city_id = def.id
   }
   await loadNeighborhoods()
@@ -272,7 +277,7 @@ const loadNeighborhoods = async () => {
   const { data } = await axios.get('/api/neighborhoods', { params: { city_id: formData.city_id } })
   neighborhoods.value = data
   if (!props.initialData?.id) {
-    const def = data.find(i => i.is_default)
+    const def = data.find((i) => i.is_default)
     if (def) formData.neighborhood_id = def.id
   }
 }

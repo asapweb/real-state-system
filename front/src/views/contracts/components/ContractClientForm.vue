@@ -8,7 +8,7 @@
             <v-col cols="12" md="6">
               <ClientAutocomplete
                 v-model="formData.client_id"
-                :error-messages="v$.client_id.$errors.map(e => e.$message)"
+                :error-messages="v$.client_id.$errors.map((e) => e.$message)"
               />
             </v-col>
 
@@ -20,7 +20,7 @@
                 item-title="label"
                 item-value="value"
                 label="Rol en el contrato"
-                :error-messages="v$.role.$errors.map(e => e.$message)"
+                :error-messages="v$.role.$errors.map((e) => e.$message)"
                 @blur="v$.role.$touch"
               />
             </v-col>
@@ -38,10 +38,7 @@
 
             <!-- Responsable principal -->
             <v-col cols="12" md="6">
-              <v-switch
-                v-model="formData.is_primary"
-                label="Responsable principal"
-              />
+              <v-switch v-model="formData.is_primary" label="Responsable principal" />
             </v-col>
           </v-row>
         </v-container>
@@ -66,7 +63,7 @@ import ClientAutocomplete from '@/views/components/ClientAutocomplete.vue'
 
 const props = defineProps({
   initialData: { type: Object, default: () => ({}) },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -75,12 +72,12 @@ const formData = reactive({
   client_id: null,
   role: null,
   ownership_percentage: null,
-  is_primary: false
+  is_primary: false,
 })
 
 const rules = {
   client_id: { required },
-  role: { required }
+  role: { required },
 }
 
 const v$ = useVuelidate(rules, formData)
@@ -89,7 +86,7 @@ const formRef = ref(null)
 const roleOptions = [
   { value: 'tenant', label: 'Inquilino' },
   { value: 'guarantor', label: 'Garante' },
-  { value: 'owner', label: 'Propietario' }
+  { value: 'owner', label: 'Propietario' },
 ]
 
 onMounted(() => {

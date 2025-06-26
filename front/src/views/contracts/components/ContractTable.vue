@@ -9,7 +9,7 @@
         flat
         hide-details
         single-line
-        style="flex: 1;"
+        style="flex: 1"
       />
 
       <v-select
@@ -22,7 +22,7 @@
         flat
         hide-details
         clearable
-        style="max-width: 200px;"
+        style="max-width: 200px"
       />
     </div>
 
@@ -37,38 +37,46 @@
       item-value="id"
       @update:options="fetchContracts"
     >
-      <template #item.id="{ item }">
-        <RouterLink :to="`/contracts/${item.id}`" class="text-primary text-decoration-none font-weight-bold">
+      <template #[`item.id`]="{ item }">
+        <RouterLink
+          :to="`/contracts/${item.id}`"
+          class="text-primary text-decoration-none font-weight-bold"
+        >
           {{ formatModelId(item.id, 'CON') }}
         </RouterLink>
       </template>
 
-      <template #item.property.street="{ item }">
-        <RouterLink :to="`/properties/${item.property?.id}`" class="text-primary text-decoration-none font-weight-bold">
-          <span v-if="item.property?.neighborhood?.name">{{ item.property?.neighborhood?.name }}, </span>
+      <template #[`item.property.street`]="{ item }">
+        <RouterLink
+          :to="`/properties/${item.property?.id}`"
+          class="text-primary text-decoration-none font-weight-bold"
+        >
+          <span v-if="item.property?.neighborhood?.name"
+            >{{ item.property?.neighborhood?.name }},
+          </span>
           {{ item.property?.street }} {{ item.property?.number || '' }}
         </RouterLink>
       </template>
 
-      <template #item.start_date="{ item }">
+      <template #[`item.start_date`]="{ item }">
         {{ formatDate(item.start_date) }}
       </template>
 
-      <template #item.end_date="{ item }">
+      <template #[`item.end_date`]="{ item }">
         {{ formatDate(item.end_date) }}
       </template>
 
-      <template #item.monthly_amount="{ item }">
+      <template #[`item.monthly_amount`]="{ item }">
         {{ formatMoney(item.monthly_amount, item.currency) }}
       </template>
 
-      <template #item.status="{ item }">
+      <template #[`item.status`]="{ item }">
         <v-chip :color="statusColor(item.status)" size="small" variant="flat">
           {{ statusLabel(item.status) }}
         </v-chip>
       </template>
 
-      <template #item.actions="{ item }">
+      <template #[`item.actions`]="{ item }">
         <v-icon size="small" class="me-2" @click="emit('edit', item)">mdi-pencil</v-icon>
         <v-icon size="small" @click="confirmDelete(item)">mdi-delete</v-icon>
       </template>
@@ -80,7 +88,8 @@
         <v-card-title class="text-h5">Confirmar eliminación</v-card-title>
         <v-card-text>
           ¿Estás seguro de eliminar el contrato
-          <strong>{{ formatModelId(contractToDelete?.id, 'CTR') }}</strong>?
+          <strong>{{ formatModelId(contractToDelete?.id, 'CTR') }}</strong
+          >?
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -94,7 +103,6 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import axios from '@/services/axios'
 import { formatDate } from '@/utils/date-formatter'
 import { formatMoney } from '@/utils/money'
@@ -112,7 +120,7 @@ const searchStatus = ref(null)
 const options = reactive({
   page: 1,
   itemsPerPage: 10,
-  sortBy: [{ key: 'id', order: 'desc' }]
+  sortBy: [{ key: 'id', order: 'desc' }],
 })
 
 const headers = [
@@ -122,25 +130,30 @@ const headers = [
   { title: 'Fin', key: 'end_date', sortable: true },
   { title: 'Monto mensual', key: 'monthly_amount', sortable: true },
   { title: 'Estado', key: 'status', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' }
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
 
 const statusOptions = [
   { label: 'Borrador', value: 'draft' },
   { label: 'Activo', value: 'active' },
   { label: 'Finalizado', value: 'finished' },
-  { label: 'Cancelado', value: 'cancelled' }
+  { label: 'Cancelado', value: 'cancelled' },
 ]
 
-const statusLabel = (status) => statusOptions.find(s => s.value === status)?.label || '—'
+const statusLabel = (status) => statusOptions.find((s) => s.value === status)?.label || '—'
 
 const statusColor = (status) => {
   switch (status) {
-    case 'draft': return 'grey'
-    case 'active': return 'green'
-    case 'finished': return 'blue-grey'
-    case 'cancelled': return 'red'
-    default: return 'default'
+    case 'draft':
+      return 'grey'
+    case 'active':
+      return 'green'
+    case 'finished':
+      return 'blue-grey'
+    case 'cancelled':
+      return 'red'
+    default:
+      return 'default'
   }
 }
 
@@ -153,7 +166,7 @@ const fetchContracts = async () => {
     sort_direction: options.sortBy[0]?.order || 'desc',
     'search[status]': searchStatus.value,
     'search[text]': searchText.value,
-    with_property: true
+    with_property: true,
   }
 
   try {

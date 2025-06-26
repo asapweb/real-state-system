@@ -17,28 +17,29 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import CollectionForm from './components/CollectionForm.vue';
-import axios from '@/services/axios';
-import { useSnackbar } from '@/composables/useSnackbar';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import CollectionForm from './components/CollectionForm.vue'
+import axios from '@/services/axios'
+import { useSnackbar } from '@/composables/useSnackbar'
 
-const router = useRouter();
-const loading = ref(false);
-const snackbar = useSnackbar();
+const router = useRouter()
+const loading = ref(false)
+const snackbar = useSnackbar()
 
-const goBack = () => router.back();
+const goBack = () => router.back()
 
 const handleSubmit = async (data) => {
-  loading.value = true;
+  loading.value = true
   try {
-    const res = await axios.post('/api/collections', data);
-    snackbar.success('Cobranza creada exitosamente');
-    router.push(`/collections/${res.data.id}`);
+    const res = await axios.post('/api/collections', data)
+    snackbar.success('Cobranza creada exitosamente')
+    router.push(`/collections/${res.data.id}`)
   } catch (err) {
-    snackbar.error('Error al crear la cobranza');
+    console.error(err)
+    snackbar.error('Error al crear la cobranza')
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 </script>

@@ -8,7 +8,7 @@
             <v-col cols="12" md="6">
               <ClientAutocomplete
                 v-model="formData.client_id"
-                :error-messages="v$.client_id.$errors.map(e => e.$message)"
+                :error-messages="v$.client_id.$errors.map((e) => e.$message)"
               />
             </v-col>
 
@@ -20,17 +20,14 @@
                 item-title="label"
                 item-value="value"
                 label="Rol en la solicitud"
-                :error-messages="v$.role.$errors.map(e => e.$message)"
+                :error-messages="v$.role.$errors.map((e) => e.$message)"
                 @blur="v$.role.$touch"
               />
             </v-col>
 
             <!-- Vínculo -->
             <v-col cols="12" md="6">
-              <v-text-field
-                v-model="formData.relationship"
-                label="Vínculo con el postulante"
-              />
+              <v-text-field v-model="formData.relationship" label="Vínculo con el postulante" />
             </v-col>
           </v-row>
 
@@ -71,10 +68,7 @@
           <!-- Datos conyugales y propiedad -->
           <v-row>
             <v-col cols="12" md="6">
-              <v-switch
-                v-model="formData.is_property_owner"
-                label="¿Es propietario de inmueble?"
-              />
+              <v-switch v-model="formData.is_property_owner" label="¿Es propietario de inmueble?" />
             </v-col>
             <v-col cols="12" md="6" v-if="formData.is_property_owner">
               <v-text-field
@@ -114,7 +108,7 @@ import ClientAutocomplete from '@/views/components/ClientAutocomplete.vue'
 
 const props = defineProps({
   initialData: { type: Object, default: () => ({}) },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -132,7 +126,7 @@ const formData = reactive({
   owned_property_address: '',
   marital_status: '',
   spouse_name: '',
-  nationality: ''
+  nationality: '',
 })
 
 const rules = {
@@ -147,12 +141,12 @@ const roleOptions = [
   { value: 'applicant', label: 'Postulante' },
   { value: 'guarantor', label: 'Garante' },
   { value: 'co-applicant', label: 'Co-solicitante' },
-  { value: 'spouse', label: 'Cónyuge' }
+  { value: 'spouse', label: 'Cónyuge' },
 ]
 
 const currencyOptions = [
   { value: 'ARS', label: 'Pesos Argentinos (ARS)' },
-  { value: 'USD', label: 'Dólares (USD)' }
+  { value: 'USD', label: 'Dólares (USD)' },
 ]
 
 const handleSubmit = async () => {

@@ -24,12 +24,16 @@ const showNextNotification = () => {
   }
   currentNotification.value = store.dequeueVisitNew().data
 
-  const userInDepartment = (authStore.authUser.departments.some(objeto => objeto.id === currentNotification.value.appointment.department_id))
+  const userInDepartment = authStore.authUser.departments.some(
+    (objeto) => objeto.id === currentNotification.value.appointment.department_id,
+  )
   console.log(userInDepartment)
   console.log(currentNotification.value?.socketId)
   console.log(echo.socketId())
-  console.log( currentNotification.value?.socketId === echo.socketId())
-  if (!userInDepartment || currentNotification.value?.socketId === echo.socketId()) { return }
+  console.log(currentNotification.value?.socketId === echo.socketId())
+  if (!userInDepartment || currentNotification.value?.socketId === echo.socketId()) {
+    return
+  }
   showDialog.value = true
   // Reproduce el sonido
   if (audio.value) {

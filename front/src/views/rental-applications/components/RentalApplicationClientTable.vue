@@ -4,15 +4,15 @@
       <span>Personas Asociadas</span>
       <v-spacer></v-spacer>
       <div class="d-flex align-center gap-2">
-
         <v-btn
-            class="text-none"
-            color="primary"
-            text="Subir archivo"
-            variant="text"
-            slim
-            @click="openCreateDialog" prepend-icon="mdi-plus"
-          >
+          class="text-none"
+          color="primary"
+          text="Subir archivo"
+          variant="text"
+          slim
+          @click="openCreateDialog"
+          prepend-icon="mdi-plus"
+        >
           Agregar
         </v-btn>
       </div>
@@ -26,26 +26,25 @@
         item-value="id"
         density="compact"
       >
-        <template #item.client="{ item }">
+        <template #[`item.client`]="{ item }">
           {{ item.client?.last_name }} {{ item.client?.name }}
         </template>
 
-        <template #item.role="{ item }">
+        <template #[`item.role`]="{ item }">
           {{ roleLabel(item.role) }}
         </template>
 
-        <template #item.income="{ item }">
+        <template #[`item.income`]="{ item }">
           {{ formatMoney(item.income, item.currency) }}
         </template>
 
-        <template #item.actions="{ item }">
+        <template #[`item.actions`]="{ item }">
           <v-icon size="small" class="me-2" @click="openEditDialog(item)">mdi-pencil</v-icon>
           <v-icon size="small" @click="confirmDelete(item)">mdi-delete</v-icon>
         </template>
       </v-data-table>
-
     </v-card-text>
-    </v-card>
+  </v-card>
 
   <div>
     <!-- Diálogo de eliminación -->
@@ -54,7 +53,9 @@
         <v-card-title class="text-h5">Confirmar eliminación</v-card-title>
         <v-card-text>
           ¿Estás seguro de que querés eliminar a
-          <strong>{{ clientToDelete?.client?.last_name }} {{ clientToDelete?.client?.name }}</strong>
+          <strong
+            >{{ clientToDelete?.client?.last_name }} {{ clientToDelete?.client?.name }}</strong
+          >
           de la solicitud?
         </v-card-text>
         <v-card-actions>
@@ -90,7 +91,7 @@ import axios from '@/services/axios'
 import RentalApplicationClientForm from './RentalApplicationClientForm.vue'
 
 const props = defineProps({
-  applicationId: { type: Number, required: true }
+  applicationId: { type: Number, required: true },
 })
 
 const clients = ref([])
@@ -101,16 +102,21 @@ const headers = [
   { title: 'Nombre', key: 'client', sortable: false },
   { title: 'Rol', key: 'role', sortable: false },
   { title: 'Ingresos', key: 'income', sortable: false },
-  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' }
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
 
 const roleLabel = (role) => {
   switch (role) {
-    case 'applicant': return 'Postulante'
-    case 'guarantor': return 'Garante'
-    case 'co-applicant': return 'Co-solicitante'
-    case 'spouse': return 'Cónyuge'
-    default: return role
+    case 'applicant':
+      return 'Postulante'
+    case 'guarantor':
+      return 'Garante'
+    case 'co-applicant':
+      return 'Co-solicitante'
+    case 'spouse':
+      return 'Cónyuge'
+    default:
+      return role
   }
 }
 
@@ -157,12 +163,12 @@ const handleFormSubmit = async (data) => {
     if (editingClient.value?.id) {
       await axios.put(
         `/api/rental-applications/${props.applicationId}/clients/${editingClient.value.id}`,
-        data
+        data,
       )
     } else {
       await axios.post(`/api/rental-applications/${props.applicationId}/clients`, {
         ...data,
-        rental_application_id: props.applicationId
+        rental_application_id: props.applicationId,
       })
     }
     dialogForm.value = false
@@ -185,7 +191,9 @@ const confirmDelete = (item) => {
 
 const deleteClient = async () => {
   try {
-    await axios.delete(`/api/rental-applications/${props.applicationId}/clients/${clientToDelete.value.id}`)
+    await axios.delete(
+      `/api/rental-applications/${props.applicationId}/clients/${clientToDelete.value.id}`,
+    )
     dialogDelete.value = false
     await fetchClients()
   } catch (e) {

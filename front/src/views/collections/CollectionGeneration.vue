@@ -33,16 +33,17 @@
           variant="tonal"
         >
           <div>
-            <strong>Período:</strong> {{ preview.period }}<br>
-            <strong>Total de contratos activos:</strong> {{ preview.total_contracts }}<br>
-            <strong>Ya generados:</strong> {{ preview.already_generated }}<br>
-            <strong>Listos para generar:</strong> {{ preview.pending_generation }}<br>
+            <strong>Período:</strong> {{ preview.period }}<br />
+            <strong>Total de contratos activos:</strong> {{ preview.total_contracts }}<br />
+            <strong>Ya generados:</strong> {{ preview.already_generated }}<br />
+            <strong>Listos para generar:</strong> {{ preview.pending_generation }}<br />
             <strong>Bloqueados por faltantes:</strong> {{ preview.blocked_due_to_missing_months }}
           </div>
 
           <ul v-if="preview.blocked_contracts.length" class="mt-2 pl-4">
             <li v-for="contract in preview.blocked_contracts" :key="contract.id">
-              Contrato {{ contract.id }}{{ contract.name ? ` (${contract.name})` : '' }}: falta {{ contract.missing_period }}
+              Contrato {{ contract.id }}{{ contract.name ? ` (${contract.name})` : '' }}: falta
+              {{ contract.missing_period }}
             </li>
           </ul>
         </v-alert>
@@ -63,66 +64,67 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import axios from '@/services/axios';
-import { useSnackbar } from '@/composables/useSnackbar';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from '@/services/axios'
+import { useSnackbar } from '@/composables/useSnackbar'
 
-const router = useRouter();
-const goBack = () => router.back();
+const router = useRouter()
+const goBack = () => router.back()
 
-const period = ref('');
-const periodError = ref(null);
-const preview = ref(null);
-const previewLoading = ref(false);
-const snackbar = useSnackbar();
+const period = ref('')
+const periodError = ref(null)
+const preview = ref(null)
+const previewLoading = ref(false)
+const snackbar = useSnackbar()
 
 const validateAndPreview = () => {
-  const regex = /^\d{4}-\d{2}$/;
+  const regex = /^\d{4}-\d{2}$/
   if (!regex.test(period.value)) {
-    periodError.value = 'El formato debe ser YYYY-MM';
-    preview.value = null;
-    return;
+    periodError.value = 'El formato debe ser YYYY-MM'
+    preview.value = null
+    return
   }
-  periodError.value = null;
-  fetchPreview();
-};
+  periodError.value = null
+  fetchPreview()
+}
 
 const fetchPreview = async () => {
-  previewLoading.value = true;
-  preview.value = null;
+  previewLoading.value = true
+  preview.value = null
 
   try {
-    const { data } = await axios.post('/api/collections/preview', { period: period.value });
-    preview.value = data;
+    const { data } = await axios.post('/api/collections/preview', { period: period.value })
+    preview.value = data
   } catch (error) {
-    snackbar.error('No se pudo obtener el estado de cobranzas.');
+    console.log(error)
+    snackbar.error('No se pudo obtener el estado de cobranzas.')
   } finally {
-    previewLoading.value = false;
+    previewLoading.value = false
   }
-};
+}
 
 const generateCollections = async () => {
-  if (!period.value) return;
+  if (!period.value) return
 
   try {
-    const { data } = await axios.post('/api/collections/generate', { period: period.value });
-    snackbar.success(data.message || 'Cobranzas generadas correctamente');
+    const { data } = await axios.post('/api/collections/generate', { period: period.value })
+    snackbar.success(data.message || 'Cobranzas generadas correctamente')
     setTimeout(() => {
-      router.push('/collections');
-    }, 1000);
+      router.push('/collections')
+    }, 1000)
   } catch (error) {
-    const response = error?.response?.data;
+    const response = error?.response?.data
 
     if (Array.isArray(response?.errors)) {
       const lines = response.errors.map(
-        c => `Contrato ${c.id}${c.name ? ` (${c.name.trim()})` : ''}: falta ${c.period_missing}`
-      );
-      snackbar.error([response.message ?? 'Error al generar cobranzas', ...lines].join('\n'));
+        (c) => `Contrato ${c.id}${c.name ? ` (${c.name.trim()})` : ''}: falta ${c.period_missing}`,
+      )
+      snackbar.error([response.message ?? 'Error al generar cobranzas', ...lines].join('\n'))
     } else {
-      const message = response?.message ?? 'Error al generar cobranzas';
-      snackbar.error(message);
+      const message = response?.message ?? 'Error al generar cobranzas'
+      snackbar.error(message)
     }
   }
-};
+}
 </script>

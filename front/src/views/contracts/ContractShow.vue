@@ -24,6 +24,9 @@
         <AttachmentManager :attachable-type="'contract'" :attachable-id="contract.id" />
       </v-col>
       <v-col cols="12">
+        <ContractExpense v-if="contract" :contract-id="contract.id" />
+      </v-col>
+      <v-col cols="12">
         <ContractClientTable :contract-id="contract?.id" />
       </v-col>
       <v-col cols="12">
@@ -45,6 +48,7 @@ import { formatModelId } from '@/utils/models-formatter'
 
 import ContractInfoCard from './components/ContractInfoCard.vue'
 import AttachmentManager from '@/views/components/AttachmentManager.vue'
+import ContractExpense from './components/ContractExpense.vue'
 import ContractServiceTable from './components/ContractServiceTable.vue'
 import ContractClientTable from './components/ContractClientTable.vue'
 import ContractAdjustmentTable from './components/ContractAdjustmentTable.vue'

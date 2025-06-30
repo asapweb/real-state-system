@@ -24,6 +24,7 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\CollectionController;
+use App\Http\Controllers\ContractExpenseController;
 use App\Http\Controllers\IndexTypeController;
 use App\Http\Controllers\NeighborhoodController;
 use App\Http\Controllers\PropertyOwnerController;
@@ -155,6 +156,11 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
             Route::put('{contractService}', [ContractServiceController::class, 'update']);
             Route::delete('{contractService}', [ContractServiceController::class, 'destroy']);
 
+            Route::get('{contract}/expenses', [ContractExpenseController::class, 'index']);
+            Route::post('{contract}/expenses', [ContractExpenseController::class, 'store']);
+            Route::put('{contract}/expenses/{expense}', [ContractExpenseController::class, 'update']);
+            Route::delete('{contract}/expenses/{expense}', [ContractExpenseController::class, 'destroy']);
+
             // Adjuntos de servicio
             Route::get('{contractService}/attachments', [AttachmentController::class, 'index']);
 
@@ -186,6 +192,10 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
             Route::post('/', [CollectionController::class, 'store']);
             Route::post('generate', [CollectionController::class, 'generate']);
             Route::post('preview', [CollectionController::class, 'preview']);
+            Route::post('{collection}/mark-as-paid', [CollectionController::class, 'markAsPaid']);
+            Route::post('{collection}/cancel', [CollectionController::class, 'cancel']);
+
+
 
         });
 

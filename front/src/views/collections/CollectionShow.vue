@@ -31,6 +31,12 @@
           </v-col>
         </v-row>
       </v-card-text>
+      <v-card-actions v-if="collection?.status !== 'canceled'">
+        <v-spacer />
+        <v-btn color="error" variant="outlined" @click="showCancelDialog = true">
+          Anular cobranza
+        </v-btn>
+      </v-card-actions>
     </v-card>
 
     <v-card>
@@ -66,42 +72,92 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="showCancelDialog" max-width="500">
+      <v-card>
+        <v-card-title>¿Confirmar anulación?</v-card-title>
+        <v-card-text>
+          Esta acción no puede deshacerse. Se anularán todos los ítems de la cobranza.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text @click="showCancelDialog = false">Cancelar</v-btn>
+          <v-btn color="error" :loading="cancelLoading" @click="handleCancel">Anular</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import axios from '@/services/axios'
-import { useRoute } from 'vue-router'
-import { formatModelId } from '@/utils/models-formatter'
-import { formatDate } from '@/utils/date-formatter'
-import { formatMoney } from '@/utils/money'
-import { formatPeriod, formatStatus, statusColor } from '@/utils/collections-formatter'
+  import { ref, reactive, onMounted } from 'vue'
+  import axios from '@/services/axios'
+  import { useRoute, useRouter } from 'vue-router'
+  import { formatModelId } from '@/utils/models-formatter'
+  import { formatDate } from '@/utils/date-formatter'
+  import { formatMoney } from '@/utils/money'
+  import { formatPeriod, formatStatus, statusColor } from '@/utils/collections-formatter'
+  import { useSnackbar } from '@/composables/useSnackbar'
 
-const route = useRoute()
-const collection = ref(null)
+  const route = useRoute()
+  const router = useRouter()
+  const collection = ref(null)
+  const showCancelDialog = ref(false)
+  const cancelLoading = ref(false)
 
-const headers = [
-  { title: 'Tipo', key: 'type' },
-  { title: 'Descripción', key: 'description' },
-  { title: 'Cantidad', key: 'quantity' },
-  { title: 'Precio unitario', key: 'unit_price' },
-  { title: 'Importe', key: 'amount' },
-  { title: 'Meta', key: 'meta', sortable: false, align: 'center' },
-]
+  const snackbar = useSnackbar()
 
-const metaDialog = reactive({
-  show: false,
-  data: {},
-})
 
-const showMeta = (meta) => {
-  metaDialog.data = meta
-  metaDialog.show = true
+  const headers = [
+    { title: 'Tipo', key: 'type' },
+    { title: 'Descripción', key: 'description' },
+    { title: 'Cantidad', key: 'quantity' },
+    { title: 'Precio unitario', key: 'unit_price' },
+    { title: 'Importe', key: 'amount' },
+    { title: 'Meta', key: 'meta', sortable: false, align: 'center' },
+  ]
+
+  const metaDialog = reactive({
+    show: false,
+    data: {},
+  })
+
+  const showMeta = (meta) => {
+    metaDialog.data = meta
+    metaDialog.show = true
+  }
+
+  const handleCancel = async () => {
+  cancelLoading.value = true
+
+  if (!collection.value?.id) {
+    snackbar.error('No se encontró el ID de la cobranza.')
+    return
+  }
+
+  try {
+    const { data } = await axios.post(`/api/collections/${collection.value.id}/cancel`)
+    collection.value = data.collection
+    showCancelDialog.value = false
+    snackbar.success('Cobranza anulada correctamente.')
+  } catch (error) {
+    console.error('Error en cancelación:', error)
+
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Ocurrió un error inesperado al anular la cobranza.'
+
+    snackbar.error(message)
+  } finally {
+    cancelLoading.value = false
+  }
 }
 
-onMounted(async () => {
-  const response = await axios.get(`/api/collections/${route.params.id}`)
-  collection.value = response.data
-})
+
+
+  onMounted(async () => {
+    const response = await axios.get(`/api/collections/${route.params.id}`)
+    collection.value = response.data
+  })
 </script>

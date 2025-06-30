@@ -1,4 +1,4 @@
-<template>
+  <template>
   <v-data-table-server
     v-model:items-per-page="options.itemsPerPage"
     v-model:sort-by="options.sortBy"
@@ -15,10 +15,7 @@
     </template>
 
     <template #[`item.id`]="{ item }">
-      <RouterLink
-        :to="`/collections/${item.id}`"
-        class="text-primary font-weight-bold text-decoration-none"
-      >
+      <RouterLink :to="`/collections/${item.id}`" class="text-primary font-weight-bold text-decoration-none">
         {{ formatModelId(item.id, 'COB') }}
       </RouterLink>
     </template>
@@ -58,7 +55,7 @@ import axios from '@/services/axios'
 import { formatModelId } from '@/utils/models-formatter'
 import { formatMoney } from '@/utils/money'
 import { formatPeriod, formatStatus, statusColor } from '@/utils/collections-formatter'
-import { formatDate } from '@/utils/date-formatter'
+import { formatDate } from '@/utils/date-formatter';
 const emit = defineEmits(['error'])
 
 const collections = ref([])
@@ -78,16 +75,13 @@ const props = defineProps({
   },
 })
 
-watch(
-  () => props.filters,
-  () => {
-    options.page = 1
-    fetchCollections()
-  },
-  { deep: true },
-)
+watch(() => props.filters, () => {
+  options.page = 1
+  fetchCollections()
+}, { deep: true })
 
 const headers = [
+
   { title: 'Cobranza', key: 'id', sortable: true },
   { title: 'Cliente', key: 'client', sortable: false },
   { title: 'Contrato', key: 'contract', sortable: false },
@@ -106,7 +100,7 @@ const fetchCollections = async () => {
         per_page: options.itemsPerPage,
         sort_by: options.sortBy[0]?.key,
         sort_direction: options.sortBy[0]?.order,
-        search: props.filters,
+        search: props.filters
       },
     })
     collections.value = data.data

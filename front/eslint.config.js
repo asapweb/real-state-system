@@ -6,6 +6,9 @@ import eslintConfigPrettier from 'eslint-config-prettier'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 import vueParser from 'vue-eslint-parser'
 import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default [
   {
@@ -17,9 +20,8 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
       },
-      // ✅ Add environment settings
       globals: {
-        console: 'readonly', // or 'writable' if you modify console
+        console: 'readonly',
       },
     },
     plugins: {
@@ -34,13 +36,12 @@ export default [
       'prettier/prettier': 'error',
       'vue/multi-word-component-names': 'off',
       'import/no-unresolved': ['error', { commonjs: false, amd: false }],
-      // ✅ Optionally disable no-undef if you want to avoid defining globals
-      'no-undef': 'off', // Use with caution, only if you have many globals
+      'no-undef': 'off',
     },
     settings: {
       'import/resolver': {
         alias: {
-          map: [['@', fileURLToPath(new URL('./src', import.meta.url))]],
+          map: [['@', path.resolve(__dirname, 'src')]],
           extensions: ['.js', '.ts', '.vue'],
         },
         node: {

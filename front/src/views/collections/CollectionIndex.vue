@@ -88,6 +88,7 @@
   <v-row>
     <v-col cols="12">
       <CollectionTable ref="tableRef" :filters="filters" @error="handleError" />
+
     </v-col>
   </v-row>
 </template>

@@ -16,13 +16,15 @@ return new class extends Migration
 
             $table->boolean('is_automatic')->default(false);
 
-            $table->enum('status', ['pending', 'paid', 'partially_paid', 'canceled'])->default('pending');
+            $table->string('status', 20)->default('pending');
             $table->string('currency', 3)->default('ARS');
             $table->date('issue_date');
             $table->date('due_date');
             $table->string('period')->nullable(); // ej: '2025-06'
             $table->decimal('total_amount', 12, 2)->default(0);
             $table->text('notes')->nullable();
+            $table->datetime('paid_at')->nullable();;
+            $table->foreignId('paid_by_user_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->timestamps();
             $table->softDeletes();

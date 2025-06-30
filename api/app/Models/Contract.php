@@ -106,6 +106,11 @@ class Contract extends Model
         return $this->hasMany(Collection::class);
     }
 
+    public function expenses()
+    {
+        return $this->hasMany(ContractExpense::class);
+    }
+
     // --- Métodos auxiliares ---
 
     public static function scopeActiveDuring(Builder $query, Carbon $period): Builder
@@ -113,15 +118,69 @@ class Contract extends Model
         $start = $period->copy()->startOfMonth()->toDateString();
         $end = $period->copy()->endOfMonth()->toDateString();
 
+        \Log::debug("cobranza", [
+            "start" => $start,
+            "end" => $end,
+        ]);
         return $query->whereDate('start_date', '<=', $end)
-                    ->whereDate('end_date', '>=', $start);
+            ->where(function ($q) use ($start) {
+                $q->whereNull('end_date')
+                ->orWhereDate('end_date', '>=', $start);
+            });
     }
 
 
     public function mainTenant()
     {
-        return $this->clients()->where('role', ContractClientRole::TENANT)->first();
+        $tenant = $this->clients()->where('role', ContractClientRole::TENANT)->first();
+        return $tenant;
     }
+
+
+    /**
+     * Calcula el punitorio por mora correspondiente al período dado,
+     * considerando la fecha real de pago y el vencimiento con días de gracia.
+     *
+     * Si el pago se realiza en o antes del último día permitido (vencimiento + gracia), no se aplica punitorio.
+     */
+    public function calculateLateFee(Carbon $period, Carbon $paymentDate): ?array
+    {
+        if (!$this->has_penalty || !$this->payment_day || !$this->penalty_value) {
+            return null;
+        }
+
+        // Calcular fecha de vencimiento
+        $dueDate = $period->copy()->day($this->payment_day)->startOfDay();
+
+        // Calcular fecha límite con días de gracia
+        $grace = $this->penalty_grace_days ?? 0;
+        $limit = $dueDate->copy()->addDays($grace);
+
+        // Si el pago es hasta el límite inclusive, no hay punitorio
+        if ($paymentDate->startOfDay()->lte($limit)) {
+            return null;
+        }
+
+        $daysLate = $limit->diffInDays($paymentDate->startOfDay());
+        $base = $this->calculateRentForPeriod($period)['amount'];
+
+        $amount = match ($this->penalty_type->value ?? $this->penalty_type) {
+            'fixed' => $this->penalty_value,
+            'percentage' => round($base * ($this->penalty_value / 100), 2),
+            default => 0,
+        };
+
+        return [
+            'due_date' => $dueDate->toDateString(),
+            'grace_days' => $grace,
+            'payment_date' => $paymentDate->toDateString(),
+            'days_late' => $daysLate,
+            'penalty_type' => $this->penalty_type,
+            'penalty_value' => $this->penalty_value,
+            'amount' => $amount,
+        ];
+    }
+
 
     public function shouldChargeCommission(Carbon $period): bool
     {
@@ -142,6 +201,13 @@ class Contract extends Model
             ->where('is_active', true)
             ->where('paid_by', 'agency')
             ->get();
+    }
+
+    public function hasCollectionForPeriodAndCurrency(string $period, string $currency): bool
+    {
+        return $this->collections
+            ->where('status', '!=', 'canceled')
+            ->first(fn($c) => $c->period === $period && $c->currency === $currency) !== null;
     }
 
     public function calculateRentForPeriod(Carbon $period): array

@@ -8,9 +8,28 @@ use App\Services\CollectionGenerationService;
 use Illuminate\Support\Carbon;
 use App\Exceptions\CollectionGenerationException;
 use App\Http\Requests\StoreCollectionRequest;
+use App\Services\CollectionService;
 
 class CollectionController extends Controller
 {
+    public function cancel(Collection $collection)
+    {
+        try {
+            $collection->load('items'); // Necesario para anular correctamente
+            $collection->cancel();
+
+            return response()->json([
+                'message' => 'Cobranza anulada correctamente.',
+                'collection' => $collection->fresh(['items']),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Error al anular la cobranza.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 10);
@@ -98,11 +117,13 @@ class CollectionController extends Controller
 
     public function generate(Request $request, CollectionGenerationService $service)
     {
+        \Log::debug('xxx Periodo recibido', ['period' => $request->input('period')]);
+
         $request->validate([
-            'period' => ['required', 'date_format:Y-m'],
+            'period' => ['required', 'regex:/^\d{4}-\d{2}$/'],
         ]);
 
-        $period = Carbon::createFromFormat('Y-m', $request->period);
+        $period = Carbon::parse($request->input('period'))->startOfMonth();
 
         try {
             $count = $service->generateForMonth($period);
@@ -122,6 +143,7 @@ class CollectionController extends Controller
 
     public function preview(Request $request, CollectionGenerationService $service)
     {
+        \Log::debug('Probando logging');
         $request->validate([
             'period' => ['required', 'date_format:Y-m'],
         ]);
@@ -130,5 +152,24 @@ class CollectionController extends Controller
 
         return response()->json($service->previewForMonth($period));
     }
+
+    public function markAsPaid(Request $request, Collection $collection)
+    {
+        $request->validate([
+            'paid_at' => ['nullable', 'date'],
+        ]);
+
+        $paymentDate = $request->filled('paid_at')
+            ? Carbon::parse($request->input('paid_at'))
+            : now();
+
+            app(CollectionService::class)->markAsPaid($collection, $paymentDate, auth()->id());
+
+
+        return response()->json(
+            $collection->fresh(['items', 'paidByUser'])
+        );
+    }
+
 
 }

@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Collection;
-use App\Models\CollectionItem;
 use App\Models\Contract;
 use App\Models\ContractClient;
 use App\Models\PropertyType;
@@ -18,18 +17,21 @@ use App\Models\City;
 use App\Models\Neighborhood;
 use App\Enums\ContractStatus;
 use App\Enums\ContractClientRole;
+use App\Enums\CollectionItemType;
 use App\Services\CollectionGenerationService;
+use App\Services\CollectionService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 use Carbon\Carbon;
-use App\Enums\CollectionItemType;
+use App\Models\User;
+use PHPUnit\Framework\Attributes\Test;
 
-class CollectionGenerationTest extends TestCase
+class CollectionNoLateFeeOnDueDateTest extends TestCase
 {
     use DatabaseTransactions;
 
-    #[\PHPUnit\Framework\Attributes\Test]
-    public function it_generates_monthly_collection_for_active_contract()
+    #[Test]
+    public function it_does_not_apply_late_fee_if_paid_on_due_date()
     {
         // Datos base requeridos
         $documentType = DocumentType::firstOrCreate(['name' => 'DNI']);
@@ -42,7 +44,10 @@ class CollectionGenerationTest extends TestCase
         $neighborhood = Neighborhood::firstOrCreate(['name' => 'Centro', 'city_id' => $city->id]);
         $propertyType = PropertyType::firstOrCreate(['name' => 'Departamento']);
 
-        // Creamos cliente
+        // Crear usuario y cliente
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
         $client = Client::factory()->create([
             'document_type_id' => $documentType->id,
             'tax_condition_id' => $taxCondition->id,
@@ -50,40 +55,48 @@ class CollectionGenerationTest extends TestCase
             'nationality_id' => $nationality->id,
         ]);
 
-        // Creamos contrato
+        // Crear contrato con penalidad y sin días de gracia
         $contract = Contract::factory()->create([
             'start_date' => '2025-06-01',
             'end_date' => '2026-05-31',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
             'status' => ContractStatus::Active,
+            'payment_day' => 5,
+            'has_penalty' => true,
+            'penalty_type' => 'percentage',
+            'penalty_value' => 10,
+            'penalty_grace_days' => 0,
         ]);
 
-        // Asociamos cliente como inquilino y aseguramos consistencia
-
+        // Asociar inquilino
         ContractClient::factory()->create([
             'contract_id' => $contract->id,
             'client_id' => $client->id,
             'role' => ContractClientRole::TENANT,
         ]);
 
-        // Aseguramos que el contrato tenga el cliente precargado
-        // $contract->setRelation('clients', collect([$client]));
+        $period = Carbon::create(2025, 6, 1);
 
-        // Ejecutamos la generación de cobranzas
-        $service = new CollectionGenerationService();
-        $service->generateForMonth(Carbon::create(2025, 6, 1));
+        // Generar la cobranza
+        $generationService = new CollectionGenerationService();
+        $generationService->generateForMonth($period);
 
-        // Verificamos que se haya generado una cobranza
-        $collection = Collection::where('contract_id', $contract->id)->first();
-        $this->assertNotNull($collection, 'La cobranza no fue generada');
-        $this->assertEquals('pending', $collection->status);
-        $this->assertEquals('ARS', $collection->currency);
+        // Recuperar la cobranza generada
+        $collection = Collection::where('contract_id', $contract->id)->firstOrFail();
 
-        // Verificamos que exista ítem de alquiler
-        $item = CollectionItem::where('collection_id', $collection->id)->first();
-        $this->assertNotNull($item, 'No se encontró item asociado');
-        $this->assertEquals(CollectionItemType::Rent, $item->type);
-        $this->assertEquals(100000, $item->amount);
+        // Simular pago exacto en la fecha de vencimiento
+        $paymentDate = $period->copy()->day(5); // día de vencimiento
+        $paymentService = new CollectionService();
+        $paymentService->markAsPaid($collection, $paymentDate, $user->id);
+
+        // Verificar que NO se generó punitorio
+        $collection->refresh();
+        $this->assertEquals('paid', $collection->status);
+        $this->assertEquals($paymentDate->toDateString(), $collection->paid_at->toDateString());
+
+        $lateFeeItem = $collection->items()->where('type', CollectionItemType::LateFee)->first();
+        $this->assertNull($lateFeeItem, 'Se generó un ítem de punitorio injustificado');
+        $this->assertEquals(100000, $collection->total_amount);
     }
 }

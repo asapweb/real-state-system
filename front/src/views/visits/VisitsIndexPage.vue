@@ -16,7 +16,11 @@
       ></v-text-field>
     </v-col>
     <v-col class="" cols="12" lg="7" sm="7">
-      <DepartmentAutocomplete :multiple="true" label="Departemento" v-model="filter.department_id" />
+      <DepartmentAutocomplete
+        :multiple="true"
+        label="Departemento"
+        v-model="filter.department_id"
+      />
     </v-col>
   </v-row>
   <v-row>
@@ -72,7 +76,6 @@
       </v-data-table-server>
     </v-col>
   </v-row>
-
 </template>
 
 <script setup>
@@ -80,7 +83,6 @@ import { formatReducedDateTime } from '@/utils/date-formatter'
 import axios from '@/services/axios'
 import { ref, watch } from 'vue'
 import { debounce } from 'lodash-es'
-import { sendRequest } from '@/functions'
 import moment from 'moment'
 import DepartmentAutocomplete from '@/components/DepartmentAutocomplete.vue'
 
@@ -157,10 +159,5 @@ const fetchClients = async () => {
     .finally(() => {
       loading.value = false
     })
-}
-
-
-const onSaved = () => {
-  fetchClients()
 }
 </script>

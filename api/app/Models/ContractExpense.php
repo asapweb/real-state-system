@@ -25,7 +25,7 @@ class ContractExpense extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'period' => 'string',
+        'period' => 'string', // ✅ mantiene formato 'Y-m'
         'due_date' => 'date',
         'paid_at' => 'date',
         'is_paid' => 'boolean',
@@ -35,5 +35,21 @@ class ContractExpense extends Model
     public function contract()
     {
         return $this->belongsTo(Contract::class);
+    }
+
+    /**
+     * Devuelve el período en formato 'Y-m' como atributo adicional.
+     */
+    public function getPeriodFormattedAttribute(): ?string
+    {
+        if (!$this->period) {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($this->period)->format('Y-m');
+        } catch (\Exception $e) {
+            return $this->period; // fallback si ya está en string 'Y-m'
+        }
     }
 }

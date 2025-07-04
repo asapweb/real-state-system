@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Collections;
 
 use App\Models\Collection;
 use App\Models\ContractExpense;
@@ -18,13 +18,14 @@ class CollectionReGenerationTest extends TestCase
     #[Test]
     public function it_allows_regeneration_of_canceled_currency_specific_collections()
     {
+        Carbon::setTestNow(Carbon::parse('2025-07-15'));
+
         $this->prepareRequiredLookups();
 
         $contract = $this->createContractWithExpenses();
         $service = app(CollectionGenerationService::class);
         $period = Carbon::create(2025, 7, 1);
 
-        // 1. Primera generación
         $collections = $service->generateForMonth($period);
         $this->assertCount(2, $collections, 'Debe generar cobranzas en 2 monedas');
 
@@ -33,16 +34,14 @@ class CollectionReGenerationTest extends TestCase
         $this->assertNotNull($arsCollection);
         $this->assertNotNull($usdCollection);
 
-        // 2. Cancelar la cobranza en USD
         $usdCollection->cancel();
         $contract->refresh();
-        // 3. Verificar rollback de los gastos
+
         $this->assertEquals(
             [false, false],
             ContractExpense::whereIn('id', [1, 2])->pluck('included_in_collection')->toArray()
         );
 
-        // 4. Verificar en la base que la cobranza en ARS sigue activa
         $this->assertDatabaseHas('collections', [
             'contract_id' => $contract->id,
             'currency' => 'ARS',
@@ -50,23 +49,22 @@ class CollectionReGenerationTest extends TestCase
             'status' => 'pending',
         ]);
 
-        // 5. Ejecutar preview
-        $service = app(CollectionGenerationService::class); // refrescar instancia
+        $service = app(CollectionGenerationService::class);
         $preview = $service->previewForMonth($period);
 
-        $this->assertEquals('partial', $preview['status'], 'El estado del preview debería ser partial');
-        $this->assertEquals(1, $preview['pending_generation'], 'Debe quedar 1 moneda pendiente de generar');
-        $this->assertEquals(1, $preview['already_generated'], 'Debe detectar 1 ya generada');
-        $this->assertEquals(1, $preview['total_contracts'], 'Debe haber 1 contrato activo');
+        $this->assertEquals('partial', $preview['status']);
+        $this->assertEquals(1, $preview['pending_generation']);
+        $this->assertEquals(1, $preview['already_generated']);
+        $this->assertEquals(1, $preview['total_contracts']);
 
-        // 6. Generar nuevamente → debe generar solo la moneda faltante (USD)
         $newCollections = $service->generateForMonth($period);
 
         $this->assertCount(1, $newCollections, 'Debe generar solo una moneda faltante');
         $this->assertEquals('USD', $newCollections->first()->currency);
 
-        // 6.1 Validar ítems en la cobranza ARS
         $arsItems = $arsCollection->items()->get();
+
+        dump($arsItems->pluck('type'));
 
         $this->assertCount(4, $arsItems, 'Cobranza ARS debe tener 4 ítems');
         $this->assertTrue($arsItems->contains('type', 'rent'));
@@ -80,13 +78,11 @@ class CollectionReGenerationTest extends TestCase
             return $item->type === CollectionItemType::Service && stripos($item->description, 'gas') !== false;
         }), 'Debe haber un ítem de servicio que incluya "gas" en la descripción');
 
-
-        // 6.2 Validar ítems en la nueva cobranza USD
         $usdNewCollection = $newCollections->first();
         $usdItems = $usdNewCollection->items()->get();
         $this->assertCount(2, $usdItems, 'Cobranza USD debe tener 2 ítems');
 
-       $this->assertTrue($usdItems->contains(function ($item) {
+        $this->assertTrue($usdItems->contains(function ($item) {
             return $item->type === CollectionItemType::Service && stripos($item->description, 'electricity') !== false;
         }), 'Debe haber un ítem de servicio que incluya "electricity" en la descripción');
 
@@ -94,7 +90,6 @@ class CollectionReGenerationTest extends TestCase
             return $item->type === CollectionItemType::Service && stripos($item->description, 'phone') !== false;
         }), 'Debe haber un ítem de servicio que incluya "phone" en la descripción');
 
-        // 6.3 Validar que los service items tengan correctamente seteado expense_id, paid_by, expense_period y amount en meta y en la relación real
         $allServiceItems = $arsItems->merge($usdItems)->filter(fn($item) => $item->type === CollectionItemType::Service);
 
         $this->assertNotEmpty($allServiceItems, 'Debe haber al menos un ítem de tipo service');
@@ -108,7 +103,6 @@ class CollectionReGenerationTest extends TestCase
 
             $this->assertNotNull($item->meta['expense_id'], "El expense_id en el ítem $item->id no debe ser null");
 
-            // Validar existencia del gasto
             $expense = \App\Models\ContractExpense::find($item->meta['expense_id']);
 
             $this->assertNotNull($expense, "No se encontró el gasto con ID {$item->meta['expense_id']}");
@@ -129,9 +123,6 @@ class CollectionReGenerationTest extends TestCase
             );
         }
 
-
-
-        // 7. Preview final debe estar completo
         $finalPreview = $service->previewForMonth($period);
         $this->assertEquals('complete', $finalPreview['status']);
         $this->assertEquals(0, $finalPreview['pending_generation']);
@@ -163,6 +154,10 @@ class CollectionReGenerationTest extends TestCase
             'insurance_amount' => 200000,
             'status' => 'active',
             'payment_day' => 10,
+            'commission_type' => \App\Enums\CommissionType::PERCENTAGE,
+            'commission_amount' => 10,
+            'commission_payer' => \App\Enums\CommissionPayer::TENANT,
+            'is_one_time' => false,
         ]);
 
         $client = \App\Models\Client::factory()->create();
@@ -173,7 +168,6 @@ class CollectionReGenerationTest extends TestCase
             'role' => \App\Enums\ContractClientRole::TENANT,
         ]);
 
-        // Gastos en USD
         \App\Models\ContractExpense::factory()->createMany([
             [
                 'id' => 1,
@@ -181,7 +175,7 @@ class CollectionReGenerationTest extends TestCase
                 'service_type' => 'electricity',
                 'amount' => 110.00,
                 'currency' => 'USD',
-                'period' => '2025-07-01',
+                'period' => '2025-07',
                 'due_date' => '2025-07-01',
                 'paid_by' => 'agency',
                 'is_paid' => true,
@@ -193,7 +187,7 @@ class CollectionReGenerationTest extends TestCase
                 'service_type' => 'phone',
                 'amount' => 120.00,
                 'currency' => 'USD',
-                'period' => '2025-07-01',
+                'period' => '2025-07',
                 'due_date' => '2025-07-01',
                 'paid_by' => 'agency',
                 'is_paid' => true,
@@ -201,14 +195,13 @@ class CollectionReGenerationTest extends TestCase
             ],
         ]);
 
-        // Gasto en ARS
         \App\Models\ContractExpense::factory()->create([
             'id' => 3,
             'contract_id' => $contract->id,
             'service_type' => 'gas',
             'amount' => 150000.00,
             'currency' => 'ARS',
-            'period' => '2025-07-01',
+            'period' => '2025-07',
             'due_date' => '2025-07-01',
             'paid_by' => 'agency',
             'is_paid' => true,

@@ -1,10 +1,13 @@
 <?php
 
+use App\Http\Controllers\AccountMovementController;
+use App\Http\Controllers\AccountMovementManagementController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AttachmentCategoryController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\BillingDetailController;
+use App\Http\Controllers\CashMovementController;
 use App\Http\Controllers\CivilStatusController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DepartmentController;
@@ -81,9 +84,16 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
             Route::put('{client}', [ClientController::class, 'update']);   // Modificación
             Route::delete('{client}', [ClientController::class, 'destroy']); // Baja
 
+            // Cuenta corriente
+            Route::get('{client}/account-movements', [AccountMovementController::class, 'index']);
+            Route::post('{client}/account-movements/initial-balance', [AccountMovementManagementController::class, 'setInitialBalance']);
+
             // Documentos adjuntos
             Route::post('{client}/attachments', [ClientController::class, 'addAttachment']);
         });
+
+        // Movimientos de caja
+        Route::get('cash-movements', [CashMovementController::class, 'index']);
 
         // Propiedades
         Route::prefix('properties')->group(function () {

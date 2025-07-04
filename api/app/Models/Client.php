@@ -106,4 +106,9 @@ class Client extends Model
     {
         return $this->morphMany(Attachment::class, 'attachable');
     }
+
+    public function accountMovements()
+    {
+        return $this->hasMany(AccountMovement::class);
+    }
 }

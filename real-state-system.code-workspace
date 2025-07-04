@@ -1,5 +1,6 @@
 {
   "folders": [
+    { "path": "." },
     { "path": "api" },
     { "path": "front" },
     { "path": "docs" }

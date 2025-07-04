@@ -33,6 +33,12 @@
       <ClientInfoCard v-if="client" :client="client" @edit="goToEdit" />
     </VCol>
     <v-col>
+      <AccountMovement v-if="client" :client-id="client?.id" />
+    </v-col>
+    <v-col>
+      <InitialBalanceForm v-if="client" :client-id="client?.id" />
+    </v-col>
+    <v-col>
       <AttachmentManager v-if="client" :attachable-type="'client'" :attachable-id="client?.id" />
     </v-col>
   </VRow>
@@ -44,6 +50,9 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from '@/services/axios'
 import AttachmentManager from '@/views/components/AttachmentManager.vue'
 import ClientInfoCard from './components/ClientInfoCard.vue'
+import AccountMovement from './components/AccountMovement.vue'
+import InitialBalanceForm from './components/InitialBalanceForm.vue'
+
 
 const route = useRoute()
 const router = useRouter()

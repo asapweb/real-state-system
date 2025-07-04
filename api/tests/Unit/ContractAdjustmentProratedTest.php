@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Unit;
 
 use App\Enums\ContractClientRole;
 use App\Enums\ContractStatus;

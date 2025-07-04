@@ -30,6 +30,12 @@ class DatabaseSeeder extends Seeder
             AttachmentCategorySeeder::class,
             DepartmentSeeder::class,
             ConfigurationSeeder::class,
+
+            TaxRateSeeder::class,
+            PaymentMethodSeeder::class,
+            SalePointSeeder::class,
+            VoucherTypeSeeder::class,
+
         ]);
     }
 }

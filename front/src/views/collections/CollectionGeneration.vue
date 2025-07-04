@@ -109,6 +109,7 @@ const generateCollections = async () => {
 
   try {
     const { data } = await axios.post('/api/collections/generate', { period: period.value })
+    console.log(data)
     snackbar.success(data.message || 'Cobranzas generadas correctamente')
     setTimeout(() => {
       router.push('/collections')

@@ -117,7 +117,7 @@ class CollectionController extends Controller
 
     public function generate(Request $request, CollectionGenerationService $service)
     {
-        \Log::debug('xxx Periodo recibido', ['period' => $request->input('period')]);
+        \Log::debug('Periodo recibido', ['period' => $request->input('period')]);
 
         $request->validate([
             'period' => ['required', 'regex:/^\d{4}-\d{2}$/'],
@@ -126,12 +126,11 @@ class CollectionController extends Controller
         $period = Carbon::parse($request->input('period'))->startOfMonth();
 
         try {
-            $count = $service->generateForMonth($period);
+            $collections = $service->generateForMonth($period);
 
-            // Puedes personalizar el mensaje según el resultado, si el servicio lo devuelve
             return response()->json([
-                'message' => "Se generaron $count cobranzas para " . $period->translatedFormat('F Y'),
-                'generated' => $count,
+                'message' => 'Se generaron ' . $collections->count() . ' cobranzas para ' . $period->translatedFormat('F Y'),
+                'generated' => $collections->count(),
             ]);
         } catch (CollectionGenerationException $e) {
             return response()->json([
@@ -141,9 +140,9 @@ class CollectionController extends Controller
         }
     }
 
+
     public function preview(Request $request, CollectionGenerationService $service)
     {
-        \Log::debug('Probando logging');
         $request->validate([
             'period' => ['required', 'date_format:Y-m'],
         ]);

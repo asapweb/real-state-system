@@ -12,17 +12,25 @@ trait CreatesValidContract
 {
     protected function ensureReferenceData(): void
     {
-        \App\Models\PropertyType::updateOrCreate(['id' => 1], ['name' => 'default', 'is_default' => true]);
-        \App\Models\Country::updateOrCreate(['id' => 1], ['name' => 'Argentina']);
-        \App\Models\State::updateOrCreate(['id' => 1, 'country_id' => 1], ['name' => 'Buenos Aires']);
-        \App\Models\City::updateOrCreate(['id' => 1, 'state_id' => 1], ['name' => 'CABA']);
-        \App\Models\Neighborhood::updateOrCreate(['id' => 1, 'city_id' => 1], ['name' => 'Centro']);
+        $country = \App\Models\Country::firstOrCreate(['name' => 'Argentina']);
+        $state = \App\Models\State::firstOrCreate(['name' => 'Buenos Aires'], ['country_id' => $country->id]);
+        $city = \App\Models\City::firstOrCreate(['name' => 'CABA'], ['state_id' => $state->id]);
+        $neighborhood = \App\Models\Neighborhood::firstOrCreate(['name' => 'Centro'], ['city_id' => $city->id]);
 
-        \App\Models\DocumentType::updateOrCreate(['id' => 1], ['name' => 'DNI']);
-        \App\Models\TaxCondition::updateOrCreate(['id' => 1], ['name' => 'Consumidor Final']);
-        \App\Models\CivilStatus::updateOrCreate(['id' => 1], ['name' => 'Soltero']);
-        \App\Models\Nationality::updateOrCreate(['id' => 1], ['name' => 'Argentina']);
+        $propertyType = \App\Models\PropertyType::firstOrCreate(['name' => 'default'], ['is_default' => true]);
+
+        $documentType = \App\Models\DocumentType::firstOrCreate(['name' => 'DNI']);
+        $taxCondition = \App\Models\TaxCondition::firstOrCreate(['name' => 'Consumidor Final']);
+        $civilStatus = \App\Models\CivilStatus::firstOrCreate(['name' => 'Soltero']);
+        $nationality = \App\Models\Nationality::firstOrCreate(['name' => 'Argentina']);
+
+        $this->reference = compact(
+            'country', 'state', 'city', 'neighborhood',
+            'propertyType', 'documentType', 'taxCondition',
+            'civilStatus', 'nationality'
+        );
     }
+
 
     protected function createValidContract(array $overrides = []): Contract
     {
@@ -30,18 +38,18 @@ trait CreatesValidContract
 
         $tenant = Client::factory()->create([
             'type' => 'individual',
-            'document_type_id' => 1,
-            'tax_condition_id' => 1,
-            'civil_status_id' => 1,
-            'nationality_id' => 1,
+            'document_type_id' => $this->reference['documentType']->id,
+            'tax_condition_id' => $this->reference['taxCondition']->id,
+            'civil_status_id' => $this->reference['civilStatus']->id,
+            'nationality_id' => $this->reference['nationality']->id,
         ]);
 
         $property = Property::factory()->create([
-            'property_type_id' => 1,
-            'country_id' => 1,
-            'state_id' => 1,
-            'city_id' => 1,
-            'neighborhood_id' => 1,
+            'property_type_id' => $this->reference['propertyType']->id,
+            'country_id' => $this->reference['country']->id,
+            'state_id' => $this->reference['state']->id,
+            'city_id' => $this->reference['city']->id,
+            'neighborhood_id' => $this->reference['neighborhood']->id,
         ]);
 
         $contract = Contract::factory()->create(array_merge([

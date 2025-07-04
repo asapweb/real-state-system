@@ -14,6 +14,8 @@ class CollectionGenerationService
 {
     public function previewForMonth(Carbon $period): array
     {
+        $period = normalizePeriodOrFail($period);
+
         $summary = [
             'period' => $period->format('Y-m'),
             'total_contracts' => 0,
@@ -79,6 +81,8 @@ class CollectionGenerationService
 
     public function generateForMonth(Carbon $period): SupportCollection
     {
+        $period = normalizePeriodOrFail($period);
+
         $contracts = Contract::activeDuring($period)
             ->with(['collections', 'expenses'])
             ->get();
@@ -108,7 +112,6 @@ class CollectionGenerationService
                 ->where('status', '!=', 'canceled')
                 ->pluck('currency')
                 ->unique();
-
 
             foreach ($itemsGrouped as $currency => $groupedItems) {
                 \Log::debug("Procesando moneda {$currency}");
@@ -168,8 +171,8 @@ class CollectionGenerationService
 
     protected function firstMissingMonth(Contract $contract, Carbon $period): ?Carbon
     {
-        $startMonth = Carbon::parse($contract->start_date)->startOfMonth();
-        $targetMonth = $period->copy()->startOfMonth();
+        $startMonth = normalizePeriodOrFail($contract->start_date);
+        $targetMonth = normalizePeriodOrFail($period);
 
         $possibleCurrencies = $contract->expenses()
             ->where('paid_by', 'agency')
@@ -198,78 +201,84 @@ class CollectionGenerationService
         return null;
     }
 
-    // protected function hasPendingCollectionsForPreviousPeriods(Contract $contract, Carbon $period): bool
     protected function hasPendingCollectionsForPreviousPeriods(Contract $contract, Carbon $period): bool
-{
-    // Aseguramos datos frescos
-    $contract->unsetRelation('collections');
-    $contract->loadMissing('expenses');
-    $contract->load('collections');
-\Log::debug("Cobranzas para contrato {$contract->id}", $contract->collections->map->only(['id', 'period', 'currency', 'status'])->toArray());
-    $startMonth = Carbon::parse($contract->start_date)->startOfMonth();
-    $targetMonth = $period->copy()->startOfMonth();
-
-    // Agrupamos cobranzas válidas
-    $collectionsByPeriod = $contract->collections
-        ->where('status', '!=', 'canceled')
-        ->groupBy('period');
-
-    // Filtramos gastos incluidos en cobranzas
-    $includedExpenses = $contract->expenses()
-        ->where('included_in_collection', true)
-        ->groupBy(function ($expense) {
-            return Carbon::parse($expense->period)->format('Y-m');
-        });
-
-    while ($startMonth->lt($targetMonth)) {
-        $monthKey = $startMonth->format('Y-m');
-
-        $expectedCurrencies = collect([$contract->currency]);
-        if ($includedExpenses->has($monthKey)) {
-            $expenseCurrencies = $includedExpenses->get($monthKey)->pluck('currency')->unique();
-            $expectedCurrencies = $expectedCurrencies->merge($expenseCurrencies)->unique();
-        }
-
-        $collectionsForMonth = $collectionsByPeriod->get($monthKey) ?? collect();
-
-        foreach ($expectedCurrencies as $currency) {
-            $hasCurrency = $collectionsForMonth->contains('currency', $currency);
-            if (! $hasCurrency) {
-                return true; // Falta una cobranza válida
-            }
-        }
-
-        $startMonth->addMonth();
-    }
-
-    return false;
-}
-
-
-
-
-    protected function hasMissingCollections(Contract $contract, Carbon $period): bool
     {
-        $startMonth = Carbon::parse($contract->start_date)->startOfMonth();
-        $targetMonth = $period->copy()->startOfMonth();
+        $contract->unsetRelation('collections');
+        $contract->loadMissing('expenses');
+        $contract->load('collections');
 
-        $possibleCurrencies = $contract->expenses()
-            ->where('paid_by', 'agency')
-            ->pluck('currency')
-            ->merge([$contract->currency])
-            ->unique();
+        $startMonth = normalizePeriodOrFail($contract->start_date);
+        $targetMonth = normalizePeriodOrFail($period);
 
-        $existing = $contract->collections
+        $collectionsByPeriod = $contract->collections
             ->where('status', '!=', 'canceled')
             ->groupBy('period');
 
-        while ($startMonth->lt($targetMonth)) {
-            $month = $startMonth->format('Y-m');
-            $collectionsForMonth = $existing->get($month);
+        $includedExpenses = $contract->expenses()
+            ->where('included_in_collection', true)
+            ->get()
+            ->groupBy(function ($expense) {
+                return normalizePeriodOrFail($expense->period)->format('Y-m');
+            });
 
-            foreach ($possibleCurrencies as $currency) {
-                $hasCurrency = $collectionsForMonth?->contains('currency', $currency);
-                if (!$hasCurrency) {
+        while ($startMonth->lt($targetMonth)) {
+            $monthKey = $startMonth->format('Y-m');
+
+            $expectedCurrencies = collect([$contract->currency]);
+            if ($includedExpenses->has($monthKey)) {
+                $expenseCurrencies = $includedExpenses->get($monthKey)->pluck('currency')->unique();
+                $expectedCurrencies = $expectedCurrencies->merge($expenseCurrencies)->unique();
+            }
+
+            $collectionsForMonth = $collectionsByPeriod->get($monthKey) ?? collect();
+
+            foreach ($expectedCurrencies as $currency) {
+                $hasCurrency = $collectionsForMonth->contains('currency', $currency);
+                if (! $hasCurrency) {
+                    return true;
+                }
+            }
+
+            $startMonth->addMonth();
+        }
+
+        return false;
+    }
+
+    protected function hasMissingCollections(Contract $contract, Carbon $period): bool
+    {
+        $contract->unsetRelation('collections');
+        $contract->load('collections');
+
+        $startMonth = normalizePeriodOrFail($contract->start_date);
+        $targetMonth = normalizePeriodOrFail($period);
+
+        $collectionsByPeriod = $contract->collections
+            ->where('status', '!=', 'canceled')
+            ->groupBy('period');
+
+        $includedExpenses = $contract->expenses()
+            ->where('included_in_collection', true)
+            ->get()
+            ->groupBy(function ($expense) {
+                return normalizePeriodOrFail($expense->period)->format('Y-m');
+            });
+
+        while ($startMonth->lt($targetMonth)) {
+            $monthKey = $startMonth->format('Y-m');
+
+            $expectedCurrencies = collect([$contract->currency]);
+
+            if ($includedExpenses->has($monthKey)) {
+                $expenseCurrencies = $includedExpenses->get($monthKey)->pluck('currency')->unique();
+                $expectedCurrencies = $expectedCurrencies->merge($expenseCurrencies)->unique();
+            }
+
+            $collectionsForMonth = $collectionsByPeriod->get($monthKey) ?? collect();
+
+            foreach ($expectedCurrencies as $currency) {
+                $hasCurrency = $collectionsForMonth->contains('currency', $currency);
+                if (! $hasCurrency) {
                     return true;
                 }
             }
@@ -282,6 +291,7 @@ class CollectionGenerationService
 
     protected function generateItemsForContract(Contract $contract, Carbon $period): \Illuminate\Support\Collection
     {
+        $period = normalizePeriodOrFail($period);
         $items = collect();
 
         $rentData = $contract->calculateRentForPeriod($period);
@@ -298,17 +308,35 @@ class CollectionGenerationService
             ]);
         }
 
-        if (! $contract->is_one_time) {
-            $items->push([
-                'type' => CollectionItemType::Commission,
-                'description' => 'Comisión inmobiliaria',
-                'quantity' => 1,
-                'unit_price' => 0,
-                'amount' => 0,
-                'currency' => $contract->currency,
-                'meta' => [],
-            ]);
+       if (
+            $contract->shouldChargeCommission($period) &&
+            $contract->commission_amount > 0
+        ) {
+            $base = $contract->calculateRentForPeriod($period)['amount'];
+
+            $amount = match ($contract->commission_type->value ?? $contract->commission_type) {
+                'fixed' => $contract->commission_amount,
+                'percentage' => round($base * ($contract->commission_amount / 100), 2),
+                default => 0,
+            };
+
+            if ($amount > 0) {
+                $items->push([
+                    'type' => CollectionItemType::Commission,
+                    'description' => 'Comisión inmobiliaria',
+                    'quantity' => 1,
+                    'unit_price' => $amount,
+                    'amount' => $amount,
+                    'currency' => $contract->currency,
+                    'meta' => [
+                        'commission_type' => $contract->commission_type,
+                        'commission_value' => $contract->commission_amount,
+                        'rent_base' => $base,
+                    ],
+                ]);
+            }
         }
+
 
         $expenses = $contract->expenses()
             ->where('paid_by', 'agency')
@@ -327,11 +355,12 @@ class CollectionGenerationService
                 'currency' => $expense->currency,
                 'meta' => [
                     'expense_id' => $expense->id,
+                    'paid_by' => $expense->paid_by,
+                    'expense_period' => $expense->period,
                 ],
             ]);
         }
 
-        // Penalidad por mora si corresponde
         $penalty = $contract->calculatePenaltyForPeriod($period);
         if ($penalty && $penalty['amount'] > 0) {
             $items->push([
@@ -344,6 +373,18 @@ class CollectionGenerationService
                 'meta' => $penalty,
             ]);
         }
+        if ($contract->insurance_required && $contract->insurance_amount > 0) {
+            $items->push([
+                'type' => CollectionItemType::Insurance,
+                'description' => 'Seguro locativo',
+                'quantity' => 1,
+                'unit_price' => $contract->insurance_amount,
+                'amount' => $contract->insurance_amount,
+                'currency' => $contract->currency,
+                'meta' => [],
+            ]);
+        }
+
 
         \Log::debug('Items generados en generateItemsForContract', [
             'items' => $items->toArray(),
@@ -353,6 +394,7 @@ class CollectionGenerationService
 
     protected function calculateDueDate(Contract $contract, Carbon $period): Carbon
     {
+        $period = normalizePeriodOrFail($period);
         $day = $contract->payment_day ?? 10;
         return $period->copy()->day(min($day, $period->daysInMonth));
     }

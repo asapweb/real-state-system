@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Collections;
 
 use App\Enums\CollectionItemType;
 use App\Models\Collection;
@@ -17,11 +17,10 @@ class MulticurrencyCollectionTest extends TestCase
     use CreatesValidContract;
 
     #[\PHPUnit\Framework\Attributes\Test]
-    public function it_handles_cobranzas_in_multiple_currencies_and_cancellation_flow()
+    public function it_handles_cobranzas_in_multiple_currencies_and_cancellation_flow(): void
     {
-        $this->withoutExceptionHandling();
+        Carbon::setTestNow(Carbon::parse('2025-07-15'));
 
-        // Crear contrato válido desde el trait
         $contract = $this->createValidContract([
             'start_date' => '2025-07-01',
             'end_date' => '2026-06-30',
@@ -29,7 +28,6 @@ class MulticurrencyCollectionTest extends TestCase
 
         $client = $contract->mainTenant();
 
-        // Agregar gastos en dos monedas para el mes 2025-07
         ContractExpense::factory()->create([
             'contract_id' => $contract->id,
             'service_type' => 'electricity',
@@ -54,13 +52,11 @@ class MulticurrencyCollectionTest extends TestCase
             'included_in_collection' => false,
         ]);
 
-        // 🔁 Refrescar la relación expenses antes de llamar al servicio
         $contract->unsetRelation('expenses');
         $contract->load('expenses');
 
         $period = Carbon::create(2025, 7, 1);
 
-        // Generar cobranzas para 2025-07 (debería generar una por moneda)
         $generated = (new CollectionGenerationService())->generateForMonth($period);
         $this->assertCount(2, $generated);
 
@@ -70,15 +66,24 @@ class MulticurrencyCollectionTest extends TestCase
         $this->assertNotNull($collectionArs);
         $this->assertNotNull($collectionUsd);
 
-        // Cancelar la de ARS
         $collectionArs->update(['status' => 'canceled']);
 
-        // Volver a generar para 2025-07 (debería regenerar solo la de ARS)
         $regenerated = (new CollectionGenerationService())->generateForMonth($period);
         $this->assertCount(1, $regenerated);
         $this->assertEquals('ARS', $regenerated->first()->currency);
 
-        // Crear una cobranza manual para el mismo contrato y cliente (sin período)
+        ContractExpense::factory()->create([
+            'contract_id' => $contract->id,
+            'service_type' => 'internet',
+            'amount' => 200.00,
+            'currency' => 'USD',
+            'period' => '2025-08',
+            'due_date' => '2025-08-10',
+            'paid_by' => 'agency',
+            'is_paid' => true,
+            'included_in_collection' => false,
+        ]);
+
         Collection::create([
             'client_id' => $client->id,
             'contract_id' => $contract->id,
@@ -90,9 +95,9 @@ class MulticurrencyCollectionTest extends TestCase
             'total_amount' => 123.45,
         ]);
 
-        // Generar para 2025-08 (debería generar ambas monedas nuevamente)
         $nextPeriod = Carbon::create(2025, 8, 1);
         $nextGenerated = (new CollectionGenerationService())->generateForMonth($nextPeriod);
+
         $this->assertCount(2, $nextGenerated);
         $this->assertTrue($nextGenerated->pluck('currency')->contains('ARS'));
         $this->assertTrue($nextGenerated->pluck('currency')->contains('USD'));

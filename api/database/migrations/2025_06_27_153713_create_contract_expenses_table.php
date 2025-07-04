@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('service_type'); // ej. 'expensas', 'agua', 'gas'
             $table->decimal('amount', 10, 2);
             $table->string('currency', 3)->default('ARS');
-            $table->string('period', 7); // almacena '2025-07'
+            $table->string('period', 7); // formato 'YYYY-MM'
             $table->date('due_date')->nullable(); // vencimiento del gasto
             $table->string('paid_by', 20)->default('tenant'); // 'tenant', 'agency', 'owner'
             $table->boolean('is_paid')->default(false);

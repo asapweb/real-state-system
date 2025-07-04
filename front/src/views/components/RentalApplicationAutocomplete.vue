@@ -110,9 +110,9 @@ const fetchApplicationById = async (id) => {
   try {
     const { data } = await axios.get(`/api/rental-applications/${id}`)
     const app = {
-      ...data,
-      label: `#${String(data.id).padStart(4, '0')} - ${data.applicant?.last_name} ${data.applicant?.name}`,
-      statusLabel: statusLabels[data.status] || data.status,
+      ...data.data,
+      label: `#${String(data.data.id).padStart(4, '0')} - ${data.data.applicant?.last_name} ${data.data.applicant?.name}`,
+      statusLabel: statusLabels[data.data.status] || data.data.status,
     }
     selected.value = app
     items.value = [app]

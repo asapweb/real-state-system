@@ -135,7 +135,7 @@ const fetchServices = async () => {
       },
     })
     services.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (e) {
     console.error('Error al cargar servicios', e)
     snackbar.error('No se pudieron cargar los servicios.')

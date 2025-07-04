@@ -147,7 +147,7 @@ class CollectionGenerationService
                     $createdItem = $collection->items()->create($item);
 
                     if (
-                        $createdItem->type === CollectionItemType::Service &&
+                        $createdItem->type === CollectionItemType::SERVICE &&
                         !empty($createdItem->meta['expense_id'])
                     ) {
                         \App\Models\ContractExpense::where('id', $createdItem->meta['expense_id'])
@@ -298,7 +298,7 @@ class CollectionGenerationService
 
         if (!empty($rentData['amount']) && $rentData['amount'] > 0) {
             $items->push([
-                'type' => CollectionItemType::Rent,
+                'type' => CollectionItemType::RENT,
                 'description' => 'Alquiler mes ' . $period->translatedFormat('F Y'),
                 'quantity' => 1,
                 'unit_price' => $rentData['amount'],
@@ -322,7 +322,7 @@ class CollectionGenerationService
 
             if ($amount > 0) {
                 $items->push([
-                    'type' => CollectionItemType::Commission,
+                    'type' => CollectionItemType::COMMISSION,
                     'description' => 'Comisión inmobiliaria',
                     'quantity' => 1,
                     'unit_price' => $amount,
@@ -347,7 +347,7 @@ class CollectionGenerationService
 
         foreach ($expenses as $expense) {
             $items->push([
-                'type' => CollectionItemType::Service,
+                'type' => CollectionItemType::SERVICE,
                 'description' => ucfirst($expense->service_type),
                 'quantity' => 1,
                 'unit_price' => $expense->amount,
@@ -364,7 +364,7 @@ class CollectionGenerationService
         $penalty = $contract->calculatePenaltyForPeriod($period);
         if ($penalty && $penalty['amount'] > 0) {
             $items->push([
-                'type' => CollectionItemType::Penalty,
+                'type' => CollectionItemType::PENALTY,
                 'description' => 'Intereses por mora período ' . $penalty['related_period'],
                 'quantity' => 1,
                 'unit_price' => $penalty['amount'],
@@ -375,7 +375,7 @@ class CollectionGenerationService
         }
         if ($contract->insurance_required && $contract->insurance_amount > 0) {
             $items->push([
-                'type' => CollectionItemType::Insurance,
+                'type' => CollectionItemType::INSURANCE,
                 'description' => 'Seguro locativo',
                 'quantity' => 1,
                 'unit_price' => $contract->insurance_amount,

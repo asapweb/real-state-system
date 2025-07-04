@@ -181,7 +181,7 @@ const fetchProperties = async () => {
   try {
     const { data } = await axios.get('/api/properties', { params })
     properties.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (error) {
     emit('error', 'No se pudieron cargar las propiedades.')
     console.error('Error al obtener propiedades:', error)

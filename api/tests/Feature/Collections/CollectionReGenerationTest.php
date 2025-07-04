@@ -75,7 +75,7 @@ class CollectionReGenerationTest extends TestCase
         $this->assertTrue($arsItems->contains('type', 'rent'));
         $this->assertTrue($arsItems->contains('type', 'insurance'));
         $this->assertTrue($arsItems->contains(function ($item) {
-            return $item->type === CollectionItemType::Service && stripos($item->description, 'gas') !== false;
+            return $item->type === CollectionItemType::SERVICE && stripos($item->description, 'gas') !== false;
         }), 'Debe haber un ítem de servicio que incluya "gas" en la descripción');
 
         $usdNewCollection = $newCollections->first();
@@ -83,14 +83,14 @@ class CollectionReGenerationTest extends TestCase
         $this->assertCount(2, $usdItems, 'Cobranza USD debe tener 2 ítems');
 
         $this->assertTrue($usdItems->contains(function ($item) {
-            return $item->type === CollectionItemType::Service && stripos($item->description, 'electricity') !== false;
+            return $item->type === CollectionItemType::SERVICE && stripos($item->description, 'electricity') !== false;
         }), 'Debe haber un ítem de servicio que incluya "electricity" en la descripción');
 
         $this->assertTrue($usdItems->contains(function ($item) {
-            return $item->type === CollectionItemType::Service && stripos($item->description, 'phone') !== false;
+            return $item->type === CollectionItemType::SERVICE && stripos($item->description, 'phone') !== false;
         }), 'Debe haber un ítem de servicio que incluya "phone" en la descripción');
 
-        $allServiceItems = $arsItems->merge($usdItems)->filter(fn($item) => $item->type === CollectionItemType::Service);
+        $allServiceItems = $arsItems->merge($usdItems)->filter(fn($item) => $item->type === CollectionItemType::SERVICE);
 
         $this->assertNotEmpty($allServiceItems, 'Debe haber al menos un ítem de tipo service');
 

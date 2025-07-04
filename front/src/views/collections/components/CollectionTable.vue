@@ -104,7 +104,7 @@ const fetchCollections = async () => {
       },
     })
     collections.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (error) {
     console.log(error)
     emit('error', 'No se pudieron cargar las cobranzas.')

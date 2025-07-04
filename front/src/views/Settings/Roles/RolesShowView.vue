@@ -243,7 +243,7 @@ const updateRolePermissions = async () => {
 const fetchRoleDetails = async () => {
   try {
     const response = await axios.get(`/api/roles/${roleId.value}`)
-    roleName.value = response.data.data.name // Asume que la API devuelve un objeto con propiedad 'name'
+    roleName.value = response.data.data.data.name // Asume que la API devuelve un objeto con propiedad 'name'
   } catch (error) {
     console.error('Error al cargar los detalles del rol:', error)
     roleName.value = 'Rol desconocido'

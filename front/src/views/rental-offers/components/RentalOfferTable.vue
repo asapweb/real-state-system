@@ -176,7 +176,7 @@ const fetchOffers = async () => {
   try {
     const { data } = await axios.get('/api/rental-offers', { params })
     offers.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (error) {
     emit('error', 'No se pudieron cargar las ofertas de alquiler.')
     console.error('Error al obtener rental offers:', error)

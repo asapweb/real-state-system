@@ -61,7 +61,7 @@ class CollectionNoLateFeeOnDueDateTest extends TestCase
             'end_date' => '2026-05-31',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
             'payment_day' => 5,
             'has_penalty' => true,
             'penalty_type' => 'percentage',
@@ -95,7 +95,7 @@ class CollectionNoLateFeeOnDueDateTest extends TestCase
         $this->assertEquals('paid', $collection->status);
         $this->assertEquals($paymentDate->toDateString(), $collection->paid_at->toDateString());
 
-        $lateFeeItem = $collection->items()->where('type', CollectionItemType::LateFee)->first();
+        $lateFeeItem = $collection->items()->where('type', CollectionItemType::LATE_FEE)->first();
         $this->assertNull($lateFeeItem, 'Se generó un ítem de punitorio injustificado');
         $this->assertEquals(100000, $collection->total_amount);
     }

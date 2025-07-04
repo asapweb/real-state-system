@@ -8,6 +8,7 @@ use App\Http\Requests\StoreContractClientRequest;
 use App\Http\Requests\UpdateContractClientRequest;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Http\Resources\ContractClientResource;
 
 class ContractClientController extends Controller
 {
@@ -16,24 +17,24 @@ class ContractClientController extends Controller
         $perPage = $request->input('per_page', 10);
         $sortBy = $request->input('sort_by', 'id');
         $sortDirection = strtolower($request->input('sort_direction', 'asc')) === 'desc' ? 'desc' : 'asc';
-        
+
         $allowedSorts = ['id', 'created_at', 'role'];
         if (!in_array($sortBy, $allowedSorts)) {
             $sortBy = 'id';
         }
-        
+
         $query = $contract->clients()->with('client');
-        
+
         if ($request->filled('search.client')) {
             $query->whereHas('client', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search['client'] . '%')
                 ->orWhere('last_name', 'like', '%' . $request->search['client'] . '%');
             });
         }
-        
+
         $query->orderBy($sortBy, $sortDirection);
 
-        return response()->json($query->paginate($perPage));
+        return ContractClientResource::collection($query->paginate($perPage));
     }
 
     public function store(StoreContractClientRequest $request, Contract $contract)

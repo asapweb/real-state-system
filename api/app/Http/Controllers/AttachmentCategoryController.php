@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AttachmentCategory;
 use Illuminate\Http\Request;
+use App\Http\Resources\AttachmentCategoryResource;
 
 class AttachmentCategoryController extends Controller
 {
@@ -44,7 +45,7 @@ class AttachmentCategoryController extends Controller
 
         // Orden y paginación
         $query->orderBy($sortBy, $sortDirection);
-        return response()->json($query->paginate($perPage));
+        return AttachmentCategoryResource::collection($query->paginate($perPage));
     }
 
     public function all(Request $request)
@@ -75,7 +76,7 @@ class AttachmentCategoryController extends Controller
 
     public function show(AttachmentCategory $attachmentCategory)
     {
-        return $attachmentCategory;
+        return new AttachmentCategoryResource($attachmentCategory);
     }
 
     public function update(Request $request, AttachmentCategory $attachmentCategory)

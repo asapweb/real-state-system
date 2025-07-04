@@ -6,6 +6,7 @@ use App\Http\Requests\StoreContractRequest;
 use App\Http\Requests\UpdateContractRequest;
 use App\Models\Contract;
 use Illuminate\Http\Request;
+use App\Http\Resources\ContractResource;
 
 class ContractController extends Controller
 {
@@ -44,7 +45,7 @@ class ContractController extends Controller
 
         $query->orderBy($sortBy, $sortDirection);
 
-        return response()->json($query->paginate($perPage));
+        return ContractResource::collection($query->paginate($perPage));
     }
 
     public function store(StoreContractRequest $request)
@@ -56,7 +57,7 @@ class ContractController extends Controller
 
     public function show(Contract $contract)
     {
-        return response()->json($contract->load(['property', 'rentalApplication', 'attachments']));
+        return new ContractResource($contract->load(['property', 'rentalApplication', 'attachments']));
     }
 
     public function update(UpdateContractRequest $request, Contract $contract)

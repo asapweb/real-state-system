@@ -138,7 +138,7 @@ const fetchClients = async () => {
   try {
     const response = await axios.get('/api/clients', { params })
     clients.value = response.data.data
-    totalClients.value = response.data.total
+    totalClients.value = response.data.meta.total
   } catch (error) {
     console.error('Error al obtener los clientes:', error)
     emit('error', 'No se pudieron cargar los clientes. Intente nuevamente.')

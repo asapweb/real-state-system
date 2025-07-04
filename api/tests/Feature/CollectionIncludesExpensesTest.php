@@ -42,7 +42,7 @@ class CollectionIncludesExpensesTest extends TestCase
             'end_date' => '2026-05-31',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
         ]);
 
         // Asociar cliente como inquilino
@@ -74,7 +74,7 @@ class CollectionIncludesExpensesTest extends TestCase
 
         // Verificar que se haya generado la cobranza y su ítem de gasto
         $collection = Collection::where('contract_id', $contract->id)->firstOrFail();
-        $serviceItem = $collection->items()->where('type', CollectionItemType::Service)->first();
+        $serviceItem = $collection->items()->where('type', CollectionItemType::SERVICE)->first();
 
         $this->assertNotNull($serviceItem, 'No se generó el ítem de gasto');
         $this->assertEquals(15000, $serviceItem->amount);

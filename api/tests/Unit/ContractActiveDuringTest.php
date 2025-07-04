@@ -18,7 +18,7 @@ class ContractActiveDuringTest extends TestCase
         $contract = Contract::factory()->create([
             'start_date' => '2025-05-08',
             'end_date' => '2026-05-07',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
         ]);
 
         $period = Carbon::parse('2025-05-01');

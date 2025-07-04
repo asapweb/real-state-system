@@ -225,7 +225,7 @@ const onSaved = () => {
 const loadAppointment = async (appointmentId) => {
   try {
     const response = await axios.get('/api/appointments/' + appointmentId, {})
-    appointment.value = response.data
+    appointment.value = response.data.data
   } catch (error) {
     console.log('Appointment / loadAppointment error ')
     console.log(error)

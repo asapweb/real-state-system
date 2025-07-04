@@ -51,11 +51,11 @@ class ContractTest extends TestCase
         $adjustment = ContractAdjustment::factory()->create([
             'contract_id' => $contract->id,
             'effective_date' => '2025-07-01',
-            'type' => ContractAdjustmentType::Percentage,
+            'type' => ContractAdjustmentType::PERCENTAGE,
             'value' => 10,
         ]);
 
-        $this->assertEquals(ContractAdjustmentType::Percentage, $adjustment->type);
+        $this->assertEquals(ContractAdjustmentType::PERCENTAGE, $adjustment->type);
         $this->assertTrue(Carbon::parse($adjustment->effective_date)->lessThanOrEqualTo($period->endOfMonth()));
 
         $adjusted = $contract->applyAdjustments(100000, $period);

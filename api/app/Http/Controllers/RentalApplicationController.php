@@ -6,6 +6,7 @@ use App\Models\RentalApplication;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreRentalApplicationRequest;
 use App\Http\Requests\UpdateRentalApplicationRequest;
+use App\Http\Resources\RentalApplicationResource;
 
 class RentalApplicationController extends Controller
 {
@@ -71,7 +72,7 @@ class RentalApplicationController extends Controller
 
     // Orden y paginación
     $query->orderBy($sortBy, $sortDirection);
-    return response()->json($query->paginate($perPage));
+    return RentalApplicationResource::collection($query->paginate($perPage));
 }
 
 
@@ -83,7 +84,7 @@ class RentalApplicationController extends Controller
 
     public function show(RentalApplication $rentalApplication)
     {
-        return $rentalApplication->load(['property', 'applicant', 'rentalOffer', 'attachments']);
+        return new RentalApplicationResource($rentalApplication->load(['property', 'applicant', 'rentalOffer', 'attachments']));
     }
 
     public function update(UpdateRentalApplicationRequest $request, RentalApplication $rentalApplication)

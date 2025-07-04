@@ -6,6 +6,7 @@ use App\Models\Attachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use App\Http\Resources\AttachmentResource;
 
 class AttachmentController extends Controller
 {
@@ -40,7 +41,7 @@ class AttachmentController extends Controller
 
         // Orden y paginación
         $query->orderBy($sortBy, $sortDirection);
-        return response()->json($query->paginate($perPage));
+        return AttachmentResource::collection($query->paginate($perPage));
     }
 
     protected function resolveModel($type)
@@ -68,7 +69,7 @@ class AttachmentController extends Controller
     if (!$request->hasFile('file')) {
         throw new \Exception('No se recibió archivo');
     }
-    
+
     $path = $request->file('file')->store('attachments', 's3');
 
     if (!$path || trim($path) === '') {
@@ -106,6 +107,6 @@ class AttachmentController extends Controller
     public function show(Attachment $attachment)
     {
         $attachment->url = URL::to('/storage/' . ltrim($attachment->file_path, '/'));
-        return $attachment->load('category');
+        return new AttachmentResource($attachment->load('category'));
     }
 }

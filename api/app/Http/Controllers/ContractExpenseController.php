@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Contract;
 use App\Models\ContractExpense;
 use Illuminate\Http\Request;
+use App\Http\Resources\ContractExpenseResource;
 
 class ContractExpenseController extends Controller
 {
     public function index(Request $request, Contract $contract)
     {
         $expenses = $contract->expenses()->paginate($request->input('per_page', 15));
-        return response()->json($expenses);
+        return ContractExpenseResource::collection($expenses);
     }
 
     public function store(Request $request)

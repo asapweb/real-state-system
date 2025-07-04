@@ -7,60 +7,72 @@ use App\Models\ContractAdjustment;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreContractAdjustmentRequest;
 use App\Http\Requests\UpdateContractAdjustmentRequest;
+use App\Http\Resources\ContractAdjustmentResource;
 
 class ContractAdjustmentController extends Controller
 {
     public function globalIndex(Request $request)
-{
-    $query = ContractAdjustment::with('contract.clients.client', 'indexType');
+    {
+        $query = ContractAdjustment::with('contract.clients.client', 'indexType');
 
-    if ($request->filled('contract_id')) {
-        $query->where('contract_id', $request->input('contract_id'));
+        if ($request->filled('contract_id')) {
+            $query->where('contract_id', $request->input('contract_id'));
+        }
+
+        if ($request->filled('client_id')) {
+            $query->whereHas('contract.clients', function ($q) use ($request) {
+                $q->where('client_id', $request->input('client_id'));
+            });
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('effective_date', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('effective_date', '<=', $request->input('date_to'));
+        }
+
+        if ($request->filled('effective_date_from')) {
+            $query->whereDate('effective_date', '>=', $request->input('effective_date_from'));
+        }
+
+        if ($request->filled('effective_date_to')) {
+            $query->whereDate('effective_date', '<=', $request->input('effective_date_to'));
+        }
+
+        if ($request->filled('status')) {
+            $status = $request->input('status');
+            $today = now()->startOfDay();
+
+            $query->where(function ($q) use ($status, $today) {
+                match ($status) {
+                    'pending' => $q->whereDate('effective_date', '>', $today),
+                    'expired_without_value' => $q->whereDate('effective_date', '<=', $today)->whereNull('value'),
+                    'with_value' => $q->whereNotNull('value')->whereNull('applied_at'),
+                    'applied' => $q->whereNotNull('applied_at'),
+                    default => null,
+                };
+            });
+        }
+
+        $perPage = $request->input('per_page', 15);
+        $sortBy = $request->input('sort_by', 'effective_date');
+        $sortDirection = strtolower($request->input('sort_direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $allowedSorts = ['id', 'effective_date', 'type', 'value', 'created_at'];
+        if (!in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'effective_date';
+        }
+
+        $query->orderBy($sortBy, $sortDirection);
+
+        return ContractAdjustmentResource::collection($query->paginate($perPage));
     }
-
-    if ($request->filled('client_id')) {
-        $query->whereHas('contract.clients', function ($q) use ($request) {
-            $q->where('client_id', $request->input('client_id'));
-        });
-    }
-
-    if ($request->filled('type')) {
-        $query->where('type', $request->input('type'));
-    }
-
-    if ($request->filled('date_from')) {
-        $query->whereDate('effective_date', '>=', $request->input('date_from'));
-    }
-
-    if ($request->filled('date_to')) {
-        $query->whereDate('effective_date', '<=', $request->input('date_to'));
-    }
-
-    if ($request->filled('effective_date_from')) {
-        $query->whereDate('effective_date', '>=', $request->input('effective_date_from'));
-    }
-
-    if ($request->filled('effective_date_to')) {
-        $query->whereDate('effective_date', '<=', $request->input('effective_date_to'));
-    }
-
-    if ($request->filled('status')) {
-        $status = $request->input('status');
-        $today = now()->startOfDay();
-
-        $query->where(function ($q) use ($status, $today) {
-            match ($status) {
-                'pending' => $q->whereDate('effective_date', '>', $today),
-                'expired_without_value' => $q->whereDate('effective_date', '<=', $today)->whereNull('value'),
-                'with_value' => $q->whereNotNull('value')->whereNull('applied_at'),
-                'applied' => $q->whereNotNull('applied_at'),
-                default => null,
-            };
-        });
-    }
-
-    return $query->orderBy('effective_date')->paginate($request->input('per_page', 15));
-}
 
     public function index(Request $request, Contract $contract)
     {
@@ -77,7 +89,7 @@ class ContractAdjustmentController extends Controller
 
         $query->orderBy($sortBy, $sortDirection);
 
-        return response()->json($query->paginate($perPage));
+        return ContractAdjustmentResource::collection($query->paginate($perPage));
     }
 
     public function store(StoreContractAdjustmentRequest $request, Contract $contract)
@@ -86,7 +98,9 @@ class ContractAdjustmentController extends Controller
         $adjustment->contract_id = $contract->id;
         $adjustment->save();
 
-        return response()->json($adjustment, 201);
+        $adjustment->load(['contract.clients.client', 'indexType', 'attachments']);
+
+        return new ContractAdjustmentResource($adjustment);
     }
 
     public function show(Contract $contract, ContractAdjustment $adjustment)
@@ -95,7 +109,9 @@ class ContractAdjustmentController extends Controller
             return response()->json(['message' => 'El ajuste no pertenece al contrato.'], 403);
         }
 
-        return response()->json($adjustment);
+        $adjustment->load(['contract.clients.client', 'indexType', 'attachments']);
+
+        return new ContractAdjustmentResource($adjustment);
     }
 
     public function update(UpdateContractAdjustmentRequest $request, Contract $contract, ContractAdjustment $adjustment)
@@ -106,7 +122,9 @@ class ContractAdjustmentController extends Controller
 
         $adjustment->update($request->validated());
 
-        return response()->json($adjustment);
+        $adjustment->load(['contract.clients.client', 'indexType', 'attachments']);
+
+        return new ContractAdjustmentResource($adjustment);
     }
 
     public function updateValue(Request $request, Contract $contract, ContractAdjustment $adjustment)
@@ -122,9 +140,10 @@ class ContractAdjustmentController extends Controller
 
         $adjustment->update($validated);
 
-        return response()->json($adjustment);
-    }
+        $adjustment->load(['contract.clients.client', 'indexType', 'attachments']);
 
+        return new ContractAdjustmentResource($adjustment);
+    }
 
     public function destroy(Contract $contract, ContractAdjustment $adjustment)
     {

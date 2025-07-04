@@ -192,7 +192,7 @@ const fetchApplications = async () => {
   try {
     const { data } = await axios.get('/api/rental-applications', { params })
     applications.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (error) {
     emit('error', 'No se pudieron cargar las solicitudes.')
     console.error('Error al obtener solicitudes:', error)

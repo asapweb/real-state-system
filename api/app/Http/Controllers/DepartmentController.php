@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use Illuminate\Http\Request;
+use App\Http\Resources\DepartmentResource;
 
 class DepartmentController extends Controller
 {
@@ -32,7 +33,7 @@ class DepartmentController extends Controller
          // Paginación
          $departments = $query->paginate($request->get('itemsPerPage', 10));
 
-         return response()->json($departments);
+         return DepartmentResource::collection($departments);
     }
 
     /**
@@ -55,7 +56,7 @@ class DepartmentController extends Controller
      */
     public function show(Department $department)
     {
-        return $department;
+        return new DepartmentResource($department);
     }
 
     /**

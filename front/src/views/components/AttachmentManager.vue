@@ -178,7 +178,7 @@ const loadAttachments = async () => {
       },
     )
     attachments.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (error) {
     console.log(error)
     snackbar.value = { show: true, text: 'Error al cargar archivos', color: 'error' }

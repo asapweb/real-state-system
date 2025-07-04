@@ -34,6 +34,7 @@ class VoucherService
                     'description' => $type->name . ' ' . $voucher->number,
                     'amount' => $type->credit ? -$voucher->total : $voucher->total,
                     'currency' => $voucher->currency,
+                    'is_initial' => false,
                 ]);
             }
         }

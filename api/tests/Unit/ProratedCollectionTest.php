@@ -40,7 +40,7 @@ class ProratedCollectionTest extends TestCase
             'end_date' => '2026-05-07',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
             'prorate_first_month' => true,
         ]);
 
@@ -62,7 +62,7 @@ $this->assertTrue(
 
         $item = CollectionItem::where('collection_id', $collection->id)->first();
         $this->assertNotNull($item, 'No se creó item de alquiler');
-        $this->assertEquals(CollectionItemType::Rent, $item->type);
+        $this->assertEquals(CollectionItemType::RENT, $item->type);
         $this->assertLessThan(100000, $item->amount, 'El importe debería estar prorrateado');
 
         $meta = $item->meta;

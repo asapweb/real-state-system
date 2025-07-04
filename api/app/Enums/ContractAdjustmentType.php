@@ -4,9 +4,9 @@ namespace App\Enums;
 
 enum ContractAdjustmentType: string
 {
-    case Fixed = 'fixed';
-    case Percentage = 'percentage';
-    case Index = 'index';
-    case Negotiated = 'negotiated';
+    case FIXED = 'fixed';
+    case PERCENTAGE = 'percentage';
+    case INDEX = 'index';
+    case NEGOTIATED = 'negotiated';
 }
 

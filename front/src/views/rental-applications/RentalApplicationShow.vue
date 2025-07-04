@@ -77,7 +77,7 @@ const loadApplication = async () => {
   loading.value = true
   try {
     const { data } = await axios.get(`/api/rental-applications/${route.params.id}`)
-    application.value = data
+    application.value = data.data
   } catch (error) {
     snackbar.value.message = 'No se pudo cargar la solicitud.'
     snackbar.value.show = true

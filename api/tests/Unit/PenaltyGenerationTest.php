@@ -40,7 +40,7 @@ class PenaltyGenerationTest extends TestCase
             'end_date' => '2026-05-31',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
             'payment_day' => 10,
             'has_penalty' => true,
             'penalty_type' => PenaltyType::PERCENTAGE,
@@ -77,7 +77,7 @@ class PenaltyGenerationTest extends TestCase
         $this->assertNotNull($collection, 'La cobranza de junio no fue generada');
 
         $penaltyItem = CollectionItem::where('collection_id', $collection->id)
-            ->where('type', CollectionItemType::Penalty)
+            ->where('type', CollectionItemType::PENALTY)
             ->first();
 
         $this->assertNotNull($penaltyItem, 'No se generó ítem de punitorio');

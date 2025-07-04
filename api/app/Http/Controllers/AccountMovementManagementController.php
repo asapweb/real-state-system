@@ -19,9 +19,9 @@ class AccountMovementManagementController extends Controller
         $amount = $request->amount;
 
         $existing = $client->accountMovements()
-            ->where('currency', $currency)
-            ->where('is_initial', true)
-            ->first();
+        ->where('currency', $currency)
+        ->where('is_initial', true)
+        ->first();
 
         $hasLaterMovements = $client->accountMovements()
             ->where('currency', $currency)

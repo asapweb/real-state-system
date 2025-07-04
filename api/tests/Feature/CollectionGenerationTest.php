@@ -119,7 +119,7 @@ class CollectionGenerationTest extends TestCase
         $this->assertEquals(1, $usdItems->count(), 'USD should have one item');
 
         $this->assertEquals('USD', $usdItems->first()->currency);
-        $this->assertEquals(CollectionItemType::Service, $usdItems->first()->type);
+        $this->assertEquals(CollectionItemType::SERVICE, $usdItems->first()->type);
 
         // Verificar totales
         $this->assertEquals($arsItems->sum('amount'), $ars->total_amount);

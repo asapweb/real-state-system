@@ -96,8 +96,8 @@ const fetchPropertyById = async (id) => {
   try {
     const { data } = await axios.get(`/api/properties/${id}`)
     selected.value = {
-      ...data,
-      label: `${data.street ?? ''} ${data.number ?? ''}`.trim(),
+      ...data.data,
+      label: `${data.data.street ?? ''} ${data.data.number ?? ''}`.trim(),
     }
     items.value = [selected.value]
   } catch (e) {

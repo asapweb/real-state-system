@@ -7,6 +7,7 @@ use App\Models\ContractService;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreContractServiceRequest;
 use App\Http\Requests\UpdateContractServiceRequest;
+use App\Http\Resources\ContractServiceResource;
 
 class ContractServiceController extends Controller
 {
@@ -40,7 +41,7 @@ class ContractServiceController extends Controller
         }
 
         $query->orderBy($sortBy, $sortDirection);
-        return response()->json($query->paginate($perPage));
+        return ContractServiceResource::collection($query->paginate($perPage));
     }
 
     public function store(StoreContractServiceRequest $request, Contract $contract)

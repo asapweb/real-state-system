@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Http\Resources\AppointmentResource;
 
 class AppointmentController extends Controller
 {
@@ -121,7 +122,7 @@ class AppointmentController extends Controller
 
          // Paginación
          $appointments = $query->with(['client', 'department', 'employee', 'creator.client','receiver.client', 'attendantStart.client', 'attendantEnd.client'])->paginate($request->get('itemsPerPage', 10));
-         return response()->json($appointments);
+         return AppointmentResource::collection($appointments);
     }
 
     /**
@@ -182,7 +183,7 @@ class AppointmentController extends Controller
      */
     public function show(Appointment $appointment)
     {
-        return $appointment->load(['client', 'department', 'employee', 'creator.client','receiver.client', 'attendantStart.client', 'attendantEnd.client']);
+        return new AppointmentResource($appointment->load(['client', 'department', 'employee', 'creator.client','receiver.client', 'attendantStart.client', 'attendantEnd.client']));
     }
 
     /**

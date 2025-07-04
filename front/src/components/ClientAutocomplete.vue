@@ -137,8 +137,8 @@ const loadSelectedClient = async (clientId) => {
     isLoading.value = true
     try {
       const response = await axios.get(`/api/clients/${clientId}`)
-      selectedClientData.value = response.data
-      clients.value = [response.data] // Agregar el cliente a la lista de opciones
+      selectedClientData.value = response.data.data
+      clients.value = [response.data.data] // Agregar el cliente a la lista de opciones
       selectedClient.value = clientId
     } catch (error) {
       console.error('Error al cargar el cliente:', error)

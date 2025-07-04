@@ -67,7 +67,7 @@ class Collection extends Model
             $this->save();
 
             $this->items()
-                ->where('type', CollectionItemType::Service)
+                ->where('type', CollectionItemType::SERVICE)
                 ->get()
                 ->each(function ($item) {
                     $expenseId = $item->meta['expense_id'] ?? null;

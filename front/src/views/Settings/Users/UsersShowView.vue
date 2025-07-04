@@ -52,7 +52,7 @@ const fetchUser = async () => {
     console.log('fetch')
     console.log(userId.value)
     const response = await axios.get('/api/users/' + userId.value)
-    user.value = response.data
+    user.value = response.data.data
   } catch (error) {
     console.error('Error al cargar la información del usuario:', error)
     // Puedes mostrar un mensaje de error al usuario aquí

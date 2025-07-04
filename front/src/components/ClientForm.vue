@@ -147,7 +147,7 @@ onMounted(async () => {
 
     if (isEditing.value) {
       const clientResponse = await axios.get(`/api/clients/${props.clientId}`)
-      const clientData = clientResponse.data
+      const clientData = clientResponse.data.data
       console.log(clientData.birth_date)
       clientData.birth_date = clientData.birth_date ? moment(clientData.birth_date).toDate() : null
       console.log(clientData.birth_date)

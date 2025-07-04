@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use Illuminate\Http\Request;
+use App\Http\Resources\AccountMovementResource;
 
 class AccountMovementController extends Controller
 {
@@ -15,6 +16,6 @@ class AccountMovementController extends Controller
             $query->where('currency', $request->currency);
         }
 
-        return $query->paginate($request->get('per_page', 25));
+        return AccountMovementResource::collection($query->paginate($request->get('per_page', 25)));
     }
 }

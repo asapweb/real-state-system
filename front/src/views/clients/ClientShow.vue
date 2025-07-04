@@ -33,7 +33,7 @@
       <ClientInfoCard v-if="client" :client="client" @edit="goToEdit" />
     </VCol>
     <v-col>
-      <AccountMovement v-if="client" :client-id="client?.id" />
+      <AccountMovement  cols="6" v-if="client" :client-id="client?.id" />
     </v-col>
     <v-col>
       <InitialBalanceForm v-if="client" :client-id="client?.id" />
@@ -62,7 +62,7 @@ const client = ref(null)
 const fetchClient = async () => {
   try {
     const { data } = await axios.get(`/api/clients/${route.params.id}`)
-    client.value = data
+    client.value = data.data
   } catch (error) {
     console.error('Error al cargar cliente', error)
     router.push('/clients')

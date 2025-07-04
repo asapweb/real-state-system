@@ -39,7 +39,7 @@ class IndexAdjustmentGenerationTest extends TestCase
             'end_date' => '2026-06-01',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
         ]);
 
         ContractClient::factory()->create([
@@ -52,7 +52,7 @@ class IndexAdjustmentGenerationTest extends TestCase
         ContractAdjustment::create([
             'contract_id' => $contract->id,
             'effective_date' => '2025-06-01',
-            'type' => ContractAdjustmentType::Index,
+            'type' => ContractAdjustmentType::INDEX,
             'value' => 12,
         ]);
 
@@ -64,7 +64,7 @@ class IndexAdjustmentGenerationTest extends TestCase
         $this->assertNotNull($collection, 'No se generó la cobranza');
 
         $item = CollectionItem::where('collection_id', $collection->id)
-            ->where('type', CollectionItemType::Rent)
+                            ->where('type', CollectionItemType::RENT)
             ->first();
 
         $this->assertNotNull($item, 'No se generó ítem de alquiler');

@@ -140,7 +140,7 @@ const fetchClients = async () => {
       },
     })
     clients.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (error) {
     console.log(error)
     snackbar.error('No se pudieron cargar los clientes del contrato.')

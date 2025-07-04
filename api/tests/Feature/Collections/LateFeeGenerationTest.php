@@ -49,7 +49,7 @@ class LateFeeGenerationTest extends TestCase
         $collection = $collections->first();
         $this->assertEquals('2025-08', $collection->period);
 
-        $penaltyItem = $collection->items()->where('type', CollectionItemType::Penalty)->first();
+        $penaltyItem = $collection->items()->where('type', CollectionItemType::PENALTY)->first();
 
         $this->assertNotNull($penaltyItem);
         $this->assertEquals(10000.00, $penaltyItem->amount); // 10% de 100000

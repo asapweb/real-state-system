@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\State;
 use Illuminate\Http\Request;
+use App\Http\Resources\StateResource;
 
 class StateController extends Controller
 {
@@ -15,6 +16,6 @@ class StateController extends Controller
             $query->where('country_id', $request->country_id);
         }
 
-        return $query->orderBy('name')->get(['id', 'country_id', 'name', 'is_default']);
+        return StateResource::collection($query->orderBy('name')->get());
     }
 }

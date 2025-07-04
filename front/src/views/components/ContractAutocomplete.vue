@@ -80,8 +80,8 @@ const fetchContractById = async (id) => {
   if (!id) return
   try {
     const { data } = await axios.get(`/api/contracts/${id}`)
-    selected.value = data
-    items.value = [data]
+    selected.value = data.data
+    items.value = [data.data]
   } catch (e) {
     console.error('Error cargando contrato:', e)
   }

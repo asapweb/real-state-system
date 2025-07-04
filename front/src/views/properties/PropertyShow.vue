@@ -90,7 +90,7 @@ const goToEdit = () => {
 
 const fetchProperty = async () => {
   const { data } = await axios.get(`/api/properties/${route.params.id}`)
-  property.value = data
+  property.value = data.data
 }
 
 onMounted(async () => {

@@ -4,13 +4,24 @@
     :items="items"
     :items-length="total"
     :loading="loading"
-    class="elevation-1"
     :items-per-page="perPage"
-    :page.sync="page"
-    item-value="id"
+    :page="page"
+    @update:page="onPageChange"
+    @update:items-per-page="onPerPageChange"
   >
+    <template #top>
+      <v-select
+        v-model="filters.currency"
+        :items="currencies"
+        label="Moneda"
+        class="ma-2"
+        clearable
+        hide-details
+      />
+    </template>
+
     <template #item.date="{ item }">
-      {{ item.date || '-' }}
+      {{ item.date ? new Date(item.date).toLocaleDateString() : '' }}
     </template>
 
     <template #item.description="{ item }">
@@ -18,55 +29,64 @@
     </template>
 
     <template #item.amount="{ item }">
-      {{ (item.amount ?? 0).toFixed(2) }} {{ item.currency ?? '' }}
+      {{ formatMoney(item.amount, item.currency) }}
     </template>
   </v-data-table-server>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import axios from 'axios'
+import { ref, watch, onMounted } from 'vue'
+import axios from '@/services/axios'
+import { formatMoney } from '@/utils/money'
 
-const props = defineProps({
-  clientId: {
-    type: Number,
-    required: true,
-  },
-})
+const props = defineProps({ clientId: Number })
 
 const headers = [
-  { text: 'Fecha', value: 'date' },
-  { text: 'Descripción', value: 'description' },
-  { text: 'Importe', value: 'amount', align: 'end' },
+  { title: 'Fecha', key: 'date' },
+  { title: 'Descripción', key: 'description' },
+  { title: 'Importe', key: 'amount', align: 'end' },
 ]
 
 const items = ref([])
 const total = ref(0)
 const loading = ref(false)
 const page = ref(1)
-const perPage = 10
+const perPage = ref(10)
+
+const currencies = ['ARS', 'USD']
+const filters = ref({
+  currency: '',
+})
 
 async function fetchData() {
-  if (!props.clientId) return
   loading.value = true
-
   try {
-    const response = await axios.get(`/api/clients/${props.clientId}/account-movements`, {
+    const { data } = await axios.get(`/api/clients/${props.clientId}/account-movements`, {
       params: {
         page: page.value,
-        per_page: perPage,
+        per_page: perPage.value,
+        currency: filters.value.currency || undefined,
       },
     })
-    items.value = response.data.data || []
-    total.value = response.data.total || 0
+    items.value = data.data
+    total.value = data.meta.total
   } catch (error) {
-    console.error('Error al cargar movimientos de cuenta:', error)
+    console.error('Error fetching account movements:', error)
   } finally {
     loading.value = false
   }
 }
 
-watch(() => props.clientId, fetchData, { immediate: true })
-watch(page, fetchData)
+function onPageChange(p) {
+  page.value = p
+  fetchData()
+}
+
+function onPerPageChange(p) {
+  perPage.value = p
+  fetchData()
+}
+
 onMounted(fetchData)
+watch(filters, fetchData, { deep: true })
 </script>

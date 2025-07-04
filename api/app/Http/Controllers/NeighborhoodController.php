@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Neighborhood;
 use Illuminate\Http\Request;
+use App\Http\Resources\NeighborhoodResource;
 
 class NeighborhoodController extends Controller
 {
@@ -15,6 +16,6 @@ class NeighborhoodController extends Controller
             $query->where('city_id', $request->city_id);
         }
 
-        return $query->orderBy('name')->get(['id', 'city_id', 'name', 'is_default']);
+        return NeighborhoodResource::collection($query->orderBy('name')->get());
     }
 }

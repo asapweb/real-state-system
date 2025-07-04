@@ -149,7 +149,7 @@ const fetchAdjustments = async () => {
       },
     })
     adjustments.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (e) {
     console.error(e)
     snackbar.error('Error al cargar ajustes del contrato')

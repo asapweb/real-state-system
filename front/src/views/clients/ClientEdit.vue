@@ -64,7 +64,7 @@ const clientId = route.params.id
 onMounted(async () => {
   try {
     const response = await axios.get(`/api/clients/${clientId}`)
-    clientData.value = response.data
+    clientData.value = response.data.data
   } catch (error) {
     console.error('Error al cargar los datos del cliente:', error)
     // snackbar.error('No se pudo cargar el cliente');

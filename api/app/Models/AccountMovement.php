@@ -16,10 +16,12 @@ class AccountMovement extends Model
         'description',
         'amount',
         'currency',
+        'is_initial',
         'meta',
     ];
 
     protected $casts = [
+        'is_initial' => 'boolean',
         'date' => 'date',
         'amount' => 'decimal:2',
         'meta' => 'array',

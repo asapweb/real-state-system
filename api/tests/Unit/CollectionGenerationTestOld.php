@@ -56,7 +56,7 @@ class CollectionGenerationTestOld extends TestCase
             'end_date' => '2026-05-31',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
         ]);
 
         // Asociamos cliente como inquilino y aseguramos consistencia
@@ -83,7 +83,7 @@ class CollectionGenerationTestOld extends TestCase
         // Verificamos que exista ítem de alquiler
         $item = CollectionItem::where('collection_id', $collection->id)->first();
         $this->assertNotNull($item, 'No se encontró item asociado');
-        $this->assertEquals(CollectionItemType::Rent, $item->type);
+        $this->assertEquals(CollectionItemType::RENT, $item->type);
         $this->assertEquals(100000, $item->amount);
     }
 }

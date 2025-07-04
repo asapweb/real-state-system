@@ -59,7 +59,7 @@ class CollectionPaymentTest extends TestCase
 
         // 👉 Agregar ítem de alquiler manualmente
         $collection->items()->create([
-            'type' => CollectionItemType::Rent,
+            'type' => CollectionItemType::RENT,
             'description' => 'Alquiler mes Junio',
             'quantity' => 1,
             'unit_price' => 100000,
@@ -80,7 +80,7 @@ class CollectionPaymentTest extends TestCase
         $this->assertEquals($user->id, $collection->paid_by_user_id);
         $this->assertEquals($period->copy()->day(10)->toDateString(), $collection->paid_at->toDateString());
 
-        $lateFeeItem = $collection->items()->where('type', CollectionItemType::LateFee)->first();
+        $lateFeeItem = $collection->items()->where('type', CollectionItemType::LATE_FEE)->first();
         $this->assertNotNull($lateFeeItem);
         $this->assertEquals(10000, $lateFeeItem->amount);
 

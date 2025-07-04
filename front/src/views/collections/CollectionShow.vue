@@ -158,6 +158,6 @@
 
   onMounted(async () => {
     const response = await axios.get(`/api/collections/${route.params.id}`)
-    collection.value = response.data
+    collection.value = response.data.data
   })
 </script>

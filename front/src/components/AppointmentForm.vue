@@ -20,7 +20,7 @@ const form = ref({
 onMounted(async () => {
   if (props.appointmentId) {
     const response = await axios.get('/api/appointments/' + props.appointmentId, {})
-    form.value = response.data
+    form.value = response.data.data
   }
 })
 

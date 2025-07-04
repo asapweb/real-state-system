@@ -64,7 +64,7 @@ const goToEdit = () => router.push(`/contracts/${contract.value.id}/edit`)
 const fetchContract = async () => {
   try {
     const { data } = await axios.get(`/api/contracts/${route.params.id}`)
-    contract.value = data
+    contract.value = data.data
   } catch (error) {
     snackbar.error('No se pudo cargar el contrato')
     console.error(error)

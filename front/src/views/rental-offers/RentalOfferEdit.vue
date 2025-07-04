@@ -46,7 +46,7 @@ const goBack = () => router.push('/rental-offers')
 const fetchOffer = async () => {
   try {
     const { data } = await axios.get(`/api/rental-offers/${id}`)
-    offer.value = data
+    offer.value = data.data
   } catch (error) {
     snackbar.error('No se pudo cargar la oferta')
     console.error(error)

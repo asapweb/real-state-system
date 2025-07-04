@@ -20,7 +20,7 @@ class StoreContractAdjustmentRequest extends FormRequest
             'type' => ['required', new Enum(ContractAdjustmentType::class)],
             'value' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
-            'index_type_id' => ['nullable', 'exists:index_types,id', 'required_if:type,' . ContractAdjustmentType::Index->value],
+            'index_type_id' => ['nullable', 'exists:index_types,id', 'required_if:type,' . ContractAdjustmentType::INDEX->value],
         ];
     }
 }

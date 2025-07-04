@@ -191,7 +191,7 @@ const fetchExpenses = async () => {
       },
     })
     expenses.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (error) {
     snackbar.error('Error al cargar gastos')
     console.error(error)

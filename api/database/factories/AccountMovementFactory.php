@@ -15,6 +15,7 @@ class AccountMovementFactory extends Factory
             'description' => 'Saldo inicial',
             'amount' => 1000.00,
             'currency' => 'ARS',
+            'is_initial' => false,
         ];
     }
 }

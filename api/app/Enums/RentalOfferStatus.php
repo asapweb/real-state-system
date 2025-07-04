@@ -4,8 +4,8 @@ namespace App\Enums;
 
 enum RentalOfferStatus: string
 {
-    case Draft = 'draft';
-    case Published = 'published';
-    case Expired = 'expired';
-    case Withdrawn = 'withdrawn';
+    case DRAFT = 'draft';
+    case PUBLISHED = 'published';
+    case EXPIRED = 'expired';
+    case WITHDRAWN = 'withdrawn';
 }

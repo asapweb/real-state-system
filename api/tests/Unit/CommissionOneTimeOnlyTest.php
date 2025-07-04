@@ -42,7 +42,7 @@ class CommissionOneTimeOnlyTest extends TestCase
             'end_date' => '2026-05-31',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
             'commission_type' => CommissionType::FIXED,
             'commission_amount' => 25000,
             'commission_payer' => CommissionPayer::TENANT,
@@ -60,7 +60,7 @@ class CommissionOneTimeOnlyTest extends TestCase
         // Simular generación de junio primero (donde sí se genera la comisión)
         $service->generateForMonth(Carbon::create(2025, 6, 1));
         $this->assertDatabaseHas(CollectionItem::class, [
-            'type' => CollectionItemType::Commission,
+            'type' => CollectionItemType::COMMISSION,
         ]);
 
         // Ahora generar julio, no debería haber comisión
@@ -70,7 +70,7 @@ class CommissionOneTimeOnlyTest extends TestCase
             ->first();
 
         $commissionItem = CollectionItem::where('collection_id', $collection->id)
-            ->where('type', CollectionItemType::Commission)
+            ->where('type', CollectionItemType::COMMISSION)
             ->first();
 
         $this->assertNull($commissionItem, 'No debería haberse generado una segunda comisión');

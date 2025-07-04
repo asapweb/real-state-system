@@ -9,6 +9,7 @@ use Illuminate\Support\Carbon;
 use App\Exceptions\CollectionGenerationException;
 use App\Http\Requests\StoreCollectionRequest;
 use App\Services\CollectionService;
+use App\Http\Resources\CollectionResource;
 
 class CollectionController extends Controller
 {
@@ -78,7 +79,7 @@ class CollectionController extends Controller
         // Orden y paginación
         $query->orderBy($sortBy, $sortDirection);
 
-        return response()->json($query->paginate($perPage));
+        return CollectionResource::collection($query->paginate($perPage));
     }
 
     public function store(StoreCollectionRequest $request)
@@ -112,7 +113,7 @@ class CollectionController extends Controller
     public function show(Collection $collection)
     {
         $collection->load(['items', 'contract', 'client']);
-        return response()->json($collection);
+        return new CollectionResource($collection);
     }
 
     public function generate(Request $request, CollectionGenerationService $service)

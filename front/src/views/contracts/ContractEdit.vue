@@ -46,7 +46,7 @@ const goBack = () => router.push('/contracts')
 const fetchContract = async () => {
   try {
     const { data } = await axios.get(`/api/contracts/${id}`)
-    contract.value = data
+    contract.value = data.data
   } catch (error) {
     snackbar.error('No se pudo cargar el contrato')
     console.error(error)

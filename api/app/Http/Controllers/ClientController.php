@@ -6,6 +6,7 @@ use App\Models\Client;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
+use App\Http\Resources\ClientResource;
 
 
 class ClientController extends Controller
@@ -47,7 +48,7 @@ class ClientController extends Controller
 
         // Orden y paginación
         $query->orderBy($sortBy, $sortDirection);
-        return response()->json($query->paginate($perPage));
+        return ClientResource::collection($query->paginate($perPage));
     }
 
     /**
@@ -83,6 +84,6 @@ class ClientController extends Controller
             'attachments',
         ]);
 
-        return response()->json($client);
+        return new ClientResource($client);
     }
 }

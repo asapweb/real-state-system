@@ -31,7 +31,7 @@ class PropertyFactory extends Factory
             'city_id' => City::inRandomOrder()->value('id') ?? 1,
             'neighborhood_id' => Neighborhood::inRandomOrder()->value('id') ?? 1,
 
-            'status' => PropertyStatus::Draft,
+            'status' => PropertyStatus::DRAFT,
         ];
     }
 }

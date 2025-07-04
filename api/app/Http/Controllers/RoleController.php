@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Resources\RoleResource;
 
 class RoleController extends Controller
 {
@@ -17,7 +18,7 @@ class RoleController extends Controller
     public function index(Request $request)
     {
         $roles = Role::paginate(10); // Ejemplo de paginación
-        return response()->json(['data' => $roles]);
+        return RoleResource::collection($roles);
     }
 
     /**
@@ -29,7 +30,7 @@ class RoleController extends Controller
     public function show(Role $role)
     {
         $role->load('permissions'); // Cargar los permisos del rol
-        return response()->json(['data' => $role]);
+        return new RoleResource($role);
     }
 
     /**

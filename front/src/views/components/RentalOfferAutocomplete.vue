@@ -97,8 +97,8 @@ const fetchOfferById = async (id) => {
   try {
     const { data } = await axios.get(`/api/rental-offers/${id}`)
     const offer = {
-      ...data,
-      label: `${data.property?.street ?? ''} ${data.property?.number ?? ''}`.trim(),
+      ...data.data,
+      label: `${data.data.property?.street ?? ''} ${data.data.property?.number ?? ''}`.trim(),
     }
     selected.value = offer
     items.value = [offer]

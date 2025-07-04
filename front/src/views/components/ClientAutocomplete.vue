@@ -103,8 +103,8 @@ const fetchClientById = async (id) => {
   try {
     const { data } = await axios.get(`/api/clients/${id}`)
     const client = {
-      ...data,
-      full_name: `${data.name ?? ''} ${data.last_name ?? ''}`.trim(),
+      ...data.data,
+      full_name: `${data.data.name ?? ''} ${data.data.last_name ?? ''}`.trim(),
     }
     selected.value = client
     items.value = [client]

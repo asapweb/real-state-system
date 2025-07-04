@@ -25,7 +25,7 @@ const clientService = {
   async getClient(id) {
     try {
       const response = await axios.get(`/api/clients/${id}`)
-      return response.data
+      return response.data.data
     } catch (error) {
       console.error(`Error al obtener cliente con ID ${id}:`, error)
       throw error

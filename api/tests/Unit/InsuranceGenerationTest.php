@@ -38,7 +38,7 @@ class InsuranceGenerationTest extends TestCase
             'end_date' => '2026-05-31',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
             'insurance_required' => true,
             'insurance_amount' => 4500,
         ]);
@@ -54,7 +54,7 @@ class InsuranceGenerationTest extends TestCase
 
         $collection = Collection::where('contract_id', $contract->id)->first();
         $insuranceItem = CollectionItem::where('collection_id', $collection->id)
-            ->where('type', CollectionItemType::Insurance)
+            ->where('type', CollectionItemType::INSURANCE)
             ->first();
 
         $this->assertNotNull($insuranceItem, 'No se generó ítem de seguro');

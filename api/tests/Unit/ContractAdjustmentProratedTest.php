@@ -43,7 +43,7 @@ class ContractAdjustmentProratedTest extends TestCase
             'end_date' => '2025-12-31',
             'monthly_amount' => 100000,
             'prorate_first_month' => true,
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
         ]);
 
         $client = Client::factory()->create();

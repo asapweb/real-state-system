@@ -4,8 +4,8 @@ namespace App\Enums;
 
 enum PropertyStatus: string
 {
-    case Draft = 'draft';
-    case Published = 'published';
-    case Rented = 'rented';
-    case Withdrawn = 'withdrawn';
+    case DRAFT = 'draft';
+    case PUBLISHED = 'published';
+    case RENTED = 'rented';
+    case WITHDRAWN = 'withdrawn';
 }

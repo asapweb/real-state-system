@@ -172,7 +172,7 @@ const fetchContracts = async () => {
   try {
     const { data } = await axios.get('/api/contracts', { params })
     contracts.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (error) {
     emit('error', 'No se pudieron cargar los contratos.')
     console.error(error)

@@ -4,9 +4,9 @@ namespace App\Enums;
 
 enum ContractStatus: string
 {
-    case Draft = 'draft';
-    case Active = 'active';
-    case Cancelled = 'cancelled';
-    case Finished = 'finished';
+    case DRAFT = 'draft';
+    case ACTIVE = 'active';
+    case CANCELLED = 'cancelled';
+    case FINISHED = 'finished';
 
 }

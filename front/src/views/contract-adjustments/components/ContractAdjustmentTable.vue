@@ -189,7 +189,7 @@ const fetchAdjustments = async () => {
   try {
     const { data } = await axios.get('api/contract-adjustments/global', { params })
     adjustments.value = data.data
-    total.value = data.total
+    total.value = data.meta.total
   } catch (e) {
     emit('error', 'Error al cargar ajustes de contratos')
     console.error(e)

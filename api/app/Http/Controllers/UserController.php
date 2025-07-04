@@ -11,6 +11,7 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Resources\UserResource;
 
 class UserController extends Controller
 {
@@ -65,7 +66,7 @@ class UserController extends Controller
          // Paginación
          $users  = $query->with(['departments', 'client'])->paginate($request->get('itemsPerPage', 10));
 
-         return response()->json($users );
+         return UserResource::collection($users);
     }
 
     /**
@@ -90,7 +91,7 @@ class UserController extends Controller
      */
     public function show($user)
     {
-        return response()->json(User::with(['departments', 'client'])->findOrFail($user));
+        return new UserResource(User::with(['departments', 'client'])->findOrFail($user));
     }
 
     /**

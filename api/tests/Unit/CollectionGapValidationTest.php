@@ -38,7 +38,7 @@ class CollectionGapValidationTest extends TestCase
             'end_date' => '2026-05-07',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
             'prorate_first_month' => true,
         ]);
 

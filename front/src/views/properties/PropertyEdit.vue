@@ -61,7 +61,7 @@ const goBack = () => {
 const fetchProperty = async () => {
   try {
     const { data } = await axios.get(`/api/properties/${propertyId}`)
-    property.value = data
+    property.value = data.data
   } catch (error) {
     snackbar.error('No se pudo cargar la propiedad')
     console.error('Error detalle:', error)

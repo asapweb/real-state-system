@@ -63,6 +63,7 @@ class Voucher extends Model
                         'description' => $voucher->booklet->voucherType->name . ' ' . $voucher->number,
                         'amount' => $voucher->booklet->voucherType->credit ? -$voucher->total : $voucher->total,
                         'currency' => $voucher->currency,
+                        'is_initial' => false,
                     ]);
                 }
             }

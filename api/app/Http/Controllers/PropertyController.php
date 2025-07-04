@@ -8,6 +8,7 @@ use App\Enums\PropertyStatus;
 use App\Http\Requests\StorePropertyRequest;
 use App\Http\Requests\UpdatePropertyRequest;
 use Illuminate\Validation\Rules\Enum;
+use App\Http\Resources\PropertyResource;
 
 
 class PropertyController extends Controller
@@ -53,7 +54,7 @@ class PropertyController extends Controller
 
         // Orden y paginación
         $query->orderBy($sortBy, $sortDirection);
-        return response()->json($query->paginate($perPage));
+        return PropertyResource::collection($query->paginate($perPage));
     }
 
     public function store(StorePropertyRequest $request)
@@ -77,15 +78,13 @@ class PropertyController extends Controller
 
     public function show(Property $property)
     {
-        return response()->json(
-            $property->load([
-                'propertyType',
-                'country',
-                'state',
-                'city',
-                'neighborhood'
-            ])
-        );
+        return new PropertyResource($property->load([
+            'propertyType',
+            'country',
+            'state',
+            'city',
+            'neighborhood'
+        ]));
     }
 
     public function destroy(Property $property)

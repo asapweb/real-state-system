@@ -42,7 +42,7 @@ class CommissionGenerationTest extends TestCase
             'end_date' => '2026-05-31',
             'monthly_amount' => 100000,
             'currency' => 'ARS',
-            'status' => ContractStatus::Active,
+            'status' => ContractStatus::ACTIVE,
             'commission_type' => CommissionType::FIXED,
             'commission_amount' => 25000,
             'commission_payer' => CommissionPayer::TENANT,
@@ -63,7 +63,7 @@ class CommissionGenerationTest extends TestCase
         $this->assertNotNull($collection, 'No se generó la cobranza');
 
         $commissionItem = CollectionItem::where('collection_id', $collection->id)
-            ->where('type', CollectionItemType::Commission)
+            ->where('type', CollectionItemType::COMMISSION)
             ->first();
 
         $this->assertNotNull($commissionItem, 'No se generó ítem de comisión');

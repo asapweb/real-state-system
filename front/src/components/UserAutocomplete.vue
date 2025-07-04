@@ -79,7 +79,7 @@ const loadSelectedUser = async (userId) => {
     isLoading.value = true
     try {
       const response = await axios.get(`/api/users/${userId}`)
-      users.value = [response.data] // Agregar el usuario a la lista de opciones
+      users.value = [response.data.data] // Agregar el usuario a la lista de opciones
     } catch (error) {
       console.error('Error al cargar el usuario:', error)
     } finally {

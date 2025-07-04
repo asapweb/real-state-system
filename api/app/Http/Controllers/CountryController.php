@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Country;
 use Illuminate\Http\Request;
+use App\Http\Resources\CountryResource;
 
 class CountryController extends Controller
 {
     public function index(Request $request)
     {
-        return Country::orderBy('name')->get(['id', 'name', 'is_default']);
+        return CountryResource::collection(Country::orderBy('name')->get());
     }
 }

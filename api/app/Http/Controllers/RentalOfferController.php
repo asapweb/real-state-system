@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateRentalOfferRequest;
 use App\Models\RentalOffer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Http\Resources\RentalOfferResource;
 
 class RentalOfferController extends Controller
 {
@@ -58,7 +59,7 @@ class RentalOfferController extends Controller
 
         // Orden y paginación
         $query->orderBy($sortBy, $sortDirection);
-        return response()->json($query->paginate($perPage));
+        return RentalOfferResource::collection($query->paginate($perPage));
     }
 
     public function store(StoreRentalOfferRequest $request)

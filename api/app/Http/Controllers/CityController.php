@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use Illuminate\Http\Request;
+use App\Http\Resources\CityResource;
 
 class CityController extends Controller
 {
@@ -15,6 +16,6 @@ class CityController extends Controller
             $query->where('state_id', $request->state_id);
         }
 
-        return $query->orderBy('name')->get(['id', 'state_id', 'name', 'is_default']);
+        return CityResource::collection($query->orderBy('name')->get());
     }
 }

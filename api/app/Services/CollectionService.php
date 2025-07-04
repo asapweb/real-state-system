@@ -60,7 +60,7 @@ class CollectionService
 
         CollectionItem::create([
             'collection_id' => $collection->id,
-            'type' => CollectionItemType::LateFee,
+            'type' => CollectionItemType::LATE_FEE,
             'description' => 'Interés por mora del ' . $lateFee['due_date'] . ' al ' . $lateFee['payment_date'],
             'quantity' => 1,
             'unit_price' => $lateFee['amount'],

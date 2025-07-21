@@ -9,9 +9,28 @@ class PaymentMethod extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'code', 'is_default'];
+    protected $fillable = [
+        'name',
+        'requires_reference',
+        'default_cash_account_id',
+        'code',
+        'is_default',
+        'handled_by_agency',
+    ];
 
     protected $casts = [
+        'requires_reference' => 'boolean',
         'is_default' => 'boolean',
+        'handled_by_agency' => 'boolean',
     ];
+
+    public function defaultCashAccount()
+    {
+        return $this->belongsTo(CashAccount::class, 'default_cash_account_id');
+    }
+
+    public function voucherPayments()
+    {
+        return $this->hasMany(VoucherPayment::class);
+    }
 }

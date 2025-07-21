@@ -12,6 +12,8 @@ return new class extends Migration {
             $table->string('code')->unique();     // Ej: 'ipc', 'uva', 'ripte'
             $table->string('name');               // Ej: 'IPC INDEC', 'UVA BCRA'
             $table->boolean('is_active')->default(true);
+            $table->string('calculation_mode')->default('percentage'); // 'percentage' o 'ratio'
+            $table->string('frequency')->default('daily');
             $table->timestamps();
         });
 

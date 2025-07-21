@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
 
             IndexTypeSeeder::class,
+            IndexValueSeeder::class,
             TaxConditionSeeder::class,
             DocumentTypeSeeder::class,
             PropertyTypeSeeder::class,
@@ -35,7 +36,8 @@ class DatabaseSeeder extends Seeder
             PaymentMethodSeeder::class,
             SalePointSeeder::class,
             VoucherTypeSeeder::class,
-
+            BookletSeeder::class,
+            CashAccountSeeder::class,
         ]);
     }
 }

@@ -1,6 +1,7 @@
 <template>
   <div>
     <v-autocomplete
+      :hide-details="hideDetails"
       v-model="selected"
       v-model:search="search"
       :items="items"
@@ -34,6 +35,9 @@ import axios from '@/services/axios'
 
 const props = defineProps({
   modelValue: [Number, Object, null],
+  hideDetails: {
+    default: 'auto',
+  },
   clientId: [Number, null],
   errorMessages: Array,
 })
@@ -100,6 +104,17 @@ watch(
   { immediate: true },
 )
 
+// También observar cambios en clientId para recargar el contrato si es necesario
+watch(
+  () => props.clientId,
+  async (newClientId, oldClientId) => {
+    if (newClientId && props.modelValue && typeof props.modelValue === 'number') {
+      // Si cambia el cliente y hay un contrato seleccionado, recargar el contrato
+      await fetchContractById(props.modelValue)
+    }
+  }
+)
+
 watch(selected, (val) => {
   emit('update:modelValue', val?.id ?? null)
 })
@@ -109,5 +124,16 @@ watch(
   debounce((val) => {
     fetchContracts(val)
   }, 300),
+)
+
+watch(
+  () => props.clientId,
+  (val, oldVal) => {
+    if (val !== oldVal) {
+      selected.value = null
+      items.value = []
+      emit('update:modelValue', null)
+    }
+  }
 )
 </script>

@@ -12,6 +12,7 @@
                 type="date"
                 :error-messages="v$.effective_date.$errors.map((e) => e.$message)"
                 @blur="v$.effective_date.$touch"
+                :disabled="isApplied"
                 required
               />
             </v-col>
@@ -28,6 +29,7 @@
                 label="Tipo de ajuste"
                 :error-messages="v$.type.$errors.map((e) => e.$message)"
                 @blur="v$.type.$touch"
+                :disabled="isApplied"
                 required
               />
             </v-col>
@@ -41,6 +43,7 @@
                 label="Índice aplicado"
                 :error-messages="v$.index_type_id.$errors.map((e) => e.$message)"
                 @blur="v$.index_type_id.$touch"
+                :disabled="isApplied"
                 required
               />
             </v-col>
@@ -55,6 +58,7 @@
                 min="0"
                 :error-messages="v$.value.$errors.map((e) => e.$message)"
                 @blur="v$.value.$touch"
+                :disabled="isApplied"
                 :required="formData.type !== 'index'"
               />
             </v-col>
@@ -63,16 +67,36 @@
           <!-- Notas -->
           <v-row>
             <v-col cols="12">
-              <v-textarea v-model="formData.notes" label="Notas" rows="2" />
+              <v-textarea
+                v-model="formData.notes"
+                label="Notas"
+                rows="2"
+                :disabled="isApplied"
+              />
             </v-col>
           </v-row>
         </v-container>
+        <v-alert
+          v-if="showWarning"
+          type="warning"
+          class="mt-4"
+        >
+          ⚠️ Este ajuste ya tiene valor y está vigente. Recordá aplicarlo para que impacte en el contrato.
+        </v-alert>
+
+        <v-alert
+          v-if="isApplied"
+          type="info"
+          class="mt-4"
+        >
+          ℹ️ Este ajuste ya fue aplicado y no puede modificarse.
+        </v-alert>
       </v-card-text>
 
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="emit('cancel')">Cancelar</v-btn>
-        <v-btn color="primary" type="submit" :loading="loading" :disabled="!isValidForm">
+        <v-btn color="primary" type="submit" :loading="loading" :disabled="!isValidForm || isApplied">
           Guardar
         </v-btn>
       </v-card-actions>
@@ -105,12 +129,23 @@ const rules = {
   effective_date: { required },
   type: { required },
   value: {
-    required: () => formData.type !== 'index',
-    numeric,
-    minValue: minValue(0),
+    required: (value) => {
+      return formData.type !== 'index' ? !!value : true
+    },
+    numeric: (value) => {
+      if (formData.type === 'index') return true
+      return value === null || value === '' || !isNaN(parseFloat(value))
+    },
+    minValue: (value) => {
+      if (formData.type === 'index') return true
+      if (value === null || value === '') return true
+      return parseFloat(value) >= 0
+    },
   },
   index_type_id: {
-    required: () => formData.type === 'index',
+    required: (value) => {
+      return formData.type === 'index' ? !!value : true
+    },
   },
 }
 
@@ -129,7 +164,7 @@ const indexTypes = ref([])
 const fetchIndexTypes = async () => {
   try {
     const { data } = await axios.get('/api/index-types')
-    indexTypes.value = data
+    indexTypes.value = data.data
   } catch (e) {
     console.error('Error cargando tipos de índice:', e)
   }
@@ -167,6 +202,7 @@ watch(
     } else {
       formData.index_type_id = null
       v$.value.index_type_id.$reset()
+      v$.value.value.$touch()
     }
     v$.value.$touch()
   },
@@ -181,19 +217,38 @@ watch(
 watch(
   () => formData.value,
   () => {
-    if (formData.type !== 'index') v$.value.value.$touch()
+    if (formData.type !== 'index') {
+      v$.value.value.$touch()
+    }
   },
 )
 
+const isApplied = computed(() => {
+  // Solo considerar aplicado si es un ajuste existente (tiene id) y tiene applied_at con valor
+  return props.initialData?.id && props.initialData?.applied_at !== null
+})
+
 const isValidForm = computed(() => {
+  // Si ya fue aplicado, no permitir guardar
+  if (isApplied.value) return false
+
+  const baseValidation = !v$.value.effective_date.$invalid && !v$.value.type.$invalid
+
   if (formData.type === 'index') {
-    return (
-      !v$.value.effective_date.$invalid &&
-      !v$.value.type.$invalid &&
-      !v$.value.index_type_id.$invalid
-    )
+    return baseValidation && !v$.value.index_type_id.$invalid
   }
-  return !v$.value.effective_date.$invalid && !v$.value.type.$invalid && !v$.value.value.$invalid
+
+  return baseValidation && !v$.value.value.$invalid
+})
+
+const today = computed(() => new Date().toISOString().substring(0, 10))
+const showWarning = computed(() => {
+  return (
+    formData.value !== null &&
+    formData.value !== '' &&
+    formData.effective_date &&
+    formData.effective_date <= today.value
+  )
 })
 
 const handleSubmit = async () => {

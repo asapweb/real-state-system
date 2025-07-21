@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountMovementController;
+use App\Http\Controllers\VoucherAssociationController;
 use App\Http\Controllers\AccountMovementManagementController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
@@ -8,6 +9,8 @@ use App\Http\Controllers\AttachmentCategoryController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\BillingDetailController;
 use App\Http\Controllers\CashMovementController;
+use App\Http\Controllers\CashAccountController;
+use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\CivilStatusController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DepartmentController;
@@ -27,8 +30,11 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\CollectionController;
+use App\Http\Controllers\VoucherCollectionController;
+use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\ContractExpenseController;
 use App\Http\Controllers\IndexTypeController;
+use App\Http\Controllers\IndexValueController;
 use App\Http\Controllers\NeighborhoodController;
 use App\Http\Controllers\PropertyOwnerController;
 use App\Http\Controllers\PropertyServiceController;
@@ -39,6 +45,11 @@ use App\Http\Controllers\RentalOfferServiceStatusController;
 use App\Http\Middleware\AddApiVersionHeader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminCommandsController;
+use App\Http\Controllers\BookletController;
+use App\Http\Controllers\VoucherCalculationController;
+use App\Http\Controllers\TaxRateController;
+use App\Http\Controllers\AfipOperationTypeController;
 
 Route::middleware(AddApiVersionHeader::class)->group(function () {
     Route::get('/health', fn() => response()->json(['status' => 'ok']));
@@ -58,8 +69,31 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
     Route::get('/cities', [CityController::class, 'index']);
     Route::get('/neighborhoods', [NeighborhoodController::class, 'index']);
     Route::get('index-types', [IndexTypeController::class, 'index']);
+    Route::get('/afip-operation-types', [AfipOperationTypeController::class, 'index']);
 
     Route::middleware(['auth:sanctum'])->group(function () {
+        // Index Types - CRUD completo
+        Route::prefix('index-types')->group(function () {
+            Route::get('/', [IndexTypeController::class, 'index']);
+            Route::post('/', [IndexTypeController::class, 'store']);
+            Route::get('/{indexType}', [IndexTypeController::class, 'show']);
+            Route::put('/{indexType}', [IndexTypeController::class, 'update']);
+            Route::delete('/{indexType}', [IndexTypeController::class, 'destroy']);
+        });
+
+        // Index Values - CRUD completo
+        Route::prefix('index-values')->group(function () {
+            Route::get('/', [IndexValueController::class, 'index']);
+            Route::post('/', [IndexValueController::class, 'store']);
+            Route::get('/{indexValue}', [IndexValueController::class, 'show']);
+            Route::put('/{indexValue}', [IndexValueController::class, 'update']);
+            Route::delete('/{indexValue}', [IndexValueController::class, 'destroy']);
+
+            // Nuevas rutas para funcionalidades adicionales
+            Route::get('/by-mode/{calculationMode}', [IndexValueController::class, 'getByCalculationMode']);
+            Route::get('/latest/{indexTypeId}', [IndexValueController::class, 'getLatestValue']);
+        });
+
         // Attachments
         Route::prefix('attachments')->group(function () {
             Route::get('/{type}/{id}', [AttachmentController::class, 'index']);
@@ -86,6 +120,7 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
 
             // Cuenta corriente
             Route::get('{client}/account-movements', [AccountMovementController::class, 'index']);
+            Route::get('{client}/account-balances', [AccountMovementController::class, 'balances']);
             Route::post('{client}/account-movements/initial-balance', [AccountMovementManagementController::class, 'setInitialBalance']);
 
             // Documentos adjuntos
@@ -188,6 +223,7 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
             Route::put('{contract}/adjustments/{adjustment}', [ContractAdjustmentController::class, 'update']);
             Route::delete('{contract}/adjustments/{adjustment}', [ContractAdjustmentController::class, 'destroy']);
             Route::patch('{contract}/adjustments/{adjustment}/value', [ContractAdjustmentController::class, 'updateValue']);
+            Route::post('{contract}/adjustments/{adjustment}/apply', [ContractAdjustmentController::class, 'apply']);
             // 🔸 Contract Adjustments
             Route::get('{contract}/services', [ContractServiceController::class, 'index']);
             Route::post('{contract}/services', [ContractServiceController::class, 'store']);
@@ -197,18 +233,33 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
         });
 
         Route::prefix('collections')->group(function () {
-            Route::get('/', [CollectionController::class, 'index']);
-            Route::get('{collection}', [CollectionController::class, 'show']);
-            Route::post('/', [CollectionController::class, 'store']);
-            Route::post('generate', [CollectionController::class, 'generate']);
-            Route::post('preview', [CollectionController::class, 'preview']);
-            Route::post('{collection}/mark-as-paid', [CollectionController::class, 'markAsPaid']);
-            Route::post('{collection}/cancel', [CollectionController::class, 'cancel']);
-
-
-
+            Route::get('/', [VoucherCollectionController::class, 'index']);
+            // Route::get('{collection}', [CollectionController::class, 'show']);
+            // Route::post('/', [CollectionController::class, 'store']);
+            Route::post('generate', [VoucherCollectionController::class, 'generate']);
+            Route::post('preview', [VoucherCollectionController::class, 'preview']);
+            // Route::post('{collection}/mark-as-paid', [CollectionController::class, 'markAsPaid']);
+            // Route::post('{collection}/cancel', [CollectionController::class, 'cancel']);
         });
 
+        // Rutas para vouchers (nuevo sistema unificado)
+        Route::prefix('vouchers')->group(function () {
+            Route::get('/with-pending-by-client', [VoucherController::class, 'applicable']);
+            Route::get('/associable', [VoucherAssociationController::class, 'associable']);
+            Route::get('/', [VoucherController::class, 'index']);
+            Route::get('{voucher}', [VoucherController::class, 'show']);
+            Route::post('/', [VoucherController::class, 'store']);
+            Route::put('{voucher}', [VoucherController::class, 'update']);
+            Route::delete('{voucher}', [VoucherController::class, 'destroy']);
+            Route::post('{voucher}/issue', [VoucherController::class, 'issue']);
+            Route::post('{voucher}/mark-as-paid', [VoucherController::class, 'markAsPaid']);
+            Route::post('{voucher}/cancel', [VoucherController::class, 'cancel']);
+            Route::post('generate-collections', [VoucherController::class, 'generateCollections']);
+            Route::post('preview-collections', [VoucherController::class, 'previewCollections']);
+            Route::post('preview-totals', [VoucherCalculationController::class, 'previewTotals']);
+        });
+
+        Route::apiResource('tax-rates', TaxRateController::class)->only(['index']);
 
 
         // Relaciones auxiliares
@@ -218,6 +269,7 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
 
 
 
+    Route::post('voucher-associations', [VoucherAssociationController::class, 'store']);
 
 
 
@@ -259,6 +311,15 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
     Route::put('users/{user}', [UserController::class, 'update'])->middleware('auth:sanctum');
     Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('auth:sanctum');
 
+    // Ruta específica para cuentas activas, antes de la apiResource
+    Route::get('cash-accounts/active', [CashAccountController::class, 'active'])->name('cash-accounts.active');
+    Route::apiResource('cash-accounts', CashAccountController::class);
+
+    Route::get('payment-methods/active', [PaymentMethodController::class, 'active']);
+    Route::apiResource('payment-methods', PaymentMethodController::class);
+
+    Route::apiResource('cash-movements', CashMovementController::class);
+
     Route::post('appointments/notifications/call', [AppointmentController::class, 'notificationCall'])->middleware('auth:sanctum');
     Route::post('appointments/{id}/notifications/new', [AppointmentController::class, 'notificationAppontmentStatus'])->middleware('auth:sanctum');
     Route::post('appointments/{appointment}/status', [AppointmentController::class, 'status'])->middleware('auth:sanctum');
@@ -294,4 +355,14 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
         return 'adsadsa';
 
     });
+
+    // Comandos Administrativos - Requieren permisos especiales
+    Route::prefix('admin/commands')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/available', [AdminCommandsController::class, 'getAvailableCommands']);
+        Route::post('/sync-indices', [AdminCommandsController::class, 'syncIndices']);
+        Route::post('/assign-index-values', [AdminCommandsController::class, 'assignIndexValues']);
+        Route::get('/logs', [AdminCommandsController::class, 'getRecentLogs']);
+    });
+
+    Route::get('booklets', [BookletController::class, 'index']);
 });

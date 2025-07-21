@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\VoucherType;
+use App\Models\SalePoint;
 
 class BookletFactory extends Factory
 {
@@ -10,11 +12,11 @@ class BookletFactory extends Factory
     {
         return [
             'name' => 'Cobranza X',
-            'prefix' => 'COB',
-            'voucher_type_id' => 1,
-            'sale_point_id' => 1,
+            'voucher_type_id' => VoucherType::factory(),
+            'sale_point_id' => SalePoint::factory(),
             'default_currency' => 'ARS',
             'next_number' => 1,
+            'default' => false,
         ];
     }
 }

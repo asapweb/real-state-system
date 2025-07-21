@@ -9,9 +9,22 @@ class SalePoint extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'number', 'electronic'];
+    protected $fillable = [
+        'name',
+        'description',
+        'number',
+        'electronic',
+    ];
 
     protected $casts = [
         'electronic' => 'boolean',
+        'number' => 'integer',
     ];
+
+    // --- Relaciones ---
+
+    public function booklets()
+    {
+        return $this->hasMany(Booklet::class);
+    }
 }

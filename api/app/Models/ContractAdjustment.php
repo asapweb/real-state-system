@@ -18,7 +18,8 @@ class ContractAdjustment extends Model
         'index_type_id',
         'value',
         'applied_at',
-        'notes'
+        'notes',
+        'applied_amount',
     ];
 
     protected $casts = [
@@ -26,6 +27,7 @@ class ContractAdjustment extends Model
         'value' => 'decimal:2',
         'applied_at' => 'datetime',
         'type' => ContractAdjustmentType::class,
+        'applied_amount' => 'decimal:2',
     ];
 
     public function markAsApplied(?Carbon $timestamp = null): void

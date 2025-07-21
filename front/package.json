@@ -21,6 +21,7 @@
     "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
     "bootstrap-vue-next": "^0.26.15",
+    "chart.js": "^4.5.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "imask": "^7.6.1",

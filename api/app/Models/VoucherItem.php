@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\VoucherItemType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -23,6 +24,7 @@ class VoucherItem extends Model
     ];
 
     protected $casts = [
+        'type' => VoucherItemType::class,
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
@@ -34,5 +36,10 @@ class VoucherItem extends Model
     public function voucher()
     {
         return $this->belongsTo(Voucher::class);
+    }
+
+    public function taxRate()
+    {
+        return $this->belongsTo(TaxRate::class);
     }
 }

@@ -103,8 +103,15 @@ class Contract extends Model
 
     public function collections()
     {
-        return $this->hasMany(Collection::class);
+        return $this->hasMany(Voucher::class)
+            ->where('voucher_type_id', \App\Enums\VoucherType::COB);
     }
+
+    public function vouchers()
+    {
+        return $this->hasMany(Voucher::class);
+    }
+
 
     public function expenses()
     {

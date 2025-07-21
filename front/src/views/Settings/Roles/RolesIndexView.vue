@@ -57,7 +57,7 @@ const fetchRoles = async () => {
   errorRoles.value = false
   try {
     const response = await axios.get('/api/roles')
-    availableRoles.value = response.data.data.data // Accedemos al array de roles dentro de 'data.data'
+    availableRoles.value = response.data.data // Accedemos al array de roles dentro de 'data.data'
   } catch (error) {
     console.error('Error al cargar los roles:', error)
     errorRoles.value = true

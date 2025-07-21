@@ -98,53 +98,48 @@ class CollectionGenerationService
             $tenant = $contract->mainTenant();
             \Log::debug("Procesando contrato {$contract->id} para cliente {$tenant?->name}");
 
-            $contract->unsetRelation('expenses');
-            $contract->load('expenses');
-
             $items = $this->generateItemsForContract($contract, $period);
-            \Log::debug("Ítems generados", ['items' => $items]);
-
             $itemsGrouped = collect($items)->groupBy('currency');
-            \Log::debug("Items agrupados por moneda", ['monedas' => $itemsGrouped->keys()]);
 
-            $alreadyGeneratedCurrencies = $contract->collections
+            $alreadyGeneratedCurrencies = $contract->collections()
+                ->where('voucher_type_id', VoucherType::COB) // Enum o valor fijo
                 ->where('period', $period->format('Y-m'))
                 ->where('status', '!=', 'canceled')
                 ->pluck('currency')
                 ->unique();
 
             foreach ($itemsGrouped as $currency => $groupedItems) {
-                \Log::debug("Procesando moneda {$currency}");
-
                 if ($alreadyGeneratedCurrencies->contains($currency)) {
                     \Log::debug("Saltando moneda ya generada: {$currency}");
                     continue;
                 }
 
-                \Log::debug("Verificando ítems antes de sumar", [
-                    'currency' => $currency,
-                    'groupedItems' => $groupedItems->toArray(),
-                ]);
-                $totalAmount = collect($groupedItems)->sum(function ($item) {
-                    \Log::debug('Item en suma', ['item' => $item]);
-                    return $item['amount'] ?? 0;
-                });
+                $totalAmount = collect($groupedItems)->sum('amount');
 
-                \Log::debug("Total a cobrar en {$currency}: {$totalAmount}");
+                // Buscar un booklet válido para tipo COB
+                $booklet = Booklet::where('voucher_type_id', VoucherType::COB)
+                    ->firstOrFail(); // puede personalizarse
 
-                $collection = Collection::create([
+                // Calcular número de comprobante (puede ser mejorado con locks)
+                $lastNumber = Voucher::where('booklet_id', $booklet->id)->max('number') ?? 0;
+                $nextNumber = $lastNumber + 1;
+
+                $voucher = Voucher::create([
+                    'booklet_id' => $booklet->id,
+                    'voucher_type_id' => VoucherType::COB,
+                    'number' => $nextNumber,
+                    'issue_date' => now(),
+                    'due_date' => $this->calculateDueDate($contract, $period),
+                    'period' => $period->format('Y-m'),
                     'client_id' => $tenant->client_id,
                     'contract_id' => $contract->id,
-                    'currency' => $currency,
-                    'issue_date' => now(),
-                    'due_date' => now()->addDays(10),
-                    'period' => $period->format('Y-m'),
                     'status' => 'pending',
-                    'total_amount' => $totalAmount,
+                    'currency' => $currency,
+                    'total' => $totalAmount,
                 ]);
 
                 foreach ($groupedItems as $item) {
-                    $createdItem = $collection->items()->create($item);
+                    $createdItem = $voucher->items()->create($item);
 
                     if (
                         $createdItem->type === CollectionItemType::SERVICE &&
@@ -155,7 +150,7 @@ class CollectionGenerationService
                     }
                 }
 
-                $generated->push($collection);
+                $generated->push($voucher);
             }
         }
 
@@ -168,6 +163,7 @@ class CollectionGenerationService
 
         return $generated;
     }
+
 
     protected function firstMissingMonth(Contract $contract, Carbon $period): ?Carbon
     {

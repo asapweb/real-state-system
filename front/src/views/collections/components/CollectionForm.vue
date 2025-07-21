@@ -50,7 +50,7 @@
           <v-divider class="my-4" />
 
           <!-- Lista de ítems -->
-          <CollectionItemTable :items="formData.items" @edit="editItem" @delete="deleteItem" />
+          <CollectionItemTable :items="formData.items" :currency="formData.currency" @edit="editItem" @delete="deleteItem" />
 
           <v-btn color="primary" variant="text" @click="openItemDialog">+ Agregar ítem</v-btn>
 

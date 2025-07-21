@@ -12,11 +12,21 @@ class Voucher extends Model
 
     protected $fillable = [
         'booklet_id',
+        'voucher_type_id',
+        'voucher_type_short_name',
+        'voucher_type_letter',
+        'sale_point_number',
         'number',
         'issue_date',
         'period',
         'due_date',
         'client_id',
+        'client_name',
+        'client_address',
+        'client_document_type_name',
+        'client_document_number',
+        'client_tax_condition_name',
+        'client_tax_id_number',
         'contract_id',
         'status',
         'currency',
@@ -30,44 +40,48 @@ class Voucher extends Model
         'subtotal_exempt',
         'subtotal_vat',
         'subtotal',
+        'afip_operation_type_id',
+        'service_date_from',
+        'service_date_to',
     ];
 
     protected $casts = [
         'issue_date' => 'date',
-        'period' => 'date',
         'due_date' => 'date',
+        'service_date_from' => 'date',
+        'service_date_to' => 'date',
+        'afip_operation_type_id' => 'integer',
+        'period' => 'date',
         'cae_expires_at' => 'date',
-        'meta' => 'array',
         'total' => 'decimal:2',
         'subtotal_taxed' => 'decimal:2',
         'subtotal_untaxed' => 'decimal:2',
         'subtotal_exempt' => 'decimal:2',
         'subtotal_vat' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'meta' => 'array',
     ];
 
-    protected static function booted(): void
+    // --- Relaciones ---
+
+    public function booklet()
     {
-        static::saved(function (Voucher $voucher) {
-            if (
-                $voucher->status === 'issued'
-                && $voucher->booklet
-                && $voucher->booklet->voucherType?->affects_account
-            ) {
-                $alreadyExists = AccountMovement::where('voucher_id', $voucher->id)->exists();
-                if (! $alreadyExists) {
-                    AccountMovement::create([
-                        'client_id' => $voucher->client_id,
-                        'voucher_id' => $voucher->id,
-                        'date' => $voucher->issue_date,
-                        'description' => $voucher->booklet->voucherType->name . ' ' . $voucher->number,
-                        'amount' => $voucher->booklet->voucherType->credit ? -$voucher->total : $voucher->total,
-                        'currency' => $voucher->currency,
-                        'is_initial' => false,
-                    ]);
-                }
-            }
-        });
+        return $this->belongsTo(Booklet::class);
+    }
+
+    public function voucherType()
+    {
+        return $this->belongsTo(VoucherType::class);
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function contract()
+    {
+        return $this->belongsTo(Contract::class);
     }
 
     public function items()
@@ -79,14 +93,65 @@ class Voucher extends Model
     {
         return $this->hasMany(VoucherPayment::class);
     }
+    public function associations()
+    {
+        return $this->hasMany(VoucherAssociation::class, 'voucher_id');
+    }
+
+    public function associatedBy()
+    {
+        return $this->hasMany(VoucherAssociation::class, 'associated_voucher_id');
+    }
+
+    // Helpers para acceso rápido
+    public function associatedVouchers()
+    {
+        return $this->belongsToMany(
+            Voucher::class,
+            'voucher_associations',
+            'voucher_id',
+            'associated_voucher_id'
+        );
+    }
+
+    public function adjusters()
+    {
+        return $this->belongsToMany(
+            Voucher::class,
+            'voucher_associations',
+            'associated_voucher_id',
+            'voucher_id'
+        );
+    }
+
 
     public function applications()
     {
         return $this->hasMany(VoucherApplication::class);
     }
 
-    public function booklet()
+    public function applicationsReceived()
     {
-        return $this->belongsTo(Booklet::class);
+        return $this->hasMany(VoucherApplication::class, 'applied_to_id');
+    }
+
+    public function voucherAssociations()
+    {
+        return $this->hasMany(VoucherAssociation::class);
+    }
+
+    public function afipOperationType()
+    {
+        return $this->belongsTo(\App\Models\AfipOperationType::class, 'afip_operation_type_id');
+    }
+
+    // --- Accessors ---
+
+    public function getFullNumberAttribute(): string
+    {
+        $prefix = str_pad($this->sale_point_number, 4, '0', STR_PAD_LEFT);
+        $number = str_pad($this->number, 8, '0', STR_PAD_LEFT);
+
+        return "{$this->voucher_type_short_name} {$this->voucher_type_letter} {$prefix}-{$number}";
     }
 }

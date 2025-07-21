@@ -14,18 +14,15 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // hace que sea accesible desde el host
+    port: 5173, // puerto dev por defecto de Vite
     allowedHosts: ['real-state.ddev.site'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:80', // Laravel dentro de DDEV
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
-
-  // server: {
-  //   host: true, // hace que sea accesible como real-state-api.ddev.site:5173
-  //   port: 5173, // puerto dev por defecto de Vite
-  //   proxy: {
-  //     '/api': {
-  //       target: 'http://localhost:80', // Laravel dentro de DDEV
-  //       changeOrigin: true,
-  //       secure: false,
-  //     },
-  //   },
-  // },
 })

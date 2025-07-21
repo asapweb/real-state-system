@@ -10,11 +10,12 @@ class CashMovement extends Model
     use HasFactory;
 
     protected $fillable = [
+        'cash_account_id',
+        'direction',
         'voucher_id',
         'payment_method_id',
         'date',
         'amount',
-        'currency',
         'reference',
         'meta',
     ];
@@ -25,6 +26,11 @@ class CashMovement extends Model
         'meta' => 'array',
     ];
 
+    public function cashAccount()
+    {
+        return $this->belongsTo(CashAccount::class);
+    }
+
     public function voucher()
     {
         return $this->belongsTo(Voucher::class);
@@ -33,5 +39,15 @@ class CashMovement extends Model
     public function paymentMethod()
     {
         return $this->belongsTo(PaymentMethod::class);
+    }
+
+    public function isIncome(): bool
+    {
+        return $this->direction === 'in';
+    }
+
+    public function isExpense(): bool
+    {
+        return $this->direction === 'out';
     }
 }

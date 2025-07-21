@@ -26,6 +26,13 @@ class AccountMovementResource extends JsonResource
             'meta' => $this->meta,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'running_balance' => $this->running_balance ?? 0,
+
+            // Información del voucher
+            'voucher_number' => $this->voucher?->number,
+            'voucher_type' => $this->voucher?->booklet?->voucherType?->name,
+            'voucher_formatted_number' => $this->voucher ?
+                $this->voucher->booklet->getFormattedVoucherNumber($this->voucher->number) : null,
 
             // Relaciones
             'client' => $this->whenLoaded('client', fn() => new ClientResource($this->client)),

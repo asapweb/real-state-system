@@ -10,6 +10,7 @@ use App\Exceptions\CollectionGenerationException;
 use App\Http\Requests\StoreCollectionRequest;
 use App\Services\CollectionService;
 use App\Http\Resources\CollectionResource;
+use App\Models\Voucher;
 
 class CollectionController extends Controller
 {
@@ -86,7 +87,8 @@ class CollectionController extends Controller
     {
         $validated = $request->validated();
 
-        $collection = Collection::create([
+        $collection = Voucher::create([
+
             'client_id' => $validated['client_id'],
             'contract_id' => $validated['contract_id'] ?? null,
             'issue_date' => $validated['issue_date'],

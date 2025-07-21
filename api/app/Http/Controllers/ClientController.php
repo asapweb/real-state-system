@@ -44,7 +44,7 @@ class ClientController extends Controller
         }
 
         // Relaciones
-        $query->with(['documentType', 'nationality']);
+        $query->with(['documentType', 'nationality', 'taxCondition']);
 
         // Orden y paginación
         $query->orderBy($sortBy, $sortDirection);

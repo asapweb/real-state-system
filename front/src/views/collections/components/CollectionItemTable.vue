@@ -1,11 +1,11 @@
 <template>
   <v-data-table :items="items" :headers="headers" class="mb-4" hide-default-footer>
     <template #[`item.unit_price`]="{ item }">
-      {{ formatMoney(item.unit_price) }}
+      {{ formatMoney(item.unit_price, currency) }}
     </template>
 
     <template #[`item.amount`]="{ item }">
-      {{ formatMoney(item.amount) }}
+      {{ formatMoney(item.amount, currency) }}
     </template>
 
     <template #[`item.actions`]="{ index }">
@@ -20,7 +20,7 @@
     <template #bottom>
       <v-divider class="my-2" />
       <div class="text-end px-4">
-        <strong>Total: {{ formatMoney(totalAmount) }}</strong>
+        <strong>Total: {{ formatMoney(totalAmount, currency) }}</strong>
       </div>
     </template>
   </v-data-table>
@@ -32,6 +32,7 @@ import { formatMoney } from '@/utils/money'
 
 const props = defineProps({
   items: Array,
+  currency: { type: String, default: '$' },
 })
 
 const headers = [

@@ -34,32 +34,127 @@
           {{ adjustmentLabel(item.type) }}
         </template>
 
+        <template #[`item.index_type`]="{ item }">
+          <span v-if="item.type === 'index' && item.index_type">
+            {{ item.index_type.name }}
+          </span>
+          <span v-else class="text-grey">—</span>
+        </template>
+
         <template #[`item.value`]="{ item }">
           <template v-if="item.type === 'percentage'">
             {{ item.value !== null ? `${item.value}%` : '—' }}
           </template>
 
           <template v-else-if="item.type === 'fixed' || item.type === 'negotiated'">
-            {{ item.value !== null ? formatMoney(item.value) : '—' }}
+            {{ item.value !== null ? formatMoney(item.value, item.contract?.currency || '$') : '—' }}
           </template>
 
           <template v-else-if="item.type === 'index'">
-            <span>
-              {{ item.index_type?.name ?? 'Índice' }}
-              <span v-if="item.value !== null"> · {{ item.value }}%</span>
-            </span>
+            <span v-if="item.value !== null">{{ item.value }}%</span>
+            <span v-else class="text-grey">Pendiente</span>
           </template>
 
           <template v-else> — </template>
         </template>
 
+        <template #[`item.applied_amount`]="{ item }">
+          <template v-if="item.applied_amount !== null">
+            {{ formatMoney(item.applied_amount, item.contract?.currency || '$') }}
+          </template>
+          <template v-else>
+            <span class="text-grey">—</span>
+          </template>
+        </template>
+
+        <template #[`item.applied_at`]="{ item }">
+          <div class="d-flex align-center">
+            <template v-if="item.applied_at">
+              <v-icon color="success" size="small" class="me-1">mdi-check-circle</v-icon>
+              {{ formatDate(item.applied_at) }}
+            </template>
+            <template
+              v-else-if="item.value !== null && new Date(item.effective_date) <= new Date()"
+            >
+              <v-icon color="warning" size="small" class="me-1">mdi-clock-alert</v-icon>
+              <span class="text-warning">Pendiente</span>
+            </template>
+            <template v-else>
+              <span class="text-grey">—</span>
+            </template>
+          </div>
+        </template>
+
+        <template #[`item.contract_start_date`]="{ item }">
+          <span v-if="item.contract?.start_date" class="text-caption">
+            {{ formatDate(item.contract.start_date) }}
+          </span>
+          <span v-else class="text-grey text-caption">—</span>
+        </template>
+
+        <template #[`item.contract_monthly_amount`]="{ item }">
+          <span v-if="item.contract?.monthly_amount" class="text-caption">
+            {{ formatMoney(item.contract.monthly_amount, item.contract.currency || '$') }}
+          </span>
+          <span v-else class="text-grey text-caption">—</span>
+        </template>
+
+        <template #[`item.notes`]="{ item }">
+          <span v-if="item.notes" class="text-truncate" style="max-width: 200px;">
+            {{ item.notes }}
+          </span>
+          <span v-else class="text-grey">—</span>
+        </template>
+
         <template #[`item.actions`]="{ item }">
-          <v-icon class="me-2" size="small" @click="openDialog(item)" title="Editar ajuste"
-            >mdi-pencil</v-icon
-          >
-          <v-icon size="small" @click="confirmDelete(item)" title="Eliminar ajuste"
-            >mdi-delete</v-icon
-          >
+          <div class="d-flex align-center">
+            <!-- Botón Aplicar (solo si está pendiente) -->
+            <v-btn
+              v-if="item.value !== null && item.applied_at === null"
+              size="small"
+              color="success"
+              variant="text"
+              :loading="applyingAdjustment === item.id"
+              :disabled="applyingAdjustment !== null"
+              @click="applyAdjustment(item)"
+              class="me-2"
+            >
+              <v-icon size="small" class="me-1">mdi-check</v-icon>
+              Aplicar
+            </v-btn>
+
+            <!-- Badge de aplicado -->
+            <v-chip
+              v-else-if="item.applied_at !== null"
+              size="small"
+              color="success"
+              variant="flat"
+              class="me-2"
+            >
+              <v-icon size="small" class="me-1">mdi-check-circle</v-icon>
+              Aplicado
+            </v-chip>
+
+            <!-- Acciones existentes -->
+            <v-icon
+              class="me-2"
+              size="small"
+              @click="openDialog(item)"
+              title="Editar ajuste"
+              :disabled="applyingAdjustment !== null"
+            >
+              mdi-pencil
+            </v-icon>
+            <v-icon
+              v-if="item.applied_at === null"
+              size="small"
+              @click="confirmDelete(item)"
+              title="Eliminar ajuste"
+              :disabled="applyingAdjustment !== null"
+            >
+              mdi-delete
+            </v-icon>
+          </div>
         </template>
       </v-data-table-server>
     </v-card-text>
@@ -112,6 +207,7 @@ const adjustments = ref([])
 const total = ref(0)
 const loading = ref(false)
 const saving = ref(false)
+const applyingAdjustment = ref(null)
 
 const options = reactive({
   page: 1,
@@ -120,9 +216,14 @@ const options = reactive({
 })
 
 const headers = [
-  { title: 'Desde', key: 'effective_date', sortable: true },
+  { title: 'Fecha de vigencia', key: 'effective_date', sortable: true },
   { title: 'Tipo', key: 'type', sortable: false },
+  { title: 'Índice', key: 'index_type', sortable: false },
   { title: 'Valor', key: 'value', sortable: true },
+  { title: 'Nuevo alquiler', key: 'applied_amount', sortable: true },
+  { title: 'Aplicado', key: 'applied_at', sortable: true },
+  { title: 'Inicio contrato', key: 'contract_start_date', sortable: false },
+  { title: 'Alquiler base', key: 'contract_monthly_amount', sortable: false },
   { title: 'Notas', key: 'notes', sortable: false },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
@@ -182,7 +283,8 @@ const handleSave = async (formData) => {
     dialog.value = false
   } catch (e) {
     console.error(e)
-    snackbar.error('Error al guardar ajuste')
+    const errorMessage = e.response?.data?.message || 'Error al guardar ajuste'
+    snackbar.error(errorMessage)
   } finally {
     saving.value = false
   }
@@ -203,10 +305,27 @@ const deleteAdjustment = async () => {
     emit('updated')
   } catch (e) {
     console.error(e)
-    snackbar.error('Error al eliminar ajuste')
+    const errorMessage = e.response?.data?.message || 'Error al eliminar ajuste'
+    snackbar.error(errorMessage)
   } finally {
     dialogDelete.value = false
     adjustmentToDelete.value = null
+  }
+}
+
+const applyAdjustment = async (item) => {
+  applyingAdjustment.value = item.id
+  try {
+    await axios.post(`/api/contracts/${props.contractId}/adjustments/${item.id}/apply`)
+    snackbar.success('Ajuste aplicado correctamente')
+    fetchAdjustments()
+    emit('updated')
+  } catch (e) {
+    console.error(e)
+    const errorMessage = e.response?.data?.message || 'Error al aplicar ajuste'
+    snackbar.error(errorMessage)
+  } finally {
+    applyingAdjustment.value = null
   }
 }
 

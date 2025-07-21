@@ -12,13 +12,9 @@ class VoucherPayment extends Model
     protected $fillable = [
         'voucher_id',
         'payment_method_id',
+        'cash_account_id',
         'amount',
         'reference',
-        'notes',
-    ];
-
-    protected $casts = [
-        'amount' => 'decimal:2',
     ];
 
     public function voucher()
@@ -29,5 +25,10 @@ class VoucherPayment extends Model
     public function paymentMethod()
     {
         return $this->belongsTo(PaymentMethod::class);
+    }
+
+    public function cashAccount()
+    {
+        return $this->belongsTo(CashAccount::class);
     }
 }

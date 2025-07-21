@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->text('notes')->nullable(); // Descripción libre o nombre del índice
 
             $table->foreignId('index_type_id')->nullable()->constrained('index_types')->nullOnDelete();
+            $table->decimal('applied_amount', 10, 2)->nullable(); // Valor del alquiler actualizado luego del ajuste
             $table->timestamps();
         });
     }

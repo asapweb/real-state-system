@@ -3,30 +3,88 @@
 namespace App\Http\Controllers;
 
 use App\Models\CashMovement;
+use App\Models\CashAccount;
+use App\Http\Resources\CashMovementResource;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class CashMovementController extends Controller
 {
     public function index(Request $request)
     {
-        $query = CashMovement::with(['voucher', 'paymentMethod'])->orderBy('date', 'desc');
-
-        if ($request->filled('payment_method_id')) {
-            $query->where('payment_method_id', $request->payment_method_id);
+        $query = CashMovement::query();
+        if ($request->filled('cash_account_id')) {
+            $query->where('cash_account_id', $request->input('cash_account_id'));
         }
-
-        if ($request->filled('currency')) {
-            $query->where('currency', $request->currency);
+        if ($request->filled('direction')) {
+            $query->where('direction', $request->input('direction'));
         }
-
         if ($request->filled('date_from')) {
-            $query->where('date', '>=', $request->date_from);
+            $query->whereDate('date', '>=', $request->input('date_from'));
         }
-
         if ($request->filled('date_to')) {
-            $query->where('date', '<=', $request->date_to);
+            $query->whereDate('date', '<=', $request->input('date_to'));
+        }
+        if ($request->filled('currency')) {
+            $query->whereHas('cashAccount', function ($q) use ($request) {
+                $q->where('currency', $request->input('currency'));
+            });
+        }
+        $query->with('cashAccount');
+        $query->orderByDesc('date');
+        $movements = $query->paginate($request->input('per_page', 10));
+        return CashMovementResource::collection($movements);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'cash_account_id' => 'required|exists:cash_accounts,id',
+            'amount' => 'required|numeric|min:0.01',
+            'direction' => ['required', Rule::in(['in', 'out'])],
+            'concept' => 'nullable|string|max:255',
+            'reference' => 'nullable|string|max:255',
+            'date' => 'nullable|date',
+        ]);
+
+        $account = CashAccount::findOrFail($validated['cash_account_id']);
+        if ($validated['direction'] === 'out') {
+            $balance = $account->balance;
+            if ($balance < $validated['amount']) {
+                return response()->json(['message' => 'Saldo insuficiente en la cuenta.'], 422);
+            }
         }
 
-        return $query->paginate($request->get('per_page', 25));
+        $movement = DB::transaction(function () use ($validated) {
+            return CashMovement::create([
+                'cash_account_id' => $validated['cash_account_id'],
+                'amount' => $validated['amount'],
+                'direction' => $validated['direction'],
+                'concept' => $validated['concept'] ?? null,
+                'reference' => $validated['reference'] ?? null,
+                'date' => $validated['date'] ?? now(),
+            ]);
+        });
+        return new CashMovementResource($movement);
+    }
+
+    public function show(CashMovement $cashMovement)
+    {
+        return new CashMovementResource($cashMovement->load([
+            'cashAccount',
+            'paymentMethod',
+            'voucher',
+        ]));
+
+    }
+
+    public function destroy(CashMovement $cashMovement)
+    {
+        if ($cashMovement->voucher_id) {
+            return response()->json(['message' => 'No se puede revertir un movimiento asociado a un comprobante.'], 422);
+        }
+        $cashMovement->delete();
+        return response()->noContent();
     }
 }

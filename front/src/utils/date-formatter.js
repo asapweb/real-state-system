@@ -1,7 +1,7 @@
 // src/utils/date-formatter.js
 import { format, getYear, getMonth, getDate } from 'date-fns' // Librería popular para manipulación de fechas
 
-export function formatDate(date, formatString = 'yyyy-MM-dd') {
+export function formatDate(date, formatString = 'dd/MM/yyyy') {
   if (!date) {
     return ''
   }

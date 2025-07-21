@@ -15,17 +15,17 @@ const vuetify = createVuetify({
   components,
   directives,
   defaults: {
-    VTextField: {
-      // density: 'comfortable',
-    },
-    global: {
-      density: 'compact',
-    },
-    VSwitch: {
-      color: 'primary', // o 'primary' si quieres usar el color primario de tu tema
-    },
+    /* --- valores para componentes específicos --- */
+    VTextField:  { density: 'compact' },
+    VSelect:     { density: 'compact' },
+    VAutocomplete:{ density: 'compact' },
+    VCombobox:   { density: 'compact' },
+    VSwitch:     { color: 'primary' },
 
-    // Aquí puedes agregar defaults para otros componentes si lo necesitas
+    /* --- fallback para todo lo demás --- */
+    global: {
+
+    },
   },
 })
 

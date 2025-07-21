@@ -26,11 +26,28 @@ class VoucherItemResource extends JsonResource
             'tax_rate_id' => $this->tax_rate_id,
             'subtotal_with_vat' => $this->subtotal_with_vat,
             'meta' => $this->meta,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+
+            // Campos calculados
+            'type_name' => $this->type?->value,
+            'is_service' => $this->type?->value === 'service',
+            'is_rent' => $this->type?->value === 'rent',
+            'is_insurance' => $this->type?->value === 'insurance',
+            'is_commission' => $this->type?->value === 'commission',
+            'is_penalty' => $this->type?->value === 'penalty',
+            'is_late_fee' => $this->type?->value === 'late_fee',
 
             // Relaciones
             'voucher' => $this->whenLoaded('voucher', fn() => new VoucherResource($this->voucher)),
+            'tax_rate' => $this->whenLoaded('taxRate', function () {
+                return [
+                    'id' => $this->taxRate->id,
+                    'name' => $this->taxRate->name,
+                    'rate' => $this->taxRate->rate,
+                    'description' => $this->taxRate->description,
+                ];
+            }),
         ];
     }
 }

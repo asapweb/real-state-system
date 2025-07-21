@@ -6,6 +6,7 @@ use App\Enums\CollectionItemType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Facades\DB;
 
 class Collection extends Model
@@ -52,6 +53,11 @@ class Collection extends Model
     public function paidByUser()
     {
         return $this->belongsTo(User::class, 'paid_by_user_id');
+    }
+
+    public function voucher(): MorphOne
+    {
+        return $this->morphOne(Voucher::class, 'bookable');
     }
 
     public function cancel(): void

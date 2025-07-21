@@ -8,9 +8,17 @@ use Illuminate\Http\Request;
 use App\Http\Requests\StoreContractAdjustmentRequest;
 use App\Http\Requests\UpdateContractAdjustmentRequest;
 use App\Http\Resources\ContractAdjustmentResource;
+use App\Services\ContractAdjustmentService;
 
 class ContractAdjustmentController extends Controller
 {
+    protected ContractAdjustmentService $contractAdjustmentService;
+
+    public function __construct(ContractAdjustmentService $contractAdjustmentService)
+    {
+        $this->contractAdjustmentService = $contractAdjustmentService;
+    }
+
     public function globalIndex(Request $request)
     {
         $query = ContractAdjustment::with('contract.clients.client', 'indexType');
@@ -120,6 +128,10 @@ class ContractAdjustmentController extends Controller
             return response()->json(['message' => 'El ajuste no pertenece al contrato.'], 403);
         }
 
+        if ($adjustment->applied_at !== null) {
+            return response()->json(['message' => 'Este ajuste ya fue aplicado y no puede modificarse.'], 403);
+        }
+
         $adjustment->update($request->validated());
 
         $adjustment->load(['contract.clients.client', 'indexType', 'attachments']);
@@ -133,9 +145,14 @@ class ContractAdjustmentController extends Controller
             return response()->json(['message' => 'El ajuste no pertenece al contrato.'], 403);
         }
 
+        if ($adjustment->applied_at !== null) {
+            return response()->json(['message' => 'Este ajuste ya fue aplicado y no puede modificarse.'], 403);
+        }
+
         $validated = $request->validate([
             'value' => ['nullable', 'numeric'],
             'notes' => ['nullable', 'string'],
+            'applied_amount' => ['nullable', 'numeric'],
         ]);
 
         $adjustment->update($validated);
@@ -151,8 +168,29 @@ class ContractAdjustmentController extends Controller
             return response()->json(['message' => 'El ajuste no pertenece al contrato.'], 403);
         }
 
+        if ($adjustment->applied_at !== null) {
+            return response()->json(['message' => 'No se puede eliminar un ajuste ya aplicado.'], 403);
+        }
+
         $adjustment->delete();
 
         return response()->json(['message' => 'Ajuste eliminado correctamente.']);
+    }
+
+    public function apply(Contract $contract, ContractAdjustment $adjustment)
+    {
+        if ($adjustment->contract_id !== $contract->id) {
+            return response()->json(['message' => 'El ajuste no pertenece al contrato.'], 403);
+        }
+
+        try {
+            $this->contractAdjustmentService->apply($adjustment);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 403);
+        }
+
+        $adjustment->load(['contract.clients.client', 'indexType', 'attachments']);
+
+        return new ContractAdjustmentResource($adjustment);
     }
 }

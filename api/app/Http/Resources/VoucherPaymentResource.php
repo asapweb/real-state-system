@@ -2,31 +2,22 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class VoucherPaymentResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
-    public function toArray(Request $request): array
+    public function toArray($request)
     {
         return [
             'id' => $this->id,
             'voucher_id' => $this->voucher_id,
             'payment_method_id' => $this->payment_method_id,
-            'amount' => $this->amount,
+            'payment_method' => PaymentMethodResource::make($this->whenLoaded('paymentMethod')),
+            'cash_account_id' => $this->cash_account_id,
+            'cash_account' => CashAccountResource::make($this->whenLoaded('cashAccount')),
+            'amount' => number_format($this->amount, 2, '.', ''),
             'reference' => $this->reference,
-            'notes' => $this->notes,
             'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-
-            // Relaciones
-            'voucher' => $this->whenLoaded('voucher', fn() => new VoucherResource($this->voucher)),
-            'payment_method' => $this->whenLoaded('paymentMethod', fn() => new PaymentMethodResource($this->paymentMethod)),
         ];
     }
 }

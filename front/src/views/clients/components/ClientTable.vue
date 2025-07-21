@@ -36,15 +36,14 @@
       item-value="id"
       @update:options="fetchClients"
     >
-      <template #[`item.id`]="{ item }">
+      <template #[`item.name`]="{ item }">
         <RouterLink
           :to="`/clients/${item.id}`"
           class="text-primary font-weight-bold text-decoration-none"
         >
-          {{ formatModelId(item.id, 'CLI') }}
+          {{ item.name }} {{ item.last_name }}
         </RouterLink>
-      </template>
-      <template #[`item.name`]="{ item }"> {{ item.name }} {{ item.last_name }} </template>
+        </template>
       <template #[`item.document`]="{ item }">
         <span v-if="item.no_document"></span>
         <span v-else> {{ item.document_type?.name || '—' }} {{ item.document_number || '' }} </span>
@@ -85,7 +84,6 @@
 <script setup>
 import { ref, watch, reactive } from 'vue'
 import axios from 'axios'
-import { formatModelId } from '@/utils/models-formatter'
 const emit = defineEmits(['edit-client', 'delete-client', 'error'])
 
 // Estado reactivo
@@ -105,7 +103,6 @@ const clientToDelete = ref(null)
 
 // Datos de la tabla
 const headers = [
-  { title: 'Cliente', key: 'id', sortable: true },
   { title: 'Tipo', key: 'type', sortable: true },
   { title: 'Nombre Completo', key: 'name', sortable: true },
   { title: 'Documento', key: 'document', sortable: false },

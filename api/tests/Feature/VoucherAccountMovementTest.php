@@ -3,61 +3,172 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\AccountMovement;
 use App\Models\Voucher;
 use App\Models\VoucherType;
 use App\Models\Booklet;
-use App\Models\SalePoint;
 use App\Models\Client;
-
-use function PHPUnit\Framework\assertEquals;
+use App\Models\AccountMovement;
+use App\Services\VoucherService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class VoucherAccountMovementTest extends TestCase
 {
     use RefreshDatabase;
 
-    #[\PHPUnit\Framework\Attributes\Test]
-    public function it_creates_account_movement_when_voucher_is_issued()
+    public function test_account_movement_created_when_voucher_issued_with_affects_account()
     {
-        $documentType = \App\Models\DocumentType::factory()->create();
-        $taxCondition = \App\Models\TaxCondition::factory()->create();
-        $civilStatus = \App\Models\CivilStatus::factory()->create();
-        $nationality = \App\Models\Nationality::factory()->create();
-        $client = Client::factory()->create([
-            'document_type_id' => $documentType->id,
-            'tax_condition_id' => $taxCondition->id,
-            'civil_status_id' => $civilStatus->id,
-            'nationality_id' => $nationality->id,
-        ]);
+        // Crear un tipo de voucher que afecta la cuenta
         $voucherType = VoucherType::factory()->create([
-            'name' => 'Cobranza X',
-            'credit' => false,
             'affects_account' => true,
-            'affects_cash' => false,
+            'credit' => false, // Débito (aumenta la deuda)
         ]);
-        $salePoint = SalePoint::factory()->create();
+
+        // Crear un talonario
         $booklet = Booklet::factory()->create([
             'voucher_type_id' => $voucherType->id,
-            'sale_point_id' => $salePoint->id,
         ]);
 
-        $voucher = Voucher::create([
+        // Crear un cliente
+        $client = Client::factory()->create();
+
+        // Crear un voucher en estado draft
+        $voucher = Voucher::factory()->create([
             'booklet_id' => $booklet->id,
-            'number' => 1,
-            'issue_date' => now()->toDateString(),
+            'voucher_type_id' => $voucherType->id,
             'client_id' => $client->id,
-            'status' => 'issued',
+            'status' => 'draft',
+            'total' => 1000.00,
             'currency' => 'ARS',
-            'total' => 1500.00,
         ]);
 
-        $this->assertDatabaseHas('account_movements', [
-            'client_id' => $client->id,
+        // Verificar que no hay movimientos de cuenta antes de emitir
+        $this->assertDatabaseMissing('account_movements', [
             'voucher_id' => $voucher->id,
-            'amount' => 1500.00,
         ]);
 
-        assertEquals(1500.00, AccountMovement::where('client_id', $client->id)->sum('amount'));
+        // Emitir el voucher
+        $voucherService = new VoucherService();
+        $voucherService->issue($voucher);
+
+        // Verificar que se creó el movimiento de cuenta
+        $this->assertDatabaseHas('account_movements', [
+            'voucher_id' => $voucher->id,
+            'client_id' => $client->id,
+            'amount' => 1000.00, // Positivo porque credit = false
+            'currency' => 'ARS',
+            'is_initial' => false,
+        ]);
+
+        // Verificar que el voucher cambió a estado issued
+        $this->assertEquals('issued', $voucher->fresh()->status);
+    }
+
+    public function test_account_movement_not_created_when_voucher_type_does_not_affect_account()
+    {
+        // Crear un tipo de voucher que NO afecta la cuenta
+        $voucherType = VoucherType::factory()->create([
+            'affects_account' => false,
+        ]);
+
+        // Crear un talonario
+        $booklet = Booklet::factory()->create([
+            'voucher_type_id' => $voucherType->id,
+        ]);
+
+        // Crear un cliente
+        $client = Client::factory()->create();
+
+        // Crear un voucher en estado draft
+        $voucher = Voucher::factory()->create([
+            'booklet_id' => $booklet->id,
+            'voucher_type_id' => $voucherType->id,
+            'client_id' => $client->id,
+            'status' => 'draft',
+            'total' => 1000.00,
+        ]);
+
+        // Emitir el voucher
+        $voucherService = new VoucherService();
+        $voucherService->issue($voucher);
+
+        // Verificar que NO se creó movimiento de cuenta
+        $this->assertDatabaseMissing('account_movements', [
+            'voucher_id' => $voucher->id,
+        ]);
+
+        // Verificar que el voucher cambió a estado issued
+        $this->assertEquals('issued', $voucher->fresh()->status);
+    }
+
+    public function test_credit_voucher_creates_negative_account_movement()
+    {
+        // Crear un tipo de voucher de crédito que afecta la cuenta
+        $voucherType = VoucherType::factory()->create([
+            'affects_account' => true,
+            'credit' => true, // Crédito (reduce la deuda)
+        ]);
+
+        // Crear un talonario
+        $booklet = Booklet::factory()->create([
+            'voucher_type_id' => $voucherType->id,
+        ]);
+
+        // Crear un cliente
+        $client = Client::factory()->create();
+
+        // Crear un voucher en estado draft
+        $voucher = Voucher::factory()->create([
+            'booklet_id' => $booklet->id,
+            'voucher_type_id' => $voucherType->id,
+            'client_id' => $client->id,
+            'status' => 'draft',
+            'total' => 500.00,
+            'currency' => 'ARS',
+        ]);
+
+        // Emitir el voucher
+        $voucherService = new VoucherService();
+        $voucherService->issue($voucher);
+
+        // Verificar que se creó el movimiento de cuenta con monto negativo
+        $this->assertDatabaseHas('account_movements', [
+            'voucher_id' => $voucher->id,
+            'client_id' => $client->id,
+            'amount' => -500.00, // Negativo porque credit = true
+            'currency' => 'ARS',
+        ]);
+    }
+
+    public function test_duplicate_account_movement_not_created()
+    {
+        // Crear un tipo de voucher que afecta la cuenta
+        $voucherType = VoucherType::factory()->create([
+            'affects_account' => true,
+        ]);
+
+        // Crear un talonario
+        $booklet = Booklet::factory()->create([
+            'voucher_type_id' => $voucherType->id,
+        ]);
+
+        // Crear un cliente
+        $client = Client::factory()->create();
+
+        // Crear un voucher en estado draft
+        $voucher = Voucher::factory()->create([
+            'booklet_id' => $booklet->id,
+            'voucher_type_id' => $voucherType->id,
+            'client_id' => $client->id,
+            'status' => 'draft',
+            'total' => 1000.00,
+        ]);
+
+        // Emitir el voucher dos veces
+        $voucherService = new VoucherService();
+        $voucherService->issue($voucher);
+        $voucherService->issue($voucher);
+
+        // Verificar que solo se creó un movimiento de cuenta
+        $this->assertEquals(1, AccountMovement::where('voucher_id', $voucher->id)->count());
     }
 }

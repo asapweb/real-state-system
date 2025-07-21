@@ -30,6 +30,20 @@ const props = defineProps({
     type: Boolean,
     default: false, // Por defecto, no es requerido
   },
+  readonly: {
+    type: Boolean,
+    default: false,
+  },
+  density: {
+    type: String,
+    default: 'default',
+  },
+  variant: {
+    type: String,
+    default: 'filled',
+  },
+  hideDetails: { type: [String, Boolean], default: 'auto' },
+
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -100,13 +114,16 @@ watch(selectedTaxCondition, (newValue) => {
     v-model="selectedTaxCondition"
     :items="taxConditions"
     item-value="id"
-    item-title="description"
+    item-title="name"
     :clearable="clearable"
     :label="label"
     :disabled="loading || disabled"
     placeholder="Selecciona una condición fiscal"
     :rules="rules"
     :required="required"
+    :readonly="readonly"
+    :density="density"
+    :variant="variant"
   >
   </v-select>
   <v-progress-circular v-if="loading" indeterminate size="24" />

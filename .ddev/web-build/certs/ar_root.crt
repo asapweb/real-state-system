@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>404 - Error | Argentina.gob.ar</title>
+        <meta name="description" content="Portal oficial del Gobierno argentino. Conocé cómo hacer trámites en organismos públicos, tramitalos en línea y recibí servicios digitales y beneficios." />
+        <meta
+            name="keywords"
+            content="gobierno, argentino, nacional, gobierno argentino, gobierno nacional, República Argentina, administración, gestión, pública, administración pública, gestión pública, digital, trámites, servicios, trámites en línea, gobierno digital, servicios en línea, servicios digitales, Estado, transparencia, ciudadanos, modernización, organismo, organismo público, organismos públicos, organismos, beneficios, beneficios"
+        />
+        <meta name="author" content="Presidencia de la Nación" />
+
+        <!-- Google Tag Manager -->
+        <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','GTM-P68ZXT');</script>
+        <script>
+            dataLayer.push({
+              'event_name': 'trackPageview',
+              'nodo_id': '',
+              'nodos_padres': '',
+              'org_dependencia': '',
+              'ministerio': '',
+              'cont_tipo': '',
+            });
+        </script>
+        <!-- End Google Tag Manager -->
+
+        <link rel="shortcut icon" href="profiles/argentinagobar/themes/argentinagobar/argentinagobar_theme/favicon.ico" />
+        <!-- Nav and address bar color -->
+        <meta name="theme-color" content="#242C4F" />
+        <meta name="msapplication-navbutton-color" content="#242C4F" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="#242C4F" />
+        <link href="/profiles/argentinagobar/themes/contrib/poncho/css/argentina.css" rel="stylesheet" type="text/css" />
+        <link href="/profiles/argentinagobar/themes/contrib/poncho/css/bootstrap.css?oq3u6p" rel="stylesheet" />
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet" />
+        <link href="/profiles/argentinagobar/themes/contrib/poncho/css/icono-arg.css?oq3u6p" rel="stylesheet" />
+
+        <link href="/profiles/argentinagobar/themes/contrib/poncho/css/poncho.min.css?oq3u6p" rel="stylesheet" />
+        
+        <link type="text/css" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@100;200;300;400;500;600;700;800;900&amp;display=swap" media="all">
+    </head>
+
+    <body>
+
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-P68ZXT" 
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header>
+        <nav class="navbar navbar-top navbar-default border-bottom-amarillo">
+            <div class="container">
+                <div>
+                    <div class="navbar-header"> <a class="navbar-brand" href="/" id="navbar-brand" aria-label="Argentina.gob.ar Presidencia de la Nación"> <img src="/profiles/argentinagobar/themes/argentinagobar/argentinagobar_theme/logo_argentina-azul.svg" alt="Argentina.gob.ar" width="254" height="50"> </a>                    <a class="btn btn-mi-argentina btn-login visible-xs bg-miarg-azul" href="https://mi.argentina.gob.ar" title="Ingresar a Mi Argentina">
+                  <i class="icono-arg-mi-argentina text-white"></i><span class="sr-only">Ir a Mi Argentina</span></a>
+                    </div>
+                    <div class="nav navbar-nav navbar-right hidden-xs">
+                    <div id="cd-login">
+                        <a href="https://mi.argentina.gob.ar/" id="btn-mi-argentina" class="btn hidden-xs p-l-1  btn-login bg-miarg-azul" aria-label="Ingresar a Mi Argentina"><i class=" fa-3x fa icono-arg-mi-argentina-extended text-white p-t-0"><span class="sr-only">Mi Argentina</span></i>
+                        </a>
+                    </div>
+                    <div class="pull-left">
+                        <form class="main-form" role="search" action="/buscar" method="post" id="apachesolr-search-custom-page-search-form" accept-charset="UTF-8">
+                            <div><input type="hidden" name="form_build_id" value="form-mqJvPDBeZdwlq_fDtHwhVjPD4OESf7Lyb3luUQdIUng"><input type="hidden" name="form_id" value="apachesolr_search_custom_page_search_form">
+                                <div style="display:none;">
+                                    <div class="form-item form-item-tarro-de-miel form-type-textfield form-group"> <label class="control-label" for="edit-tarro-de-miel">Dejar en blanco</label><input class="form-control form-text" type="text" id="edit-tarro-de-miel" name="tarro_de_miel" value="" size="60" maxlength="128"></div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+
+
+        <main>
+            <div class="container">
+                <section>
+                    <div class="row">
+                        <div class="col-md-8 col-md-offset-2 text-center">
+                            <h1>
+                                <br />
+                                Página no encontrada
+                            </h1>
+                            <p class="lead margin-40">La dirección web no está bien escrita o fue dada de baja.</p>
+                            <p class="margin-60"><a href="/" class="btn btn-primary">Ir a la página de inicio de Argentina.gob.ar</a></p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="main-footer" style="padding-bottom: 0px;">
+          <div class="container">
+            <div class="row">
+                <div class="col-md-4 col-sm-12">
+                    <div class="region region-footer1">
+                        <section id="block-menu-menu-footer-1" class="block block-menu clearfix">
+                            <h2 class="block-title h3 section-title h3 section-title">Trámites</h2>
+                            <ul class="menu nav">
+                                <li class="first leaf"><a href="/turnos">Turnos</a></li>
+                                <li class="leaf"><a href="/jefatura/innovacion-publica/administrativa/tramites-a-distancia">Trámites a distancia</a></li>
+                                <li class="last leaf"><a href="/miargentina/mesadeayuda">Atención al ciudadano</a></li>
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-12">
+                    <div class="region region-footer2">
+                        <section id="block-menu-menu-footer-2" class="block block-menu clearfix">
+                            <h2 class="block-title h3 section-title h3 section-title">Acerca de la República Argentina</h2>
+
+                            <ul class="menu nav">
+                                <li class="first leaf"><a href="/nuestro-pais">Nuestro país</a></li>
+                                <li class="leaf"><a href="/normativa">Leyes argentinas</a></li>
+                                <li class="leaf"><a href="/organismos">Organismos</a></li>
+                                <li class="last leaf"><a href="/jefatura/mapa-del-estado">Mapa del Estado</a></li>
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-12">
+                    <div class="region region-footer3">
+                        <section id="block-menu-menu-footer-3" class="block block-menu clearfix">
+                            <h2 class="block-title h3 section-title h3 section-title">Acerca de Argentina.gob.ar</h2>
+
+                            <ul class="menu nav">
+                                <li class="first leaf"><a href="/acerca">Acerca de este sitio</a></li>
+                                <li class="last leaf"><a href="/terminos-y-condiciones">Términos y condiciones</a></li>
+                                <li class="last leaf"><a href="/sugerencias">Sugerencias</a></li>
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row sub-footer bg-primary border-top-amarillo">
+                <div class="container">
+                    <div class="col-sm-6 m-y-1 p-x-0">
+                    </div>
+                </div>
+            </div>
+        </div>
+        </footer>
+    </body>
+</html>

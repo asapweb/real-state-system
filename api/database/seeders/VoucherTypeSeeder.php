@@ -32,7 +32,7 @@ class VoucherTypeSeeder extends Seeder
             ['name' => 'Nota de Crédito X', 'short_name' => 'N/C', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => false],
             ['name' => 'Nota de Débito X', 'short_name' => 'N/D', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
 
-            ['name' => 'Cobranza X', 'short_name' => 'COB', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
+            ['name' => 'Cobranza X', 'short_name' => 'COB', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => false],
             ['name' => 'Liquidación X', 'short_name' => 'LIQ', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
         ];
 

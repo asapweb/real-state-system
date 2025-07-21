@@ -1,6 +1,7 @@
 <template>
   <div>
     <v-autocomplete
+      :hide-details="hideDetails"
       v-model="selected"
       v-model:search="search"
       :items="items"
@@ -53,8 +54,9 @@ import ClientForm from '@/views/clients/components/ClientForm.vue'
 const props = defineProps({
   modelValue: [Number, Object, null],
   errorMessages: Array,
+  hideDetails: { type: [String, Boolean], default: 'auto' },
 })
-const emit = defineEmits(['update:modelValue', 'blur'])
+const emit = defineEmits(['update:modelValue', 'blur', 'change'])
 
 const selected = ref(null)
 const search = ref('')
@@ -131,8 +133,10 @@ watch(selected, (val) => {
     dialog.value = true
     selected.value = null
     emit('update:modelValue', null)
+    emit('change', null)
   } else {
     emit('update:modelValue', val?.id ?? null)
+    emit('change', val?.id ?? null)
   }
 })
 

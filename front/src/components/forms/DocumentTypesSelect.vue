@@ -34,6 +34,19 @@ const props = defineProps({
     type: Boolean,
     default: false, // Por defecto, no es requerido
   },
+  readonly: {
+    type: Boolean,
+    default: false,
+  },
+  density: {
+    type: String,
+    default: 'default',
+  },
+  variant: {
+    type: String,
+    default: 'filled',
+  },
+  hideDetails: { type: [String, Boolean], default: 'auto' },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -44,9 +57,20 @@ const loading = ref(false)
 const error = ref(null)
 
 const filteredDocumentTypes = computed(() => {
+  if (!referenceDataStore.documentTypes) {
+    return []
+  }
+  // Si clientType no se proporciona (es null o undefined), no filtrar y devolver todos.
+  if (!props.clientType) {
+    return referenceDataStore.documentTypes
+  }
   const data = referenceDataStore.getDocumentTypesByClientType(props.clientType)
   console.log('Document types data for', props.clientType, ':', data)
   return data
+})
+
+const documentTypeName = computed(() => {
+  // ... existing code ...
 })
 
 onMounted(async () => {
@@ -94,8 +118,8 @@ watch(
   () => props.clientType,
   (newClientType, oldClientType) => {
     // No resetear si el tipo de cliente no ha cambiado y ya hay un valor.
-    // Esto previene un reset innecesario cuando el componente se monta por primera vez.
-    if (newClientType === oldClientType && selectedDocumentType.value !== null) {
+    // O si el nuevo tipo de cliente es null (lo que significa "mostrar todos").
+    if (newClientType === oldClientType && selectedDocumentType.value !== null || newClientType === null) {
       return
     }
 
@@ -133,6 +157,9 @@ watch(selectedDocumentType, (newValue) => {
     placeholder="Selecciona un tipo de documento"
     :rules="rules"
     :required="required"
+    :readonly="readonly"
+    :density="density"
+    :variant="variant"
   >
   </v-select>
   <v-progress-circular v-if="loading" indeterminate size="24" />

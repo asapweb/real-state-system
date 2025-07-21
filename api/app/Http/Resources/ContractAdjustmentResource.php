@@ -22,6 +22,7 @@ class ContractAdjustmentResource extends JsonResource
             'index_type_id' => $this->index_type_id,
             'value' => $this->value,
             'applied_at' => $this->applied_at,
+            'applied_amount' => $this->applied_amount,
             'notes' => $this->notes,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
@@ -30,6 +31,10 @@ class ContractAdjustmentResource extends JsonResource
             'contract' => $this->whenLoaded('contract', function () {
                 return [
                     'id' => $this->contract->id,
+                    'start_date' => $this->contract->start_date,
+                    'end_date' => $this->contract->end_date,
+                    'monthly_amount' => $this->contract->monthly_amount,
+                    'currency' => $this->contract->currency,
                     'clients' => $this->contract->clients->map(function ($contractClient) {
                         return [
                             'id' => $contractClient->id,

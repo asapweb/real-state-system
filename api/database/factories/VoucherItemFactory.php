@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\TaxRate;
 
 class VoucherItemFactory extends Factory
 {
@@ -16,7 +17,7 @@ class VoucherItemFactory extends Factory
             'subtotal' => 1000.00,
             'vat_amount' => 210.00,
             'subtotal_with_vat' => 1210.00,
-            'tax_rate_id' => 1,
+            'tax_rate_id' => TaxRate::factory(),
         ];
     }
 }

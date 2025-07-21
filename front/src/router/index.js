@@ -1,45 +1,31 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+import authRoutes from './auth'
+import clientRoutes from './modules/clients'
+import propertyRoutes from './modules/properties'
+import rentalOfferRoutes from './modules/rentalOffers'
+import rentalApplicationRoutes from './modules/rentalApplications'
+import contractRoutes from './modules/contracts'
+import contractAdjustmentRoutes from './modules/contractAdjustments'
+import collectionRoutes from './modules/collections'
+import collectionReceiptRoutes from './modules/collectionReceipts'
+import contractServiceRoutes from './modules/contractServices'
+import paymentRoutes from './modules/payments'
+import expenseRoutes from './modules/expenses'
+import maintenanceRoutes from './modules/maintenance'
+import settlementRoutes from './modules/settlements'
+import indexTypeRoutes from './modules/indexTypes'
+import indexValueRoutes from './modules/indexValues'
+import adminCommandRoutes from './modules/adminCommands'
+import settingsRoutes from './modules/settings'
+import voucherRoutes from './modules/vouchers'
+import voucherInvoiceRoutes from './modules/vouchers/invoices'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('../views/LoginPage.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/forgot-password',
-      name: 'forgot',
-      component: () => import('../views/LoginPage.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: () => import('../views/RegisterPage.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/display',
-      name: 'display',
-      component: () => import('../views/ScreenPage.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/test2',
-      name: 'test2',
-      component: () => import('../views/TestPage.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/unauthorized',
-      name: 'unauthorized',
-      component: () => import('../views/UnauthorizedPage.vue'),
-      meta: { requiresAuth: false },
-    },
+    ...authRoutes,
     {
       path: '/',
       component: () => import('../layout/AppLayout.vue'),
@@ -49,238 +35,38 @@ const router = createRouter({
           path: '',
           name: 'dashboard',
           component: () => import('../views/visits/VisitsDashboardPage.vue'),
-          meta: { requiresAuth: true }, // Ejemplo de roles
+          meta: { requiresAuth: true },
+        },
+        { path: '/admin/commands', children: adminCommandRoutes },
+        { path: '/clients', children: clientRoutes },
+        { path: '/collections', children: collectionRoutes },
+        { path: '/collection-receipts', children: collectionReceiptRoutes },
+        { path: '/contracts', children: contractRoutes },
+        { path: '/contracts/adjustments', children: contractAdjustmentRoutes },
+        { path: '/contracts/services', children: contractServiceRoutes },
+        { path: '/expenses', children: expenseRoutes },
+        { path: '/maintenance', children: maintenanceRoutes },
+        { path: '/index-types', children: indexTypeRoutes },
+        { path: '/index-values', children: indexValueRoutes },
+        { path: '/payments', children: paymentRoutes },
+        { path: '/properties', children: propertyRoutes },
+        { path: '/rental-offers', children: rentalOfferRoutes },
+        { path: '/rental-applications', children: rentalApplicationRoutes },
+        { path: '/settlements', children: settlementRoutes },
+        { path: '/vouchers', children: voucherRoutes },
+        { path: '/vouchers', children: voucherInvoiceRoutes },
+        // Rutas individuales
+        {
+          path: '/cash-accounts',
+          name: 'CashAccountIndex',
+          component: () => import('@/views/cash-accounts/CashAccountIndex.vue'),
         },
         {
-          path: '/clients',
-          children: [
-            {
-              path: '',
-              name: 'ClientsIndex',
-              component: () => import('@/views/clients/ClientIndex.vue'),
-            },
-            {
-              path: 'create',
-              name: 'ClientCreate',
-              component: () => import('@/views/clients/ClientCreate.vue'),
-            },
-            {
-              path: ':id',
-              name: 'ClientShow',
-              component: () => import('@/views/clients/ClientShow.vue'),
-            },
-            {
-              path: ':id/edit',
-              name: 'ClientEdit',
-              component: () => import('@/views/clients/ClientEdit.vue'),
-            },
-          ],
+          path: '/cash-movements',
+          name: 'CashMovementIndex',
+          component: () => import('@/views/cash-movements/CashMovementIndex.vue'),
         },
-        {
-          path: '/properties',
-          children: [
-            {
-              path: '',
-              name: 'PropertiesIndex',
-              component: () => import('@/views/properties/PropertiesIndex.vue'),
-            },
-            {
-              path: 'create',
-              name: 'PropertyCreate',
-              component: () => import('@/views/properties/PropertyCreate.vue'),
-            },
-            {
-              path: ':id',
-              name: 'PropertyShow',
-              component: () => import('@/views/properties/PropertyShow.vue'),
-            },
-            {
-              path: ':id/edit',
-              name: 'PropertyEdit',
-              component: () => import('@/views/properties/PropertyEdit.vue'),
-            },
-          ],
-        },
-        {
-          path: '/rental-offers',
-          children: [
-            {
-              path: '',
-              name: 'RentalOfferIndex',
-              component: () => import('@/views/rental-offers/RentalOfferIndex.vue'),
-            },
-            {
-              path: 'create',
-              name: 'RentalOfferCreate',
-              component: () => import('@/views/rental-offers/RentalOfferCreate.vue'),
-            },
-            {
-              path: ':id',
-              name: 'RentalOfferShow',
-              component: () => import('@/views/rental-offers/RentalOfferShow.vue'),
-            },
-            {
-              path: ':id/edit',
-              name: 'RentalOfferEdit',
-              component: () => import('@/views/rental-offers/RentalOfferEdit.vue'),
-            },
-          ],
-        },
-        {
-          path: '/rental-applications',
-          children: [
-            {
-              path: '',
-              name: 'RentalApplicationIndex',
-              component: () => import('@/views/rental-applications/RentalApplicationIndex.vue'),
-            },
-            {
-              path: 'create',
-              name: 'RentalApplicationCreate',
-              component: () => import('@/views/rental-applications/RentalApplicationCreate.vue'),
-            },
-            {
-              path: ':id',
-              name: 'RentalApplicationShow',
-              component: () => import('@/views/rental-applications/RentalApplicationShow.vue'),
-            },
-            {
-              path: ':id/edit',
-              name: 'RentalApplicationEdit',
-              component: () => import('@/views/rental-applications/RentalApplicationEdit.vue'),
-            },
-          ],
-        },
-        {
-          path: '/contracts/adjustments',
-          children: [
-            {
-              path: '',
-              name: 'ContractAdjustmentIndex',
-              component: () => import('@/views/contract-adjustments/ContractAdjustmentIndex.vue'),
-            },
-          ],
-        },
-        {
-          path: '/contracts',
-          children: [
-            {
-              path: '',
-              name: 'ContractIndex',
-              component: () => import('@/views/contracts/ContractIndex.vue'),
-            },
-            {
-              path: 'create',
-              name: 'ContractCreate',
-              component: () => import('@/views/contracts/ContractCreate.vue'),
-            },
-            {
-              path: ':id',
-              name: 'ContractShow',
-              component: () => import('@/views/contracts/ContractShow.vue'),
-            },
-            {
-              path: ':id/edit',
-              name: 'ContractEdit',
-              component: () => import('@/views/contracts/ContractEdit.vue'),
-            },
-          ],
-        },
-        {
-          path: '/collections',
-          children: [
-            {
-              path: '',
-              name: 'CollectionsIndex',
-              component: () => import('@/views/collections/CollectionIndex.vue'),
-            },
-            {
-              path: 'create',
-              name: 'CollectionCreate',
-              component: () => import('@/views/collections/CollectionCreate.vue'),
-            },
-            {
-              path: 'generation',
-              name: 'CollectionGeneration',
-              component: () => import('@/views/collections/CollectionGeneration.vue'),
-            },
-            {
-              path: ':id',
-              name: 'CollectionsShow',
-              component: () => import('@/views/collections/CollectionShow.vue'),
-            },
-          ],
-        },
-        {
-          path: '/collection-receipts',
-          children: [
-            {
-              path: '',
-              name: 'CollectionReceiptIndex',
-              component: () => import('@/views/collection-receipts/CollectionReceiptIndex.vue'),
-            },
-          ],
-        },
-        {
-          path: '/contracts/services',
-          children: [
-            {
-              path: '',
-              name: 'ContractServiceIndex',
-              component: () => import('@/views/contract-service/ContractServiceIndex.vue'),
-            },
-          ],
-        },
-        {
-          path: '/payments',
-          children: [
-            {
-              path: '',
-              name: 'PaymentsIndex',
-              component: () => import('@/views/Payments/PaymentIndex.vue'),
-            },
-          ],
-        },
-        {
-          path: '/expenses',
-          children: [
-            {
-              path: '',
-              name: 'ExpensesIndex',
-              component: () => import('@/views/Expenses/ExpenseIndex.vue'),
-            },
-          ],
-        },
-        {
-          path: '/cashbox',
-          children: [
-            {
-              path: '',
-              name: 'CashboxIndex',
-              component: () => import('@/views/CashBox/CashboxIndex.vue'),
-            },
-          ],
-        },
-        {
-          path: '/maintenance',
-          children: [
-            {
-              path: '',
-              name: 'MaintenanceIndex',
-              component: () => import('@/views/maintenance/MaintenanceIndex.vue'),
-            },
-          ],
-        },
-        {
-          path: '/settlements',
-          children: [
-            {
-              path: '',
-              name: 'SettlementsIndex',
-              component: () => import('@/views/Settlements/SettlementIndex.vue'),
-            },
-          ],
-        },
+        // Otras rutas individuales
         {
           path: 'visits',
           name: 'index',
@@ -299,42 +85,7 @@ const router = createRouter({
           component: () => import('../views/UserView.vue'),
           meta: { requiresAuth: true },
         },
-        {
-          path: '/settings/departments',
-          name: 'departments',
-          component: () => import('../views/Settings/Departments/DepartmentsIndexView.vue'),
-          meta: { requiresAuth: true },
-        },
-        {
-          path: '/settings',
-          name: 'settings',
-          component: () => import('../views/Settings/IndexView.vue'),
-          meta: { requiresAuth: true },
-        },
-        {
-          path: '/settings/users',
-          name: 'users',
-          component: () => import('../views/Settings/Users/UsersIndexView.vue'),
-          meta: { requiresAuth: true },
-        },
-        {
-          path: '/settings/users/:id',
-          name: 'users.show',
-          component: () => import('../views/Settings/Users/UsersShowView.vue'),
-          meta: { requiresAuth: true },
-        },
-        {
-          path: '/settings/roles',
-          name: 'roles',
-          component: () => import('../views/Settings/Roles/RolesIndexView.vue'),
-          meta: { requiresAuth: true },
-        },
-        {
-          path: '/settings/roles/:id',
-          name: 'roles.show',
-          component: () => import('../views/Settings/Roles/RolesShowView.vue'),
-          meta: { requiresAuth: true },
-        },
+        ...settingsRoutes,
       ],
     },
   ],

@@ -112,6 +112,7 @@ import axios from '@/services/axios'
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
   type: { type: String, required: true },          // 'N/C' o 'N/D'
+  letter: { type: String },
   clientId: { type: [String, Number], default: null }
 })
 
@@ -142,6 +143,7 @@ async function fetchOptions(searchTerm = '') {
       try {
     const params = {
       type: props.type,
+      letter: props.letter,
       client_id: props.clientId
     }
 

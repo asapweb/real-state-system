@@ -26,8 +26,13 @@ class VoucherCalculationController extends Controller
     {
         $data = $request->all();
 
+        \Log::info('===============================================');
+        \Log::info('previewTotals');
+        \Log::info('data', ['data' => $data]);
+
         $voucher = new Voucher([
             'voucher_type_short_name' => $data['voucher_type_short_name'] ?? null,
+            'voucher_type_letter' => $data['voucher_type_letter'] ?? null,
             'currency' => $data['currency'] ?? 'ARS',
         ]);
 
@@ -51,9 +56,6 @@ class VoucherCalculationController extends Controller
         $voucher->payments = collect($data['payments'] ?? [])
             ->map(fn ($payment) => new VoucherPayment($payment));
 
-        // throw ValidationException::withMessages([
-        //     'applications' => $data['applications'],
-        // ]);
 
         // Cargar aplicaciones (si hay)
         $voucher->applications = collect($data['applications'] ?? [])
@@ -76,6 +78,9 @@ class VoucherCalculationController extends Controller
         //     'voucher' => $voucher,
         // ]);
 
+        \Log::info('------------------------------------------------');
+        \Log::info('voucher para el calculo', ['voucher', $voucher]);
+        \Log::info('===============================================');
         // Calcular totales
         $this->calculationService->calculateVoucher($voucher);
 
@@ -86,6 +91,7 @@ class VoucherCalculationController extends Controller
             'subtotal_taxed' => $voucher->subtotal_taxed,
             'subtotal_vat' => $voucher->subtotal_vat,
             'subtotal_other_taxes' => $voucher->subtotal_other_taxes,
+            'subtotal' => $voucher->subtotal,
             'total' => $voucher->total,
         ]);
     }

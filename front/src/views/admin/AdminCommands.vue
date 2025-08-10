@@ -178,7 +178,6 @@ const syncForm = reactive({
 // Tipos de índice disponibles
 const availableIndexTypes = ref([
   { code: 'ICL', name: 'ICL - Índice de Costo de la Construcción (BCRA)' },
-  { code: 'ICP', name: 'ICP - Índice de Casa Propia (INDEC)' },
   { code: 'UVA', name: 'UVA - Unidad de Valor Adquisitivo (BCRA)' },
 ])
 

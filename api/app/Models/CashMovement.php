@@ -16,6 +16,7 @@ class CashMovement extends Model
         'payment_method_id',
         'date',
         'amount',
+        'currency',
         'reference',
         'meta',
     ];

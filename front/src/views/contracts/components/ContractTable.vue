@@ -62,6 +62,18 @@
         {{ formatDate(item.start_date) }}
       </template>
 
+      <template #[`item.main_tenant`]="{ item }">
+        <div>{{ item.main_tenant?.client?.last_name }}, {{ item.main_tenant?.client?.name }}</div>
+      </template>
+      
+      <template #[`item.owners`]="{ item }">
+        <div v-for="owner in item.owners">
+          {{ owner.client?.last_name }}, {{ owner.client?.name }} {{owner.ownership_percentage}}%
+        </div>
+
+
+      </template>
+
       <template #[`item.end_date`]="{ item }">
         {{ formatDate(item.end_date) }}
       </template>
@@ -129,6 +141,8 @@ const headers = [
   { title: 'Inicio', key: 'start_date', sortable: true },
   { title: 'Fin', key: 'end_date', sortable: true },
   { title: 'Monto mensual', key: 'monthly_amount', sortable: true },
+  { title: 'Inquilino', key: 'main_tenant', sortable: true },
+  { title: 'Propietarios', key: 'owners', sortable: true },
   { title: 'Estado', key: 'status', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]

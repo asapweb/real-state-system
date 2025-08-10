@@ -220,8 +220,8 @@
             </thead>
             <tbody>
               <tr v-for="payment in voucher.payments" :key="payment.id">
-                <td>{{ payment.payment_method_name }}</td>
-                <td>{{ payment.cash_account_name || '-' }}</td>
+                <td>{{ payment.payment_method.name }}</td>
+                <td>{{ payment.cash_account.name || '-' }}</td>
                 <td>{{ payment.reference || '-' }}</td>
                 <td class="text-right">{{ formatCurrency(payment.amount) }}</td>
               </tr>

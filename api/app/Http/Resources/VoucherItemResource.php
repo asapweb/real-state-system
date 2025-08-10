@@ -17,7 +17,7 @@ class VoucherItemResource extends JsonResource
         return [
             'id' => $this->id,
             'voucher_id' => $this->voucher_id,
-            'type' => $this->type,
+            'type' => $this->type?->value,
             'description' => $this->description,
             'quantity' => $this->quantity,
             'unit_price' => $this->unit_price,
@@ -32,7 +32,7 @@ class VoucherItemResource extends JsonResource
             // Campos calculados
             'type_name' => $this->type?->value,
             'is_service' => $this->type?->value === 'service',
-            'is_rent' => $this->type?->value === 'rent',
+            'is_rent' => $this->type?->value === 'expense-rent',
             'is_insurance' => $this->type?->value === 'insurance',
             'is_commission' => $this->type?->value === 'commission',
             'is_penalty' => $this->type?->value === 'penalty',

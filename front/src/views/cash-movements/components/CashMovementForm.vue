@@ -13,6 +13,7 @@
           :required="true"
           :disabled="loading"
           :error-messages="v$.cash_account_id.$errors.map(e => e.$message)"
+          @update:model-value="onCashAccountChange"
         />
         <v-select
           v-model="form.direction"
@@ -32,15 +33,18 @@
           :disabled="loading"
           required
         />
+        <v-select
+          v-model="form.currency"
+          :items="currencyOptions"
+          label="Moneda"
+          :error-messages="v$.currency.$errors.map(e => e.$message)"
+          :disabled="loading || !!form.cash_account_id"
+          required
+        />
         <v-text-field
           v-model="form.date"
           label="Fecha"
           type="date"
-          :disabled="loading"
-        />
-        <v-text-field
-          v-model="form.concept"
-          label="Concepto"
           :disabled="loading"
         />
         <v-text-field
@@ -65,6 +69,7 @@ import { required, minValue, helpers } from '@vuelidate/validators';
 import { defineProps, defineEmits } from 'vue';
 import CashAccountAutocomplete from '@/views/components/CashAccountAutocomplete.vue';
 import CashMovementService from '@/services/CashMovementService';
+import CashAccountService from '@/services/CashAccountService';
 
 const props = defineProps({
   initialData: {
@@ -83,14 +88,19 @@ const form = reactive({
   cash_account_id: '',
   direction: '',
   amount: '',
+  currency: '',
   date: '',
-  concept: '',
   reference: '',
 });
 
 const directionOptions = [
   { title: 'Ingreso', value: 'in' },
   { title: 'Egreso', value: 'out' },
+];
+
+const currencyOptions = [
+  { title: 'Pesos Argentinos (ARS)', value: 'ARS' },
+  { title: 'Dólares Estadounidenses (USD)', value: 'USD' },
 ];
 
 const errorMessage = ref('');
@@ -102,15 +112,15 @@ watch(
       form.cash_account_id = val.cash_account_id || null;
       form.direction = val.direction || '';
       form.amount = val.amount || '';
+      form.currency = val.currency || '';
       form.date = val.date || new Date().toISOString().slice(0, 10);
-      form.concept = val.concept || '';
       form.reference = val.reference || '';
     } else {
       form.cash_account_id = null;
       form.direction = '';
       form.amount = '';
+      form.currency = '';
       form.date = new Date().toISOString().slice(0, 10);
-      form.concept = '';
       form.reference = '';
     }
     errorMessage.value = '';
@@ -125,17 +135,33 @@ const rules = computed(() => ({
     required: helpers.withMessage('El monto es obligatorio', required),
     minValue: helpers.withMessage('El monto debe ser mayor a 0', minValue(0.01)),
   },
+  currency: { required: helpers.withMessage('La moneda es obligatoria', required) },
 }));
 
 const v$ = useVuelidate(rules, form);
+
+function onCashAccountChange(accountId) {
+  // Si se selecciona una cuenta, obtener su moneda y setearla automáticamente
+  if (accountId) {
+    CashAccountService.getCashAccount(accountId)
+      .then(res => {
+        const account = res.data.data;
+        if (account) {
+          form.currency = account.currency;
+        }
+      })
+      .catch(() => {
+        // Si no se puede obtener la cuenta, no hacer nada
+      });
+  }
+}
 
 async function onSubmit() {
   v$.value.$touch();
   errorMessage.value = '';
   if (!v$.value.$invalid) {
     try {
-      await CashMovementService.createCashMovement({ ...form });
-      emit('submit');
+       emit('submit', form);
     } catch (e) {
       errorMessage.value = e.response?.data?.message || 'Error al registrar el movimiento';
     }

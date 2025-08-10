@@ -2,46 +2,56 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ContractExpenseResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toArray($request): array
     {
         return [
             'id' => $this->id,
             'contract_id' => $this->contract_id,
-            'service_type' => $this->service_type,
+            'contract' => new ContractResource($this->whenLoaded('contract')),
+
+            'service_type_id' => $this->service_type_id,
+            'service_type' => new ServiceTypeResource($this->whenLoaded('serviceType')),
+
             'amount' => $this->amount,
             'currency' => $this->currency,
-            'period' => $this->period,
-            'period_formatted' => $this->period_formatted,
-            'due_date' => $this->due_date,
-            'paid_by' => $this->paid_by,
-            'is_paid' => $this->is_paid,
-            'paid_at' => $this->paid_at,
-            'description' => $this->description,
-            'included_in_collection' => $this->included_in_collection,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'effective_date' => $this->effective_date?->format('Y-m-d'),
+            'due_date' => $this->due_date?->format('Y-m-d'),
 
-            // Relationships
-            'contract' => $this->whenLoaded('contract', function () {
-                return [
-                    'id' => $this->contract->id,
-                    'start_date' => $this->contract->start_date,
-                    'end_date' => $this->contract->end_date,
-                    'monthly_amount' => $this->contract->monthly_amount,
-                    'currency' => $this->contract->currency,
-                    'status' => $this->contract->status,
-                ];
-            }),
+            'paid_by' => $this->paid_by->value,
+            'responsible_party' => $this->responsible_party->value,
+            'is_paid' => $this->is_paid,
+            'paid_at' => $this->paid_at?->format('Y-m-d'),
+
+            'status' => [
+                'value' => $this->status?->value,
+                'label' => $this->status?->label(),
+            ],
+
+            'included_in_voucher' => $this->included_in_voucher,
+            'description' => $this->description,
+
+            // Vínculos con vouchers
+            'voucher_id' => $this->voucher_id,
+            'voucher' => new VoucherResource($this->whenLoaded('voucher')),
+
+            'generated_credit_note_id' => $this->generated_credit_note_id,
+            'generated_credit_note' => new VoucherResource($this->whenLoaded('generatedCreditNote')),
+
+            'liquidation_voucher_id' => $this->liquidation_voucher_id,
+            'liquidation_voucher' => new VoucherResource($this->whenLoaded('liquidationVoucher')),
+            'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),
+
+            'settled_at' => $this->settled_at?->format('Y-m-d H:i:s'),
+
+            // Flag calculado
+            'is_locked' => $this->is_locked,
         ];
     }
 }

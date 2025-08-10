@@ -10,7 +10,7 @@
       class="mb-3"
       @click="dialog = true"
     >
-      Agregar comprobante
+      Agregar comprobante sss
     </v-btn>
 
     <!-- Listado de comprobantes asociados -->
@@ -101,6 +101,7 @@ import axios from '@/services/axios'
 
 const props = defineProps({
   type: { type: String, required: true }, // 'N/C' o 'N/D'
+  letter: { type: String },
   clientId: { type: [String, Number], required: true },
   modelValue: { type: Array, default: () => [] }, // array de IDs
 })
@@ -124,6 +125,7 @@ async function fetchOptions() {
     const { data } = await axios.get('/api/vouchers/associable', {
       params: {
         type: props.type,
+        letter: props.letter,
         client_id: props.clientId
       }
     })

@@ -48,11 +48,15 @@ class ContractResource extends JsonResource
             'updated_at' => $this->updated_at,
 
             // Relaciones
+            'collection_booklet' => new BookletResource($this->collectionBooklet),
+            'settlement_booklet' => new BookletResource($this->settlementBooklet),
             'property' => new PropertyResource($this->whenLoaded('property')),
             'rental_application' => new RentalApplicationResource($this->whenLoaded('rentalApplication')),
             'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),
             'adjustments' => ContractAdjustmentResource::collection($this->whenLoaded('adjustments')),
             'clients' => ContractClientResource::collection($this->whenLoaded('clients')),
+            'owners' => ContractClientResource::collection($this->whenLoaded('owners')),
+            'main_tenant' => new ContractClientResource($this->whenLoaded('mainTenant')),
             'services' => ContractServiceResource::collection($this->whenLoaded('services')),
             'collections' => CollectionResource::collection($this->whenLoaded('collections')),
             'expenses' => ContractExpenseResource::collection($this->whenLoaded('expenses')),

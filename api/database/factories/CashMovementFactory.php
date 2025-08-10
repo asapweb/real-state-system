@@ -29,6 +29,7 @@ class CashMovementFactory extends Factory
             'payment_method_id' => $this->faker->boolean(70) && $paymentMethod ? $paymentMethod->id : null,
             'date' => now()->subDays(rand(0, 30)),
             'amount' => $amount,
+            'currency' => $cashAccount ? $cashAccount->currency : $this->faker->randomElement(['ARS', 'USD']),
             'direction' => $direction,
             'reference' => $this->faker->optional()->bothify('REF-####-????'),
             'meta' => [

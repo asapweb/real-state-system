@@ -29,12 +29,12 @@
     </h2>
   </div>
   <VRow>
+    <v-col cols="12" md="12">
+      <AccountMovement  cols="12" v-if="client" :client-id="client?.id" />
+    </v-col>
     <VCol cols="6" class="mb-4">
       <ClientInfoCard v-if="client" :client="client" @edit="goToEdit" />
     </VCol>
-    <v-col>
-      <AccountMovement  cols="6" v-if="client" :client-id="client?.id" />
-    </v-col>
     <v-col>
       <InitialBalanceForm v-if="client" :client-id="client?.id" />
     </v-col>

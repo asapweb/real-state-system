@@ -187,6 +187,7 @@ class VoucherValidatorService
             return $sign * $app->amount;
         });
         $sumItems = $voucher->items->sum(fn ($i) => $i->quantity * $i->unit_price);
+        $sumItemsAndApplications = $sumItems + $sumApplications;
         $tolerance = 0.01;
 
         // ❌ No se permite aplicar un recibo a otro recibo
@@ -198,7 +199,7 @@ class VoucherValidatorService
                 ]);
             }
         }
-
+       
         // ✅ Caso 1: total > 0
         if ((float) $voucher->total > $tolerance) {
             if ($sumPayments <= 0) {
@@ -207,7 +208,18 @@ class VoucherValidatorService
                 ]);
             }
 
-            if (abs((float) $voucher->total - $sumPayments) > $tolerance) {
+            // ⚠ Validar moneda de cada cuenta contra la moneda del voucher
+            foreach ($voucher->payments as $payment) {
+                $cashAccount = $payment->cashAccount;
+                if ($cashAccount && $cashAccount->currency !== $voucher->currency) {
+                    throw ValidationException::withMessages([
+                        'payments' => "La cuenta seleccionada para el pago '{$cashAccount->name}' no corresponde a la moneda del comprobante ({$voucher->currency}).",
+                    ]);
+                }
+            }
+            
+
+            if (abs((float) $sumItemsAndApplications - $sumPayments) > $tolerance) {
                 throw ValidationException::withMessages([
                     'payments' => 'El total del recibo no coincide con la suma de los pagos.',
                 ]);

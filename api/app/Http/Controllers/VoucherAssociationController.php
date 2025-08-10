@@ -39,11 +39,13 @@ class VoucherAssociationController extends Controller
         $validated = $request->validate([
             'type' => ['required', 'in:N/C,N/D'],
             'client_id' => ['required', 'exists:clients,id'],
+            'letter' => ['required'],
             'search' => ['nullable', 'string'],
         ]);
 
         $query = Voucher::query()
             ->where('client_id', $validated['client_id'])
+            ->where('voucher_type_letter', $validated['letter'])
             ->where('status', 'issued');
 
         // Filtrar por búsqueda si se proporciona

@@ -9,6 +9,9 @@ use App\Http\Requests\StoreContractAdjustmentRequest;
 use App\Http\Requests\UpdateContractAdjustmentRequest;
 use App\Http\Resources\ContractAdjustmentResource;
 use App\Services\ContractAdjustmentService;
+use App\Enums\ContractAdjustmentType;
+use Illuminate\Support\Facades\Log;
+
 
 class ContractAdjustmentController extends Controller
 {
@@ -177,12 +180,19 @@ class ContractAdjustmentController extends Controller
         return response()->json(['message' => 'Ajuste eliminado correctamente.']);
     }
 
-    public function apply(Contract $contract, ContractAdjustment $adjustment)
+    public function assignIndex(ContractAdjustment $adjustment, Request $request)
     {
-        if ($adjustment->contract_id !== $contract->id) {
-            return response()->json(['message' => 'El ajuste no pertenece al contrato.'], 403);
-        }
+        $this->contractAdjustmentService->assignIndexValue($adjustment);
 
+        return response()->json([
+            'message' => 'Valor de índice asignado correctamente.',
+            'adjustment' => $adjustment->fresh(),
+        ]);
+    }
+
+
+    public function apply(ContractAdjustment $adjustment, Request $request)
+    {
         try {
             $this->contractAdjustmentService->apply($adjustment);
         } catch (\InvalidArgumentException $e) {
@@ -193,4 +203,208 @@ class ContractAdjustmentController extends Controller
 
         return new ContractAdjustmentResource($adjustment);
     }
+
+    public function assignIndexBulk(Request $request)
+    {
+        $validated = $request->validate([
+            'period' => 'required|date_format:Y-m',
+        ]);
+
+        $adjustments = ContractAdjustment::where('effective_date', 'like', $validated['period'] . '%')->where('type', ContractAdjustmentType::INDEX)->get();
+
+        $results = [
+            'success' => [],
+            'ignored' => [],
+            'failed' => [],
+        ];
+
+        foreach ($adjustments as $adjustment) {
+            if ($adjustment->value) {
+                $results['ignored'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => 'Ajuste ignorado: El índice ya tenía valor.',
+                ];
+                continue;
+            }
+            try {
+                $this->contractAdjustmentService->assignIndexValue($adjustment);
+
+                $results['success'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => 'Índice asignado correctamente.',
+                ];
+                
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $message = collect($e->errors())->flatten()->first() ?? 'Error de validación al asignar índice.';
+                $results['failed'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => $message,
+                ];
+            } catch (\Throwable $e) {
+                \Log::error('❌ Error inesperado al asignar índice', [
+                    'adjustment_id' => $adjustment->id,
+                    'exception' => $e,
+                ]);
+
+                $results['failed'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => 'Error inesperado al asignar índice. Contacte al administrador.',
+                ];
+            }
+        }
+
+        return response()->json([
+            'message' => 'Proceso de asignación de índices completado',
+            'results' => $results,
+            'total' => $adjustments->count(),
+        ]);
+    }
+
+    public function applyBulk(Request $request)
+    {
+        $validated = $request->validate([
+            'period' => 'required|date_format:Y-m',
+        ]);
+
+        $adjustments = ContractAdjustment::where('effective_date', 'like', $validated['period'] . '%')->get();
+
+        $results = [
+            'success' => [],
+            'ignored' => [],
+            'failed' => [],
+        ];
+
+        foreach ($adjustments as $adjustment) {
+            if (is_null($adjustment->value)) {
+                $results['failediled'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => 'No tiene un valor asignado (pendiente de cálculo de índice).',
+                ];
+                continue;
+            }
+
+            if ($adjustment->applied_at) {
+                $results['ignored'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => 'Ajuste ignorado: el ajuste ya estaba aplicado.',
+                ];
+                continue;
+            }
+
+            try {
+                $this->contractAdjustmentService->apply($adjustment);
+
+                $results['success'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => 'Ajuste aplicado correctamente.',
+                ];
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $message = collect($e->errors())->flatten()->first() ?? 'Error de validación al aplicar ajuste.';
+                $results['failed'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => $message,
+                ];
+            } catch (\Throwable $e) {
+                // Para errores inesperados, los capturamos como fallos genéricos
+                \Log::error('❌ Error inesperado al aplicar ajuste', [
+                    'adjustment_id' => $adjustment->id,
+                    'exception' => $e,
+                ]);
+
+                $results['failed'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => 'Error inesperado al aplicar el ajuste. Contacte al administrador.',
+                ];
+            }
+        }
+
+        return response()->json([
+            'message' => 'Proceso de aplicación de ajustes completado',
+            'results' => $results,
+            'total' => $adjustments->count(),
+        ]);
+    }
+
+    public function processBulk(Request $request)
+    {
+        $validated = $request->validate([
+            'period' => 'required|date_format:Y-m',
+        ]);
+
+        $adjustments = ContractAdjustment::where('effective_date', 'like', $validated['period'] . '%')->get();
+
+        $results = [
+            'assigned' => ['success' => [], 'ignored' => [], 'failed' => []],
+            'applied' => ['success' => [], 'ignored' => [], 'failed' => []],
+        ];
+
+        foreach ($adjustments as $adjustment) {
+            if ($adjustment->type === ContractAdjustmentType::INDEX && is_null($adjustment->value)) {
+                try {
+                    $this->contractAdjustmentService->assignIndexValue($adjustment);
+                    $results['assigned']['success'][] = [
+                        'id' => $adjustment->id,
+                        'contract_id' => $adjustment->contract_id,
+                        'message' => 'Índice asignado correctamente.',
+                    ];
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    $results['assigned']['failed'][] = [
+                        'id' => $adjustment->id,
+                        'contract_id' => $adjustment->contract_id,
+                        'message' => collect($e->errors())->flatten()->first() ?? 'Error de validación al asignar índice.',
+                    ];
+                    continue; // ❌ No intentamos aplicar si falló la asignación
+                }
+            } else {
+                $results['assigned']['ignored'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => 'Ignorado en asignación: no es de tipo índice o ya tenía valor.',
+                ];
+            }
+
+            // 🔹 2. Intentar aplicar el ajuste
+            if (!$adjustment->applied_at && $adjustment->value !== null) {
+                try {
+                    $this->contractAdjustmentService->apply($adjustment);
+                    $results['applied']['success'][] = [
+                        'id' => $adjustment->id,
+                        'contract_id' => $adjustment->contract_id,
+                        'message' => 'Ajuste aplicado correctamente.',
+                    ];
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    $results['applied']['failed'][] = [
+                        'id' => $adjustment->id,
+                        'contract_id' => $adjustment->contract_id,
+                        'message' => collect($e->errors())->flatten()->first() ?? 'Error de validación al aplicar ajuste.',
+                    ];
+                }
+            } else {
+                $results['applied']['ignored'][] = [
+                    'id' => $adjustment->id,
+                    'contract_id' => $adjustment->contract_id,
+                    'message' => 'Ignorado en aplicación: ya aplicado o sin valor asignado.',
+                ];
+            }
+        }
+
+        return response()->json([
+            'message' => 'Proceso masivo de asignación y aplicación completado.',
+            'results' => $results,
+            'total' => $adjustments->count(),
+        ]);
+    }
+
+
+
+
 }

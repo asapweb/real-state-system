@@ -20,6 +20,7 @@ class VoucherResource extends JsonResource
             'number' => $this->number,
             'issue_date' => $this->issue_date?->format('Y-m-d'),
             'period' => $this->period?->format('Y-m-d'),
+            'generated_from_collection' => $this->generated_from_collection,
             'due_date' => $this->due_date?->format('Y-m-d'),
             'client_id' => $this->client_id,
             'client_name' => $this->client_name,
@@ -73,6 +74,7 @@ class VoucherResource extends JsonResource
             'items' => VoucherItemResource::collection($this->whenLoaded('items')),
             'payments' => VoucherPaymentResource::collection($this->whenLoaded('payments')),
             'afip_operation_type' => new AfipOperationTypeResource($this->whenLoaded('afipOperationType')),
+            'applications_received' => VoucherApplicationResource::collection($this->whenLoaded('applicationsReceived')),
             'applications' => $this->whenLoaded('applications', function () {
                 return $this->applications->map(function ($application) {
                     $appliedVoucher = $application->appliedTo;

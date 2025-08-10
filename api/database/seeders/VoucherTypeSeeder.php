@@ -26,14 +26,16 @@ class VoucherTypeSeeder extends Seeder
             ['name' => 'Nota de Crédito C', 'short_name' => 'N/C', 'letter' => 'C', 'afip_id' => 13, 'credit' => true, 'affects_account' => true, 'affects_cash' => false],
 
             // Comprobantes internos
-            ['name' => 'Recibo X (Cobranza)', 'short_name' => 'RCB', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => true],
-            ['name' => 'Recibo X (Pago)', 'short_name' => 'RPG', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => true],
-            ['name' => 'Liquidación X', 'short_name' => 'LIQ', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
+            ['name' => 'Recibo X (Cobranza)', 'short_name' => 'RCB', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => true],
+            ['name' => 'Recibo X (Pago)', 'short_name' => 'RPG', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => true],
+            ['name' => 'Liquidación X', 'short_name' => 'LIQ', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => false],
+            ['name' => 'Factura X', 'short_name' => 'FAC', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
             ['name' => 'Nota de Crédito X', 'short_name' => 'N/C', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => false],
-            ['name' => 'Nota de Débito X', 'short_name' => 'N/D', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
+            ['name' => 'Nota de Débito X', 'short_name' => 'N/D', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => false],
 
-            ['name' => 'Cobranza X', 'short_name' => 'COB', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => false],
-            ['name' => 'Liquidación X', 'short_name' => 'LIQ', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
+            ['name' => 'Resumen de Alquiler', 'short_name' => 'ALQ', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
+            ['name' => 'Cobranza X', 'short_name' => 'COB', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
+            ['name' => 'Liquidación X', 'short_name' => 'LIQ', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => false],
         ];
 
         foreach ($types as $i => $data) {

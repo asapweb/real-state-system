@@ -237,8 +237,8 @@ const loadSelects = async () => {
     axios.get('/api/property-types'),
     axios.get('/api/countries'),
   ])
-  propertyTypes.value = types.data
-  countries.value = countriesRes.data
+  propertyTypes.value = types.data.data
+  countries.value = countriesRes.data.data
 
   if (!props.initialData?.id) {
     const defType = propertyTypes.value.find((i) => i.is_default)
@@ -253,7 +253,7 @@ const loadSelects = async () => {
 const loadStates = async () => {
   if (!formData.country_id) return
   const { data } = await axios.get('/api/states', { params: { country_id: formData.country_id } })
-  states.value = data
+  states.value = data.data
   if (!props.initialData?.id) {
     const def = data.find((i) => i.is_default)
     if (def) formData.state_id = def.id
@@ -264,7 +264,7 @@ const loadStates = async () => {
 const loadCities = async () => {
   if (!formData.state_id) return
   const { data } = await axios.get('/api/cities', { params: { state_id: formData.state_id } })
-  cities.value = data
+  cities.value = data.data
   if (!props.initialData?.id) {
     const def = data.find((i) => i.is_default)
     if (def) formData.city_id = def.id
@@ -275,7 +275,7 @@ const loadCities = async () => {
 const loadNeighborhoods = async () => {
   if (!formData.city_id) return
   const { data } = await axios.get('/api/neighborhoods', { params: { city_id: formData.city_id } })
-  neighborhoods.value = data
+  neighborhoods.value = data.data
   if (!props.initialData?.id) {
     const def = data.find((i) => i.is_default)
     if (def) formData.neighborhood_id = def.id

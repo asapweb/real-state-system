@@ -80,6 +80,8 @@ return new class extends Migration {
             $table->string('name');
             $table->foreignId('voucher_type_id')->constrained()->cascadeOnDelete();
             $table->foreignId('sale_point_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('collection_booklet_id')->nullable()->constrained('booklets')->nullOnDelete();
+            $table->foreignId('settlement_booklet_id')->nullable()->constrained('booklets')->nullOnDelete();
             $table->string('default_currency', 3)->default('ARS');
             $table->unsignedBigInteger('next_number')->default(1);
             $table->boolean('default')->default(false);
@@ -99,6 +101,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('number')->nullable();
             $table->date('issue_date');
             $table->date('period')->nullable();
+            $table->boolean('generated_from_collection')->default(false);
             $table->date('due_date')->nullable();
             $table->date('service_date_from')->nullable();
             $table->date('service_date_to')->nullable();
@@ -125,6 +128,7 @@ return new class extends Migration {
             $table->decimal('subtotal_exempt', 15, 2)->nullable();
             $table->decimal('subtotal_vat', 15, 2)->nullable();
             $table->decimal('subtotal_other_taxes', 15, 2)->nullable();
+            $table->decimal('subtotal', 15, 2)->nullable();
             $table->decimal('total', 15, 2)->default(0);
             $table->timestamps();
             $table->unique(['booklet_id', 'number']);
@@ -204,6 +208,7 @@ return new class extends Migration {
             $table->foreignId('voucher_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('payment_method_id')->nullable()->constrained()->nullOnDelete();
             $table->date('date');
+            $table->string('currency', 3)->default('ARS');
             $table->decimal('amount', 12, 2);
             $table->string('reference')->nullable();
             $table->json('meta')->nullable();

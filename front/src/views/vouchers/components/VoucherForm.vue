@@ -9,7 +9,6 @@
       @contract-selected="onContractSelected"
       @client-changed="onClientChanged"
     />
-
     <!-- Comprobantes asociados -->
     <div v-if="['N/D', 'N/C'].includes(form.voucher_type_short_name)">
       <v-divider class="mt-15 mb-5"></v-divider>
@@ -17,6 +16,7 @@
         v-model="associatedVoucherIds"
         :type="form.voucher_type_short_name"
         :client-id="form.client_id"
+        :letter="form.letter"
       />
     </div>
 
@@ -53,13 +53,14 @@
         :loadingPaymentMethods="loadingPaymentMethods"
         :loadingCashAccounts="loadingCashAccounts"
         @creation-row-changed="onPaymentsCreationRowChanged"
+        @items-updated="debouncedCalculateTotals"
       />
     </div>
 
     <!-- Notas y totales -->
     <div>
       <v-divider class="mt-15 mb-5"></v-divider>
-      <VoucherFormNotesTotals :form="form" :totals="totals" />
+      <VoucherFormNotesTotals :form="form" :totals="totals"/>
     </div>
 
     <v-btn
@@ -116,6 +117,8 @@ const form = reactive({
   currency: 'ARS',
   issue_date: new Date().toISOString().split('T')[0],
   due_date: new Date().toISOString().split('T')[0],
+  service_date_from: new Date().toISOString().split('T')[0],
+  service_date_to: new Date().toISOString().split('T')[0],
   client_id: null,
   client_name: '',
   client_address: '',
@@ -175,9 +178,11 @@ const debouncedCalculateTotals = debounce(async () => {
   try {
     const response = await axios.post('/api/vouchers/preview-totals', {
       voucher_type_short_name: form.voucher_type_short_name,
+      voucher_type_letter: form.letter,
       currency: form.currency,
       items: form.items,
       applications: form.applications,
+      payments: form.payments,
     })
     Object.assign(totals, response.data)
   } catch (error) {
@@ -197,6 +202,14 @@ watch(selectedBooklet, (newBooklet) => {
     form.currency = newBooklet.default_currency || 'ARS'
     form.voucher_type_short_name = newBooklet.voucher_type.short_name || ''
     form.voucher_type_id = newBooklet.voucher_type.id || null
+    form.letter = newBooklet.voucher_type.letter || null
+    form.voucher_type_letter = newBooklet.voucher_type.letter || null
+    form.items.forEach(item => {
+      if (!['A', 'B'].includes(form.letter)) {
+        item.tax_rate_id = null
+      }
+    })
+    // form.items = []
   } else {
     form.booklet_id = null
     form.voucher_type_short_name = ''
@@ -317,7 +330,7 @@ async function handleSubmit() {
 
     if (formData.items?.length > 0) {
       formData.items = formData.items.map(item => ({
-        type: 'service',
+        type:item.type,
         description: item.description,
         quantity: Number(item.quantity) || 1,
         unit_price: Number(item.unit_price) || 0,
@@ -395,6 +408,7 @@ function initializeFormWithVoucher() {
 
   if (voucher.items?.length) {
     form.items = voucher.items.map(item => ({
+      type: item.type || 'service',
       description: item.description,
       quantity: item.quantity,
       unit_price: item.unit_price,

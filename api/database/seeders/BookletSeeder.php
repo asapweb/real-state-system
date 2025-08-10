@@ -24,12 +24,14 @@ class BookletSeeder extends Seeder
             ['name' => 'Nota de Débito C', 'short_name' => 'N/D', 'letter' => 'C'],
             ['name' => 'Nota de Crédito C', 'short_name' => 'N/C', 'letter' => 'C'],
 
+            ['name' => 'Factura X', 'short_name' => 'FAC', 'letter' => 'X'],
             ['name' => 'Recibo X (Cobranza)', 'short_name' => 'RCB', 'letter' => 'X'],
             ['name' => 'Recibo X (Pago)', 'short_name' => 'RPG', 'letter' => 'X'],
             ['name' => 'Liquidación X', 'short_name' => 'LIQ', 'letter' => 'X'],
             ['name' => 'Nota de Crédito X', 'short_name' => 'N/C', 'letter' => 'X'],
             ['name' => 'Nota de Débito X', 'short_name' => 'N/D', 'letter' => 'X'],
             ['name' => 'Cobranza X', 'short_name' => 'COB', 'letter' => 'X'],
+            ['name' => 'Resumen de Alquiler', 'short_name' => 'ALQ', 'letter' => 'X'],
         ];
 
         $salePoint = SalePoint::firstOrCreate(
@@ -55,3 +57,4 @@ class BookletSeeder extends Seeder
         }
     }
 }
+['name' => 'Factura X', 'short_name' => 'FAC', 'letter' => 'X', 'sale_point_id' => $salePoint->id, 'voucher_type_id' => $voucherType->id,],

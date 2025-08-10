@@ -1,7 +1,11 @@
 <template>
   <v-card>
-    <v-card-title class="d-flex align-center">
-      <span>Información General</span>
+    <v-card-title class="d-flex ">
+      <div>Información General
+        <v-chip :color="statusColor(contract.status)" size="small" variant="flat">
+            {{ statusLabel(contract.status) }}
+          </v-chip>
+      </div>
       <v-spacer></v-spacer>
       <div class="d-flex">
         <v-btn
@@ -16,7 +20,7 @@
     </v-card-title>
     <v-card-text>
       <v-row dense>
-        <v-col cols="12" md="6">
+        <v-col cols="12" md="4">
           <strong>Propiedad:</strong><br />
           <RouterLink
             :to="`/properties/${contract.property?.id}`"
@@ -26,43 +30,36 @@
           </RouterLink>
         </v-col>
 
-        <v-col cols="6" md="3">
+        <v-col cols="6" md="2">
           <strong>Desde:</strong><br />
           {{ formatDate(contract.start_date) }}
         </v-col>
 
-        <v-col cols="6" md="3">
+        <v-col cols="6" md="2">
           <strong>Hasta:</strong><br />
           {{ formatDate(contract.end_date) }}
         </v-col>
 
-        <v-col cols="6" md="3">
+        <v-col cols="6" md="2">
           <strong>Importe mensual:</strong><br />
           {{ formatMoney(contract.monthly_amount, contract.currency) }}
         </v-col>
 
-        <v-col cols="6" md="3">
+        <v-col cols="6" md="2">
           <strong>Día de pago:</strong><br />
           {{ contract.payment_day ?? '—' }}
+        </v-col>        
+        <v-col cols="6" md="2">
+          <strong>Punitorio:</strong><br />
+          {{ contract.penalty_type ?? '—' }}
         </v-col>
-
-        <v-col cols="6" md="3">
-          <strong>Comisión:</strong><br />
-          <span v-if="contract.commission_type === 'none'">Sin comisión</span>
-          <span v-else>{{ formatMoney(contract.commission_amount, contract.currency) }}</span>
+        <v-col cols="6" md="2">
+          <strong>Punitorio valor:</strong><br />
+          {{ contract.penalty_value ?? '—' }}
         </v-col>
-
-        <v-col cols="6" md="3">
-          <strong>Estado:</strong><br />
-          <v-chip :color="statusColor(contract.status)" size="small" variant="flat">
-            {{ statusLabel(contract.status) }}
-          </v-chip>
-        </v-col>
-
-        <v-col cols="12">
-          <strong>Notas:</strong><br />
-          <span v-if="contract.notes">{{ contract.notes }}</span>
-          <span v-else class="text-grey">Sin notas</span>
+        <v-col cols="6" md="2">
+          <strong>Punitorio días de gracia:</strong><br />
+          {{ contract.penalty_grace_days ?? '—' }}
         </v-col>
       </v-row>
     </v-card-text>

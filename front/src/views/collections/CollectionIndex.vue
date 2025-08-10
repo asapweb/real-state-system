@@ -1,135 +1,119 @@
 <template>
-  <div class="mb-8">
-    <div class="d-flex justify-space-between align-center">
-      <h2>Cobranzas</h2>
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="goToManual">
-        Nueva Cobranza Manual
-      </v-btn>
+  <div>
+    <!-- Encabezado -->
+    <div class="d-flex align-center justify-space-between mb-4">
+      <div>
+        <h2 class="mb-1">Collections</h2>
+        <p class="text-medium-emphasis">
+          Manage monthly rental collections, drafts, and issued vouchers.
+        </p>
+      </div>
     </div>
-    <p class="text-medium-emphasis mt-1">
-      Permite registrar montos adeudados por parte de los clientes (principalmente inquilinos)<br />
-      Estas cobranzas pueden originarse de forma automática (Generación mensual) o manual.
-    </p>
+
+    <!-- Filtros -->
+    <v-card class="mb-4">
+      <v-card-text>
+        <v-row dense>
+          <v-col cols="12" sm="2">
+            <v-select
+              v-model="filters.period"
+              :items="availablePeriods"
+              label="Period"
+              dense
+            />
+          </v-col>
+          <v-col cols="12" sm="2">
+            <v-select
+              v-model="filters.status"
+              :items="statuses"
+              label="Status"
+              dense
+              clearable
+            />
+          </v-col>
+          <v-col cols="12" sm="3">
+            <ClientAutocomplete v-model="filters.client_id" label="Tenant" />
+          </v-col>
+          <v-col cols="12" sm="3">
+            <ContractAutocomplete v-model="filters.contract_id" label="Contract" />
+          </v-col>
+          <v-col cols="12" sm="2">
+            <v-select
+              v-model="filters.currency"
+              :items="currencies"
+              label="Currency"
+              dense
+              clearable
+            />
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
+    <!-- Tabla de cobranzas -->
+    <CollectionTable
+      ref="tableRef"
+      :filters="filters"
+      @apply-adjustment="onApplyAdjustment"
+      @open-editor="onOpenEditor"
+      @view-issued="onViewIssued"
+    />
   </div>
-
-  <v-row class="mb-6">
-    <v-col cols="12" md="2">
-      <v-text-field
-        v-model="filters.id"
-        label="N° de Comprobante"
-        type="number"
-        clearable
-        hide-details
-      />
-    </v-col>
-
-    <v-col cols="12" md="4">
-      <ClientAutocomplete v-model="filters.client_id" label="Cliente" />
-    </v-col>
-
-    <v-col cols="12" md="4">
-      <ContractAutocomplete
-        v-model="filters.contract_id"
-        :client-id="filters.client_id"
-        label="Contrato"
-      />
-    </v-col>
-
-    <v-col cols="12" md="2">
-      <v-select
-        v-model="filters.status"
-        :items="statusOptions"
-        item-title="label"
-        item-value="value"
-        label="Estado"
-        clearable
-        hide-details
-      />
-    </v-col>
-
-    <v-col cols="12" md="3">
-      <v-text-field
-        v-model="filters.issue_date_start"
-        label="Desde fecha"
-        type="date"
-        clearable
-        hide-details
-      />
-    </v-col>
-    <v-col cols="12" md="3">
-      <v-text-field
-        v-model="filters.issue_date_end"
-        label="Hasta fecha"
-        type="date"
-        clearable
-        hide-details
-      />
-    </v-col>
-    <v-col cols="12" md="3">
-      <v-text-field
-        v-model="filters.due_date_start"
-        label="Desde vencimiento"
-        type="date"
-        clearable
-        hide-details
-      />
-    </v-col>
-    <v-col cols="12" md="3">
-      <v-text-field
-        v-model="filters.due_date_end"
-        label="Hasta vencimiento"
-        type="date"
-        clearable
-        hide-details
-      />
-    </v-col>
-  </v-row>
-
-  <v-row>
-    <v-col cols="12">
-      <CollectionTable ref="tableRef" :filters="filters" @error="handleError" />
-
-    </v-col>
-  </v-row>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import CollectionTable from './components/CollectionTable.vue'
+import { ref, reactive, onMounted } from 'vue'
 import ClientAutocomplete from '@/views/components/ClientAutocomplete.vue'
 import ContractAutocomplete from '@/views/components/ContractAutocomplete.vue'
-import { useRouter } from 'vue-router'
-
-import { useSnackbar } from '@/composables/useSnackbar'
+import CollectionTable from './components/CollectionTable.vue'
 
 const filters = reactive({
-  id: null,
+  period: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+  status: null,
   client_id: null,
   contract_id: null,
-  status: null,
-  issue_date_start: null,
-  issue_date_end: null,
-  due_date_start: null,
-  due_date_end: null,
+  currency: null,
 })
 
-const statusOptions = [
-  { label: 'Pendiente', value: 'pending' },
-  { label: 'Pagada', value: 'paid' },
-  { label: 'Vencida', value: 'expired' },
-  { label: 'Anulada', value: 'canceled' },
+const statuses = [
+  { title: 'Pending', value: 'pending' },
+  { title: 'Draft', value: 'draft' },
+  { title: 'Issued', value: 'issued' },
 ]
 
+const currencies = [
+  { title: 'ARS', value: 'ARS' },
+  { title: 'USD', value: 'USD' },
+]
+
+const availablePeriods = ref([]) // cargado desde backend
 const tableRef = ref(null)
-const snackbar = useSnackbar()
 
-const router = useRouter()
-
-const goToManual = () => {
-  router.push('/collections/create')
+// Acciones de tabla
+const onApplyAdjustment = (item) => {
+  // Redirigir a módulo de ajustes filtrando por contrato
+  window.location.href = `/contracts/adjustments?contract=${item.contract_id}`
 }
 
-const handleError = (message) => {
-  snackbar.error(message)
+const onOpenEditor = (item) => {
+  // Abrir editor de cobranza para contrato/período
+  window.location.href = `/collections/${item.contract_id}/editor?period=${item.period}`
 }
+
+const onViewIssued = (item) => {
+  // Abrir vista de solo lectura para cobranzas emitidas
+  window.location.href = `/collections/${item.contract_id}/view?period=${item.period}`
+}
+
+onMounted(() => {
+  // Inicializar períodos disponibles (ej: últimos 12 meses + mes actual)
+  const today = new Date()
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+    availablePeriods.value.push({
+      title: d.toLocaleString('default', { month: 'long', year: 'numeric' }),
+      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+    })
+  }
+})
 </script>

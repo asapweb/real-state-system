@@ -18,7 +18,15 @@
         </template>
 
         <template #item.voucher_formatted_number="{ item }">
-          {{ item.voucher_formatted_number || '-' }}
+          <RouterLink
+            v-if="item?.voucher?.id"
+            :to="`/vouchers/${item.voucher.id}`"
+            class="text-decoration-none text-primary"
+            style="color: inherit;"
+          >
+            {{ item.voucher.full_number }}
+          </RouterLink>
+          <span v-else>{{ item.description }}</span>
         </template>
 
         <template #item.description="{ item }">
@@ -60,6 +68,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import axios from '@/services/axios'
 import { formatMoney } from '@/utils/money'
 
@@ -70,8 +79,7 @@ const props = defineProps({
 
 const headers = [
   { title: 'Fecha', key: 'date', width: '120px' },
-  { title: 'Comprobante', key: 'voucher_formatted_number', width: '150px' },
-  { title: 'Descripción', key: 'description' },
+  { title: 'Comprobante', key: 'voucher_formatted_number', width: '250px' },
   { title: 'Debe', key: 'debit', align: 'end', width: '120px' },
   { title: 'Haber', key: 'credit', align: 'end', width: '120px' },
   { title: 'Saldo', key: 'running_balance', align: 'end', width: '120px' },

@@ -50,6 +50,7 @@ class AttachmentController extends Controller
             'client' => \App\Models\Client::class,
             'property' => \App\Models\Property::class,
             'contract' => \App\Models\Contract::class,
+            'contract-expense' => \App\Models\ContractExpense::class,
             'rental_offer' => \App\Models\RentalOffer::class,
             'rental-application' => \App\Models\RentalApplication::class,
             default => abort(404, 'Entidad no válida'),

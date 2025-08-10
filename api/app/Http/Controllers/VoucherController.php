@@ -2,21 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Voucher;
-use App\Models\Booklet;
-use App\Models\VoucherPayment;
-use App\Http\Resources\VoucherResource;
 use App\Http\Requests\StoreVoucherRequest;
 use App\Http\Requests\UpdateVoucherRequest;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
+use App\Http\Resources\VoucherResource;
+use App\Models\Voucher;
+use App\Models\Contract;
+use App\Models\Client;
+use App\Models\Booklet;
 use App\Models\VoucherItem;
-use App\Services\VoucherGenerationService;
+use App\Models\VoucherPayment;
+use App\Models\VoucherType;
+use App\Models\VoucherAssociation;
+use App\Models\VoucherApplication;
+use App\Models\AccountMovement;
+use App\Models\CashMovement;
 use App\Services\VoucherCalculationService;
 use App\Services\VoucherService;
-use Illuminate\Validation\ValidationException;
+use App\Services\VoucherGenerationService;
+use App\Services\VoucherPreviewService;
 use App\Enums\ContractClientRole;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 
 class VoucherController extends Controller
 {
@@ -24,6 +34,252 @@ class VoucherController extends Controller
         protected VoucherCalculationService $calculationService,
         protected VoucherService $voucherService,
     ) {}
+
+    public function pendingCharges(Request $request, Contract $contract)
+    {
+        $period = Carbon::createFromFormat('Y-m', $request->get('period'))->startOfMonth();
+        $currency = $contract->currency;
+        $result = [];
+
+        $voucherTypeAlq = VoucherType::where('short_name', 'ALQ')->first();
+        $voucherTypeFac = VoucherType::where('short_name', 'FAC')->where('letter', 'X')->first();
+
+        // 1. ALQ no generado
+        $alq = $contract->vouchers()
+            ->where('voucher_type_id', $voucherTypeAlq->id)
+            ->where('period', $period)
+            ->where('currency', $currency)
+            ->where('status', '!=', 'cancelled')
+            ->first();
+
+            $alq =null;
+        if (! $alq) {
+            $period_amount = $contract->calculateRentForPeriod($period);
+            $result[] = [
+                'id' => 'rent-' . $period->format('Y-m'),
+                'type' => 'rent',
+                'description' => 'Alquiler ' . $period->translatedFormat('F Y'),
+                'period' => $period->format('Y-m'),
+                'suggested_amount' => $period_amount['amount'],
+                'final_amount' => $period_amount['amount'],
+                'currency' => $currency,
+                'locked' => false,
+                'voucher_full_number' => null,
+                'voucher_status' => null,
+            ];
+        }
+
+        // 2. Expenses sin voucher
+        $expenses = $contract->expenses()
+            ->where('included_in_collection', true)
+            ->whereNull('voucher_id')
+            ->get();
+
+        foreach ($expenses as $expense) {
+            $result[] = [
+                'id' => 'expense-' . $expense->id,
+                'type' => 'expense',
+                'description' => $expense->description,
+                'period' => optional($expense->period)->format('Y-m') ?? '',
+                'suggested_amount' => $expense->amount,
+                'final_amount' => $expense->amount,
+                'currency' => $expense->currency,
+                'locked' => false,
+                'voucher_full_number' => null,
+                'voucher_status' => null,
+            ];
+        }
+
+        // 3. Punitorio si ALQ emitido y vencido
+        if ($alq && $alq->status === 'issued' && now()->greaterThan(Carbon::parse($alq->due_date))) {
+            $daysLate = now()->diffInDays(Carbon::parse($alq->due_date));
+            $amount = 1;//$contract->calculatePenalty($alq, $daysLate);
+
+            $result[] = [
+                'id' => 'penalty-' . $alq->id,
+                'type' => 'penalty',
+                'description' => 'Punitorio mora ' . $period->translatedFormat('F Y'),
+                'period' => $period->format('Y-m'),
+                'suggested_amount' => $amount,
+                'final_amount' => $amount,
+                'currency' => $alq->currency,
+                'locked' => false,
+                'voucher_full_number' => null,
+                'voucher_status' => null,
+            ];
+        }
+
+        // 3b. Vouchers en estado draft (ALQ o FAC X)
+        $vouchersDraft = $contract->vouchers()
+        ->whereIn('voucher_type_id', [$voucherTypeAlq->id, $voucherTypeFac->id])
+        ->where('period', $period)
+        ->where('currency', $currency)
+        ->where('status', 'draft')
+        ->get();
+
+        foreach ($vouchersDraft as $voucher) {
+        foreach ($voucher->items as $item) {
+            $result[] = [
+                'id' => 'voucheritem-' . $item->id,
+                'type' => $item->type,
+                'description' => $item->description,
+                'period' => $voucher->period,
+                'suggested_amount' => $item->subtotal_with_vat ?? $item->unit_price,
+                'final_amount' => $item->subtotal_with_vat ?? $item->unit_price,
+                'currency' => $voucher->currency,
+                'locked' => false,
+                'voucher_id' => $voucher->id,
+                'voucher_full_number' => $voucher->full_number,
+                'voucher_status' => $voucher->status,
+            ];
+        }
+        }
+
+        // 4. Vouchers emitidos sin cobrar (ALQ / FAC X)
+        $vouchers = $contract->vouchers()
+            ->whereIn('voucher_type_id', [$voucherTypeAlq->id, $voucherTypeFac->id])
+            ->where('period', $period)
+            ->where('currency', $currency)
+            ->where('status', 'issued')
+            ->get();
+
+        foreach ($vouchers as $voucher) {
+            $applied = $voucher->applicationsReceived()->sum('amount');
+            $pending = $voucher->total - $applied;
+
+            if ($pending > 0) {
+                $result[] = [
+                    'id' => 'voucher-' . $voucher->id,
+                    'type' => strtolower($voucher->voucher_type_short_name),
+                    'description' => $voucher->items->pluck('description')->implode(', '),
+                    'period' => $voucher->period,
+                    'suggested_amount' => $pending,
+                    'final_amount' => $pending,
+                    'currency' => $voucher->currency,
+                    'locked' => true,
+                    'voucher_id' => $voucher->id,
+                    'voucher_full_number' => $voucher->full_number,
+                    'voucher_status' => $voucher->status,
+                    'applied' => $applied,
+                    'pending' => $pending,
+                ];
+            }
+        }
+
+        return response()->json($result);
+    }
+
+
+    public function generateVouchers(Request $request, Contract $contract)
+    {
+        $validated = $request->validate([
+            'period' => ['required', 'date_format:Y-m'],
+            'items' => ['required', 'array'],
+            'items.*.type' => ['required', 'in:rent,expense,penalty'],
+            'items.*.id' => ['required'],
+            'items.*.amount' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $period = Carbon::createFromFormat('Y-m', $validated['period'])->startOfMonth();
+        $items = collect($validated['items']);
+        $currency = $contract->currency;
+
+        $voucherTypeALQ = VoucherType::where('short_name', 'ALQ')->firstOrFail();
+        $voucherTypeFAC = VoucherType::where('short_name', 'FAC')->where('letter', 'X')->firstOrFail();
+
+        $alq = $contract->vouchers()
+            ->where('voucher_type_id', $voucherTypeALQ->id)
+            ->where('period', $period)
+            ->where('currency', $currency)
+            ->where('status', '!=', 'cancelled')
+            ->first();
+
+        $alqDraft = $alq && $alq->status === 'draft';
+        $alqIssued = $alq && $alq->status === 'issued';
+
+        $bookletALQ = Booklet::where('voucher_type_id', $voucherTypeALQ->id)->firstOrFail();
+        $bookletFAC = Booklet::where('voucher_type_id', $voucherTypeFAC->id)->firstOrFail();
+
+        $voucherAlq = $alqDraft ? $alq : null;
+        $voucherFac = null;
+
+        DB::beginTransaction();
+
+        // Crear o agregar al ALQ
+        if (! $alq && $items->where('type', '!=', 'penalty')->isNotEmpty()) {
+            $voucherAlq = new Voucher([
+                'booklet_id' => $bookletALQ->id,
+                'voucher_type_id' => $voucherTypeALQ->id,
+                'voucher_type_short_name' => 'ALQ',
+                'voucher_type_letter' => 'X',
+                'sale_point_number' => $bookletALQ->salePoint->number,
+                'number' => null,
+                'status' => 'draft',
+                'period' => $period->format('Y-m'),
+                'currency' => $currency,
+                'issue_date' => now(),
+                'due_date' => $contract->getDueDateForPeriod($period),
+                'contract_id' => $contract->id,
+                'client_id' => $contract->mainTenant()?->id,
+            ]);
+            $voucherAlq->save();
+        }
+
+        // Agregar ítems al ALQ
+        if ($voucherAlq) {
+            foreach ($items->whereIn('type', ['rent', 'expense']) as $item) {
+                $voucherAlq->items()->create([
+                    'type' => $item['type'],
+                    'description' => $item['type'] === 'expense-rent'
+                        ? 'Alquiler ' . $period->translatedFormat('F Y')
+                        : 'Gasto asociado',
+                    'quantity' => 1,
+                    'unit_price' => $item['amount'],
+                    'meta' => ['source' => 'manual'],
+                ]);
+            }
+        }
+
+        // Crear FAC X si ALQ ya emitido y hay conceptos adicionales
+        if ($alqIssued && $items->whereIn('type', ['expense', 'penalty'])->isNotEmpty()) {
+            $voucherFac = new Voucher([
+                'booklet_id' => $bookletFAC->id,
+                'voucher_type_id' => $voucherTypeFAC->id,
+                'voucher_type_short_name' => 'FAC',
+                'voucher_type_letter' => 'X',
+                'sale_point_number' => $bookletFAC->salePoint->number,
+                'number' => null,
+                'status' => 'draft',
+                'period' => $period->format('Y-m'),
+                'currency' => $currency,
+                'issue_date' => now(),
+                'due_date' => now()->addDays(5),
+                'contract_id' => $contract->id,
+                'client_id' => $contract->mainTenant()?->id,
+            ]);
+            $voucherFac->save();
+
+            foreach ($items->whereIn('type', ['expense', 'penalty']) as $item) {
+                $voucherFac->items()->create([
+                    'type' => $item['type'],
+                    'description' => $item['type'] === 'penalty'
+                        ? 'Punitorio por mora ' . $period->translatedFormat('F Y')
+                        : 'Gasto asociado',
+                    'quantity' => 1,
+                    'unit_price' => $item['amount'],
+                    'meta' => ['source' => 'manual'],
+                ]);
+            }
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'alq_id' => $voucherAlq?->id,
+            'fac_x_id' => $voucherFac?->id,
+        ]);
+    }
+
 
     public function applicable(Request $request)
     {
@@ -175,105 +431,7 @@ class VoucherController extends Controller
      */
     public function store(StoreVoucherRequest $request): JsonResponse
     {
-        $voucher = DB::transaction(function () use ($request) {
-        $booklet = Booklet::findOrFail($request->booklet_id);
-
-
-        // Obtener cliente (con validación especial para COB)
-        if ($request->voucher_type_short_name === 'COB') {
-            $contract = \App\Models\Contract::with('clients')->findOrFail($request->contract_id);
-
-            $isTenant = $contract->clients()
-                ->where('role', ContractClientRole::TENANT)
-                ->where('contract_clients.client_id', $request->client_id)
-                ->exists();
-
-            if (! $isTenant) {
-                throw ValidationException::withMessages([
-                    'client_id' => 'El cliente seleccionado no es inquilino del contrato indicado.',
-                ]);
-            }
-        }
-            $client = \App\Models\Client::with('documentType', 'taxCondition')->findOrFail($request->client_id);
-
-            $data = $request->validated();
-            $data['booklet_id'] = $booklet->id;
-            $data['voucher_type_id'] = $booklet->voucher_type_id;
-            $data['voucher_type_short_name'] = $booklet->voucherType->short_name;
-            $data['voucher_type_letter'] = $booklet->voucherType->letter;
-            $data['sale_point_number'] = $booklet->salePoint->number;
-            $data['number'] = null; // Se asignará al emitir
-            $data['status'] = 'draft';
-
-            $data['service_date_from'] = $request->input('service_date_from');
-            $data['service_date_to'] = $request->input('service_date_to');
-            $data['afip_operation_type_id'] = $request->input('afip_operation_type_id');
-
-            $voucher = new Voucher($data);
-
-            // Set items (antes de calcular)
-            if ($request->has('items')) {
-                $items = [];
-                foreach ($request->items as $itemData) {
-                    $items[] = new VoucherItem($itemData);
-                }
-                $voucher->setRelation('items', collect($items));
-            }
-
-            // Set payments (antes de calcular si el tipo lo requiere)
-            if ($request->has('payments')) {
-                $payments = [];
-                foreach ($request->payments as $paymentData) {
-                    $payments[] = new VoucherPayment($paymentData);
-                }
-                $voucher->setRelation('payments', collect($payments));
-            }
-
-            // Cálculo de totales según tipo
-            $this->calculationService->calculateVoucher($voucher);
-
-            $voucher->fill([
-                'total' => $voucher->total,
-                'subtotal_exempt' => $voucher->subtotal_exempt,
-                'subtotal_untaxed' => $voucher->subtotal_untaxed,
-                'subtotal_taxed' => $voucher->subtotal_taxed,
-                'subtotal_vat' => $voucher->subtotal_vat,
-                'subtotal_other_taxes' => $voucher->subtotal_other_taxes,
-            ]);
-
-            $voucher->save();
-
-            // Guardar items
-            if ($voucher->relationLoaded('items')) {
-                $voucher->items()->saveMany($voucher->items);
-            }
-
-            // Guardar payments
-            if ($voucher->relationLoaded('payments')) {
-                $voucher->payments()->saveMany($voucher->payments);
-            }
-
-            // Guardar applications (para RCB/RPG)
-            if ($request->has('applications')) {
-                foreach ($request->applications as $applicationData) {
-                    $voucher->applications()->create([
-                        'applied_to_id' => $applicationData['applied_to_id'],
-                        'amount' => $applicationData['amount'],
-                    ]);
-                }
-            }
-
-            // Guardar voucher_associations (para NC/ND)
-            if ($request->has('associated_voucher_ids')) {
-                foreach ($request->associated_voucher_ids as $assocData) {
-                    $voucher->voucherAssociations()->create([
-                        'associated_voucher_id' => $assocData
-                    ]);
-                }
-            }
-
-            return $voucher;
-        });
+        $voucher = $this->voucherService->createFromArray($request->validated());
 
         $voucher->load([
             'client',
@@ -292,163 +450,13 @@ class VoucherController extends Controller
 
     public function update(UpdateVoucherRequest $request, Voucher $voucher): JsonResponse
     {
-        // 1. Solo permitir edición si está en estado draft
-        if ($voucher->status !== 'draft') {
-            return response()->json([
-                'message' => 'Solo se pueden editar comprobantes en estado borrador.'
-            ], 422);
+        if ($voucher->generated_from_collection) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'voucher' => 'Este voucher fue generado desde el Editor de Cobranzas y solo puede editarse desde allí.',
+            ]);
         }
 
-        $voucher = DB::transaction(function () use ($request, $voucher) {
-            // 2. Campos que sí pueden actualizarse (ignoramos los inmutables)
-            $updatableFields = collect($request->validated())->only([
-                'issue_date',
-                'due_date',
-                'period',
-                'contract_id',
-                'client_id',
-                'client_name',
-                'client_address',
-                'client_document_type_name',
-                'client_document_number',
-                'client_tax_condition_name',
-                'client_tax_id_number',
-                'currency',
-                'notes',
-                'meta',
-                'afip_operation_type_id',
-                'service_date_from',
-                'service_date_to',
-            ])->toArray();
-
-            $voucher->fill($updatableFields);
-            $voucher->save();
-
-            // 3. Actualizar ítems si se envían
-            if ($request->has('items')) {
-                $voucher->items()->delete();
-                $items = collect($request->items)->map(function($item) {
-                    // Agregar type por defecto si no está presente
-                    if (!isset($item['type'])) {
-                        $item['type'] = 'service';
-                    }
-
-                    // Calcular campos requeridos según el tipo de voucher
-                    if (isset($item['amount'])) {
-                        // Para LIQ: usar amount directamente
-                        $subtotal = $item['amount'];
-                        $vatAmount = 0;
-                        $subtotalWithVat = $subtotal;
-
-                        // Agregar campos por defecto para LIQ
-                        $item['quantity'] = 1;
-                        $item['unit_price'] = $subtotal;
-                    } else {
-                        // Para vouchers fiscales: calcular desde quantity y unit_price
-                        $quantity = $item['quantity'] ?? 1;
-                        $unitPrice = $item['unit_price'] ?? 0;
-                        $subtotal = $quantity * $unitPrice;
-
-                        // Calcular VAT si hay tax_rate_id
-                        $vatAmount = 0;
-                        if (isset($item['tax_rate_id']) && $item['tax_rate_id']) {
-                            $taxRate = \App\Models\TaxRate::find($item['tax_rate_id']);
-                            if ($taxRate) {
-                                $vatAmount = $subtotal * ($taxRate->rate / 100);
-                            }
-                        }
-
-                        $subtotalWithVat = $subtotal + $vatAmount;
-                    }
-
-                    // Agregar campos calculados
-                    $item['subtotal'] = $subtotal;
-                    $item['vat_amount'] = $vatAmount;
-                    $item['subtotal_with_vat'] = $subtotalWithVat;
-
-                    return new VoucherItem($item);
-                });
-                $voucher->items()->saveMany($items);
-                $voucher->load('items');
-            }
-
-            // 4. Actualizar pagos si se envían
-            if ($request->has('payments')) {
-                $voucher->payments()->delete();
-                $payments = collect($request->payments)->map(function($payment) {
-                    // Agregar payment_method_id por defecto si no está presente
-                    if (!isset($payment['payment_method_id'])) {
-                        // Buscar un payment method por defecto o crear uno
-                        $defaultPaymentMethod = \App\Models\PaymentMethod::where('is_default', true)->first();
-                        if (!$defaultPaymentMethod) {
-                            // Crear un payment method por defecto
-                            $cashAccount = \App\Models\CashAccount::first();
-                            if (!$cashAccount) {
-                                $cashAccount = \App\Models\CashAccount::create([
-                                    'name' => 'Caja Principal',
-                                    'type' => 'cash',
-                                    'currency' => 'ARS',
-                                ]);
-                            }
-
-                            $defaultPaymentMethod = \App\Models\PaymentMethod::create([
-                                'name' => 'Efectivo',
-                                'is_default' => true,
-                                'default_cash_account_id' => $cashAccount->id,
-                            ]);
-                        }
-                        $payment['payment_method_id'] = $defaultPaymentMethod->id;
-                    }
-                    return new VoucherPayment($payment);
-                });
-                $voucher->payments()->saveMany($payments);
-                $voucher->load('payments');
-            }
-
-            // 5. Actualizar asociaciones si se envían
-            if ($request->has('associated_voucher_ids')) {
-                $voucher->associations()->delete();
-                $associations = collect($request->associated_voucher_ids)->map(function($associatedVoucherId) use ($voucher) {
-                    return new \App\Models\VoucherAssociation([
-                        'voucher_id' => $voucher->id,
-                        'associated_voucher_id' => $associatedVoucherId,
-                    ]);
-                });
-                $voucher->associations()->saveMany($associations);
-                $voucher->load('associations');
-            }
-
-            // 6. Actualizar aplicaciones si se envían
-            if ($request->has('applications')) {
-                $voucher->applications()->delete();
-                $applications = collect($request->applications)->map(function($application) use ($voucher) {
-                    return new \App\Models\VoucherApplication([
-                        'voucher_id' => $voucher->id,
-                        'applied_to_id' => $application['applied_to_id'],
-                        'amount' => $application['amount'],
-                    ]);
-                });
-                $voucher->applications()->saveMany($applications);
-                $voucher->load('applications');
-            }
-
-            // 7. Recalcular totales
-            $this->calculationService->calculateVoucher($voucher);
-
-            // 6. Aplicar los valores recalculados
-            $voucher->fill([
-                'total' => $voucher->total,
-                'subtotal_exempt' => $voucher->subtotal_exempt,
-                'subtotal_untaxed' => $voucher->subtotal_untaxed,
-                'subtotal_taxed' => $voucher->subtotal_taxed,
-                'subtotal_vat' => $voucher->subtotal_vat,
-                'subtotal_other_taxes' => $voucher->subtotal_other_taxes,
-            ]);
-
-            $voucher->save();
-
-            return $voucher;
-        });
+        $voucher = $this->voucherService->updateFromArray($voucher, $request->validated());
 
         $voucher->load([
             'client',
@@ -461,9 +469,10 @@ class VoucherController extends Controller
             'applications.appliedTo',
             'afipOperationType',
         ]);
-
+        // return response()->json('in debug', 500);
         return (new VoucherResource($voucher))->response();
     }
+
 
 
     /**
@@ -474,6 +483,20 @@ class VoucherController extends Controller
         $voucher->delete();
         return response()->json(['message' => 'Voucher eliminado correctamente']);
     }
+
+    public function generateRentSummary(Request $request, Contract $contract)
+    {
+
+        $validated = $request->validate([
+            'period' => ['required', 'date_format:Y-m'],
+        ]);
+
+        $voucher = app(VoucherGenerationService::class)
+            ->generateRentSummary($contract, $validated['period']);
+
+        return response()->json($voucher->load('items'), 201);
+    }
+
 
     /**
      * Mark voucher as paid
@@ -513,6 +536,30 @@ class VoucherController extends Controller
         return (new VoucherResource($voucher))->response();
     }
 
+    public function collectionsIndex(Contract $contract, Request $request): JsonResponse
+    {
+        $request->validate([
+            'period' => ['required', 'date_format:Y-m'],
+            'per_page' => ['integer', 'min:1'],
+            'page' => ['integer', 'min:1'],
+            'sort_by' => ['nullable', 'string'],
+            'sort_direction' => ['nullable', 'in:asc,desc'],
+        ]);
+
+        $period = $request->input('period');
+        $perPage = $request->input('per_page', 10);
+        $sortBy = $request->input('sort_by', 'issue_date');
+        $sortDir = $request->input('sort_direction', 'desc');
+
+        $vouchers = $contract->vouchers()
+            // ->where('period', $period)
+            ->whereHas('voucherType', fn ($q) => $q->where('short_name', 'COB'))
+            ->orderBy($sortBy, $sortDir)
+            ->paginate($perPage);
+
+        return response()->json($vouchers);
+    }
+
     /**
      * Cancel voucher
      */
@@ -532,26 +579,58 @@ class VoucherController extends Controller
         return (new VoucherResource($voucher))->response();
     }
 
+    // GET /collections/{voucher}/print
+    // Devuelve PDF o HTML imprimible del comprobante de cobranza
+    public function print(Voucher $voucher)
+    {
+        // TODO: Fix PDF import
+        // return \Barryvdh\DomPDF\Facade\Pdf::loadView('vouchers.print', compact('voucher'))->stream();
+        return response()->json(['message' => 'PDF generation temporarily disabled']);
+    }
+
+    // GET /contracts/{contract}/collections/preview?period=2025-08
+    // Retorna JSON con los ítems a cobrar ese mes (alquiler, gastos, punitorios)
+    public function preview(Request $request, Contract $contract)
+    {
+        $period = $request->input('period'); // formato YYYY-MM
+        $items = app(VoucherPreviewService::class)->getPreviewFor($contract, $period);
+        return response()->json($items);
+    }
+
+    // POST /contracts/{contract}/collections/generate
+    // Genera el voucher tipo COB con todos los ítems del período
+    public function generate(Request $request, Contract $contract)
+    {
+        $period = $request->input('period');
+        $voucher = app(VoucherGenerationService::class)->generateForMonth($contract, $period);
+        return response()->json($voucher, 201);
+    }
+
+
+
         /**
      * Generate collections for a period
      */
     public function generateCollections(Request $request): JsonResponse
     {
         $request->validate([
-            'period' => 'required|date_format:Y-m'
+            'period' => 'required|date_format:Y-m',
+            'contract_id' => 'required|exists:contracts,id'
         ]);
 
+        $contract = Contract::findOrFail($request->contract_id);
         $service = new VoucherGenerationService();
-        $period = \Carbon\Carbon::createFromFormat('Y-m', $request->period);
+        $period = $request->period;
 
-        $generated = $service->generateForMonth($period);
+        $generated = $service->generateForMonth($contract, $period);
 
         return response()->json([
             'message' => 'Vouchers de cobranza generados correctamente',
-            'generated_count' => $generated->count(),
+            'generated_count' => count($generated),
             'generated' => VoucherResource::collection($generated)
         ]);
     }
+
 
     /**
      * Preview collections for a period
@@ -562,13 +641,9 @@ class VoucherController extends Controller
             'period' => 'required|date_format:Y-m'
         ]);
 
-        $service = new VoucherGenerationService();
-        $period = \Carbon\Carbon::createFromFormat('Y-m', $request->period);
-
-        $preview = $service->previewForMonth($period);
-
+        // TODO: Implement previewForMonth method in VoucherGenerationService
         return response()->json([
-            'preview' => $preview
+            'preview' => []
         ]);
     }
 

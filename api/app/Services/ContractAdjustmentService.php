@@ -8,14 +8,20 @@ use App\Enums\ContractAdjustmentType;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use App\Enums\CalculationMode;
-
+use Illuminate\Validation\ValidationException;
 class ContractAdjustmentService
 {
+    private const MAX_INDEX_AGE_DAYS = 15;
+    private int $maxIndexAgeDays; // tolerancia de días para índices diarios
+
+    public function __construct()
+    {
+        // Lee desde .env y usa 15 como valor por defecto
+        $this->maxIndexAgeDays = (int) config('contracts.index_max_age_days', env('INDEX_MAX_AGE_DAYS', 0));
+    }
+
     /**
      * Aplica el ajuste al contrato y actualiza los valores correspondientes.
-     *
-     * @param ContractAdjustment $adjustment
-     * @throws InvalidArgumentException
      */
     public function apply(ContractAdjustment $adjustment): void
     {
@@ -27,147 +33,112 @@ class ContractAdjustmentService
             'contract_id' => $adjustment->contract_id,
         ]);
 
+        // 🔒 Validaciones previas
         if ($adjustment->applied_at) {
-            \Log::warning('⚠️ Ajuste ya fue aplicado', [
-                'applied_at' => $adjustment->applied_at,
+            \Log::warning('⚠️ Ajuste ya aplicado', ['applied_at' => $adjustment->applied_at]);
+            throw ValidationException::withMessages([
+                'adjustment' => 'El ajuste ya fue aplicado.',
             ]);
-            throw new InvalidArgumentException('El ajuste ya fue aplicado.');
         }
+
         if (is_null($adjustment->value)) {
-            \Log::error('❌ Ajuste no tiene valor para aplicar');
-            throw new InvalidArgumentException('El campo value debe estar presente para aplicar el ajuste.');
+            \Log::error('❌ Ajuste sin valor asignado');
+            throw ValidationException::withMessages([
+                'adjustment' => 'El ajuste no tiene un valor asignado. Debe asignarse antes de aplicar.',
+            ]);
         }
 
-        // Validar si ya se emitió una cobranza para este período
         $period = normalizePeriodOrFail($adjustment->effective_date);
+        \Log::info('📅 Período normalizado para validación de cobranzas', ['period' => $period]);
 
+        // Validar que no haya cobranzas emitidas para ese período
         $existingVoucher = \App\Models\Voucher::where('status', 'issued')
             ->where('contract_id', $adjustment->contract_id)
             ->where('period', $period)
-            ->whereHas('booklet.voucherType', function ($query) {
-                $query->where('short_name', 'COB');
-            })
+            ->whereHas('booklet.voucherType', fn($q) => $q->where('short_name', 'COB'))
             ->first();
 
         if ($existingVoucher) {
-            \Log::warning('⚠️ Ya existe cobranza emitida para el período', [
-                'period' => $period,
-                'voucher_id' => $existingVoucher->id,
+            \Log::warning('⚠️ Cobranza existente detectada', ['voucher_id' => $existingVoucher->id]);
+            throw ValidationException::withMessages([
+                'adjustment' => 'Ya se emitió una cobranza para este período. No se puede aplicar el ajuste.',
             ]);
-            throw new InvalidArgumentException('Ya se emitió una cobranza para este período. No se puede aplicar el ajuste.');
         }
 
-        // Validar que no exista otro ajuste aplicado para el mismo período
-        $period = $adjustment->effective_date->format('Y-m');
-
+        // Validar que no haya otro ajuste aplicado en el mismo período
+        $periodStr = $adjustment->effective_date->format('Y-m');
         $existingAdjustment = ContractAdjustment::where('contract_id', $adjustment->contract_id)
             ->whereNotNull('applied_at')
             ->where('id', '!=', $adjustment->id)
-            ->whereRaw("DATE_FORMAT(effective_date, '%Y-%m') = ?", [$period])
+            ->whereRaw("DATE_FORMAT(effective_date, '%Y-%m') = ?", [$periodStr])
             ->first();
 
         if ($existingAdjustment) {
-            \Log::warning('⚠️ Ya existe ajuste aplicado para el período', [
-                'period' => $period,
+            \Log::warning('⚠️ Ajuste duplicado en período', [
                 'existing_adjustment_id' => $existingAdjustment->id,
+                'period' => $periodStr,
             ]);
-            throw new InvalidArgumentException('Ya existe un ajuste aplicado para este período.');
+            throw ValidationException::withMessages([
+                'adjustment' => 'Ya existe un ajuste aplicado para este período.',
+            ]);
         }
 
         $contract = $adjustment->contract;
         if (!$contract) {
-            \Log::error('❌ No se encontró el contrato asociado');
-            throw new InvalidArgumentException('No se encontró el contrato asociado al ajuste.');
+            \Log::error('❌ Contrato no encontrado');
+            throw ValidationException::withMessages([
+                'adjustment' => 'No se encontró el contrato asociado al ajuste.',
+            ]);
         }
 
-        \Log::info('📋 Información del contrato para aplicación', [
+        \Log::info('📋 Datos del contrato', [
             'contract_id' => $contract->id,
             'monthly_amount' => $contract->monthly_amount,
-            'adjustment_type' => $adjustment->type,
-            'adjustment_value' => $adjustment->value,
         ]);
 
-        $appliedAmount = null;
-        switch ($adjustment->type) {
-            case ContractAdjustmentType::INDEX:
-                // Para ajustes de índice, verificar el modo de cálculo
-                if ($adjustment->indexType && $adjustment->indexType->calculation_mode === CalculationMode::MULTIPLICATIVE_CHAIN) {
-                    \Log::info('🔗 Aplicando ajuste de índice en modo MULTIPLICATIVE_CHAIN (Casa Propia)', [
-                        'monthly_amount' => $contract->monthly_amount,
-                        'adjustment_value' => $adjustment->value,
-                        'formula' => "monthly_amount * adjustment_value",
-                        'note' => 'El valor es un coeficiente multiplicativo directo (ej: 1.15752)',
-                    ]);
-                    // Para modo multiplicative_chain: aplicar directamente el coeficiente
-                    $appliedAmount = round($contract->monthly_amount * $adjustment->value, 2);
-                } elseif ($adjustment->indexType && $adjustment->indexType->calculation_mode === CalculationMode::RATIO) {
-                    \Log::info('🔄 Aplicando ajuste de índice en modo RATIO (estándar argentino)', [
-                        'monthly_amount' => $contract->monthly_amount,
-                        'adjustment_value' => $adjustment->value,
-                        'formula' => "monthly_amount * (1 + adjustment_value / 100)",
-                        'note' => 'El valor ya es un porcentaje calculado de la variación del índice',
-                    ]);
-                    // Para modo ratio: el valor ya es un porcentaje calculado, aplicar como percentage
-                    $appliedAmount = round($contract->monthly_amount * (1 + $adjustment->value / 100), 2);
-                } else {
-                    \Log::info('📈 Aplicando ajuste de índice en modo PERCENTAGE', [
-                        'monthly_amount' => $contract->monthly_amount,
-                        'adjustment_value' => $adjustment->value,
-                        'formula' => "monthly_amount * (1 + adjustment_value / 100)",
-                    ]);
-                    // Para modo percentage: aplicar monto * (1 + value / 100)
-                    $appliedAmount = round($contract->monthly_amount * (1 + $adjustment->value / 100), 2);
-                }
-                break;
-            case ContractAdjustmentType::PERCENTAGE:
-                \Log::info('📊 Aplicando ajuste porcentual', [
-                    'monthly_amount' => $contract->monthly_amount,
-                    'percentage' => $adjustment->value,
-                    'formula' => "monthly_amount * (1 + percentage / 100)",
-                ]);
-                $appliedAmount = round($contract->monthly_amount * (1 + $adjustment->value / 100), 2);
-                break;
-            case ContractAdjustmentType::FIXED:
-            case ContractAdjustmentType::NEGOTIATED:
-                \Log::info('💰 Aplicando ajuste fijo/negociado', [
-                    'monthly_amount' => $contract->monthly_amount,
-                    'fixed_amount' => $adjustment->value,
-                    'formula' => "fixed_amount (reemplaza monthly_amount)",
-                ]);
-                $appliedAmount = round($adjustment->value, 2);
-                break;
-            default:
-                \Log::error('❌ Tipo de ajuste no soportado', [
-                    'type' => $adjustment->type,
-                ]);
-                throw new InvalidArgumentException('Tipo de ajuste no soportado: ' . $adjustment->type);
-        }
+        // 🔥 Calcular monto ajustado
+        $appliedAmount = match ($adjustment->type) {
+            ContractAdjustmentType::INDEX => $this->applyIndexAdjustment($contract, $adjustment),
+            ContractAdjustmentType::PERCENTAGE => round($contract->monthly_amount * (1 + $adjustment->value / 100), 2),
+            ContractAdjustmentType::FIXED, ContractAdjustmentType::NEGOTIATED => round($adjustment->value, 2),
+            default => throw ValidationException::withMessages([
+                'adjustment' => 'Tipo de ajuste no soportado: ' . $adjustment->type,
+            ]),
+        };
 
-        \Log::info('✅ Cálculo completado', [
+        \Log::info('✅ Ajuste calculado', [
             'original_amount' => $contract->monthly_amount,
             'applied_amount' => $appliedAmount,
             'difference' => $appliedAmount - $contract->monthly_amount,
         ]);
 
+        // 💾 Aplicar
         $adjustment->applied_amount = $appliedAmount;
         $adjustment->markAsApplied();
 
-        $contract->save();
-
-        \Log::info('💾 Ajuste aplicado exitosamente', [
+        \Log::info('💾 Ajuste aplicado correctamente', [
             'adjustment_id' => $adjustment->id,
             'applied_at' => $adjustment->applied_at,
             'final_amount' => $appliedAmount,
         ]);
     }
 
-    /**
-     * Asigna el valor del índice mensual al ajuste si corresponde.
-     *
-     * @param ContractAdjustment $adjustment
-     * @return bool True si se asignó un valor, false si no se encontró
-     */
-    public function assignIndexValue(ContractAdjustment $adjustment): bool
+
+    private function applyIndexAdjustment(Contract $contract, ContractAdjustment $adjustment): float
+    {
+        if ($adjustment->indexType->calculation_mode === CalculationMode::MULTIPLICATIVE_CHAIN) {
+            \Log::info('🔗 Aplicando ajuste multiplicativo', [
+                'coeficiente' => $adjustment->value
+            ]);
+            return round($contract->monthly_amount * $adjustment->value, 2);
+        }
+        \Log::info('📈 Aplicando ajuste porcentual por índice', [
+            'percentage' => $adjustment->value
+        ]);
+        return round($contract->monthly_amount * (1 + $adjustment->value / 100), 2);
+    }
+
+    public function assignIndexValue(ContractAdjustment $adjustment): void
     {
         \Log::info('🔍 Iniciando assignIndexValue', [
             'adjustment_id' => $adjustment->id,
@@ -178,244 +149,185 @@ class ContractAdjustmentService
             'applied_at' => $adjustment->applied_at,
         ]);
 
-        if (
-            $adjustment->type !== ContractAdjustmentType::INDEX ||
-            !is_null($adjustment->value) ||
-            !is_null($adjustment->applied_at)
-        ) {
-            \Log::info('❌ Ajuste no cumple condiciones para asignar valor', [
-                'is_index' => $adjustment->type === ContractAdjustmentType::INDEX,
-                'has_value' => !is_null($adjustment->value),
-                'is_applied' => !is_null($adjustment->applied_at),
+        // 🔒 Validaciones previas
+        if ($adjustment->type !== ContractAdjustmentType::INDEX) {
+            throw ValidationException::withMessages([
+                'index' => 'El ajuste no es de tipo índice.',
             ]);
-            return false;
         }
 
-        // Obtener el tipo de índice para determinar el modo de cálculo
+        if (!is_null($adjustment->value)) {
+            throw ValidationException::withMessages([
+                'index' => 'El ajuste ya tiene un valor asignado.',
+            ]);
+        }
+
+        if (!is_null($adjustment->applied_at)) {
+            throw ValidationException::withMessages([
+                'index' => 'El ajuste ya fue aplicado y no puede modificarse.',
+            ]);
+        }
+
         $indexType = $adjustment->indexType;
         if (!$indexType) {
-            \Log::error('❌ No se encontró el tipo de índice', [
-                'index_type_id' => $adjustment->index_type_id,
+            throw ValidationException::withMessages([
+                'index' => 'El ajuste no tiene un tipo de índice válido.',
             ]);
-            return false;
         }
-
-        \Log::info('📊 Información del tipo de índice', [
-            'index_type_id' => $indexType->id,
-            'index_name' => $indexType->name,
-            'calculation_mode' => $indexType->calculation_mode,
-        ]);
 
         $contract = $adjustment->contract;
         if (!$contract) {
-            \Log::error('❌ No se encontró el contrato asociado', [
-                'contract_id' => $adjustment->contract_id,
+            throw ValidationException::withMessages([
+                'index' => 'El ajuste no está vinculado a un contrato válido.',
             ]);
-            return false;
         }
 
-        \Log::info('📋 Información del contrato', [
-            'contract_id' => $contract->id,
-            'start_date' => $contract->start_date,
-            'monthly_amount' => $contract->monthly_amount,
-        ]);
-
+        // 🔥 Cálculo según modo del índice
         if ($indexType->calculation_mode === CalculationMode::RATIO) {
-            \Log::info('🔄 Usando modo RATIO para cálculo (estándar argentino)');
-            // Para modo ratio: calcular la variación directa del índice entre start_date y effective_date
-            $adjustment->value = $this->calculateRatioAdjustment($adjustment, $contract);
-        } elseif ($indexType->calculation_mode === CalculationMode::MULTIPLICATIVE_CHAIN) {
-            \Log::info('🔗 Usando modo MULTIPLICATIVE_CHAIN para cálculo');
-            // Para modo multiplicative_chain: multiplicar coeficientes mensuales entre sí
-            $adjustment->value = $this->calculateMultiplicativeChain($adjustment, $contract);
-        } else {
-            \Log::info('📈 Usando modo PERCENTAGE para cálculo');
-
-            // Buscar valor de índice por effective_date
-            $indexValue = \App\Models\IndexValue::where('index_type_id', $adjustment->index_type_id)
-                ->where('effective_date', $adjustment->effective_date)
-                ->whereNotNull('value')
-                ->first();
-
-            if (!$indexValue) {
-                \Log::warning('⚠️ No se encontró valor de índice para la fecha efectiva', [
-                    'effective_date' => $adjustment->effective_date->format('Y-m-d'),
-                    'index_type_id' => $adjustment->index_type_id,
+            $percentageChange = $this->calculateRatioAdjustment($adjustment, $contract);
+            if (is_null($percentageChange)) {
+                \Log::warning('⚠️ No se pudo calcular variación para índice tipo ratio', [
+                    'adjustment_id' => $adjustment->id,
                 ]);
-                return false;
+                throw ValidationException::withMessages([
+                    'index' => 'No se pudo calcular la variación del índice (ratio). Verifique que existan valores para las fechas requeridas.',
+                ]);
             }
-
-            \Log::info('✅ Valor de índice encontrado por fecha efectiva', [
-                'effective_date' => $adjustment->effective_date->format('Y-m-d'),
-                'value' => $indexValue->value,
+            $adjustment->value = $percentageChange;
+            \Log::info('✅ Índice tipo ratio asignado con porcentaje', [
+                'percentage' => $percentageChange,
             ]);
-
-            $adjustment->value = $indexValue->value;
+        } elseif ($indexType->calculation_mode === CalculationMode::MULTIPLICATIVE_CHAIN) {
+            $coef = $this->calculateMultiplicativeChain($adjustment, $contract);
+            if (is_null($coef)) {
+                \Log::warning('⚠️ No se pudo calcular coeficiente multiplicativo', [
+                    'adjustment_id' => $adjustment->id,
+                ]);
+                throw ValidationException::withMessages([
+                    'index' => 'No se pudo calcular el coeficiente multiplicativo. Verifique que existan valores de índice para todos los períodos requeridos.',
+                ]);
+            }
+            $adjustment->value = $coef;
+            \Log::info('✅ Índice tipo multiplicative_chain asignado', [
+                'coefficient' => $coef,
+            ]);
+        } else {
+            throw ValidationException::withMessages([
+                'index' => 'El tipo de cálculo del índice no está soportado.',
+            ]);
         }
 
-        \Log::info('💾 Guardando valor calculado', [
-            'final_value' => $adjustment->value,
-        ]);
-
+        // 💾 Guardar valor calculado
         $adjustment->save();
-        return true;
     }
 
-    /**
-     * Calcula el ajuste para modo ratio usando la variación directa del índice (estándar argentino)
-     * Obtiene el valor del índice en la fecha de inicio del contrato y en la fecha efectiva del ajuste
-     * y calcula la variación porcentual entre ambos valores
-     *
-     * @param ContractAdjustment $adjustment
-     * @param \App\Models\Contract $contract
-     * @return float|null
-     */
-    private function calculateRatioAdjustment(ContractAdjustment $adjustment, \App\Models\Contract $contract): ?float
+
+
+
+    private function calculateRatioAdjustment(ContractAdjustment $adjustment, Contract $contract): ?float
     {
         $startDate = $contract->start_date;
         $effectiveDate = $adjustment->effective_date;
         $indexType = \App\Models\IndexType::find($adjustment->index_type_id);
 
-        \Log::info('🔄 Iniciando cálculo RATIO (estándar argentino)', [
+        \Log::info('🔄 Cálculo RATIO', [
             'start_date' => $startDate,
             'effective_date' => $effectiveDate,
-            'index_type_id' => $adjustment->index_type_id,
-            'calculation_mode' => $indexType->calculation_mode->value ?? $indexType->calculation_mode,
             'frequency' => $indexType->frequency->value ?? $indexType->frequency,
         ]);
 
-        // Buscar el valor del índice en la fecha de inicio del contrato
+        // Valor inicial (sin cambios)
         $initialIndexValue = \App\Models\IndexValue::where('index_type_id', $adjustment->index_type_id)
             ->where('effective_date', '<=', $startDate)
             ->whereNotNull('value')
             ->orderBy('effective_date', 'desc')
             ->first();
-
-        \Log::info('🔍 Query SQL generada para valor inicial', [
-            'sql' => \App\Models\IndexValue::where('index_type_id', $adjustment->index_type_id)
-                ->where('effective_date', '<=', $startDate)
-                ->whereNotNull('value')
-                ->orderBy('effective_date', 'desc')
-                ->toSql(),
-            'bindings' => \App\Models\IndexValue::where('index_type_id', $adjustment->index_type_id)
-                ->where('effective_date', '<=', $startDate)
-                ->whereNotNull('value')
-                ->orderBy('effective_date', 'desc')
-                ->getBindings(),
-        ]);
-
         if (!$initialIndexValue) {
-            \Log::warning('⚠️ No se encontró valor de índice para la fecha de inicio del contrato', [
-                'start_date' => $startDate,
-                'index_type_id' => $adjustment->index_type_id,
-            ]);
+            \Log::warning('⚠️ Valor inicial no encontrado');
             return null;
         }
 
-        // Buscar el valor del índice en la fecha efectiva del ajuste
-        $finalIndexValue = \App\Models\IndexValue::where('index_type_id', $adjustment->index_type_id)
-            ->where('effective_date', '<=', $effectiveDate)
-            ->whereNotNull('value')
-            ->orderBy('effective_date', 'desc')
-            ->first();
+        // Valor final según frecuencia
+        if ($indexType->frequency === 'monthly') {
+            $expectedMonth = $effectiveDate->format('Y-m');
+            $finalIndexValue = \App\Models\IndexValue::where('index_type_id', $adjustment->index_type_id)
+                ->whereRaw("DATE_FORMAT(effective_date, '%Y-%m') = ?", [$expectedMonth])
+                ->whereNotNull('value')
+                ->first();
 
-        if (!$finalIndexValue) {
-            \Log::warning('⚠️ No se encontró valor de índice para la fecha efectiva del ajuste', [
-                'effective_date' => $effectiveDate,
-                'index_type_id' => $adjustment->index_type_id,
-            ]);
-            return null;
+            if (!$finalIndexValue) {
+                \Log::warning('⚠️ No hay valor mensual para el mes del ajuste', ['expected_month' => $expectedMonth]);
+                return null;
+            }
+        } else { // Diario
+            $finalIndexValue = \App\Models\IndexValue::where('index_type_id', $adjustment->index_type_id)
+                ->where('effective_date', '<=', $effectiveDate)
+                ->whereNotNull('value')
+                ->orderBy('effective_date', 'desc')
+                ->first();
+
+            if (!$finalIndexValue) {
+                \Log::warning('⚠️ No hay valor diario disponible antes de la fecha efectiva');
+                return null;
+            }
+
+            // Validar antigüedad máxima para índices diarios (ej. $this->maxIndexAgeDays días)
+            $daysDiff = $finalIndexValue->effective_date->diffInDays($effectiveDate);
+            if ($daysDiff > $this->maxIndexAgeDays) {
+                \Log::warning('⚠️ Valor de índice demasiado antiguo para cálculo diario', [
+                    'final_index_date' => $finalIndexValue->effective_date,
+                    'effective_date' => $effectiveDate,
+                    'days_diff' => $daysDiff,
+                ]);
+                return null;
+            }
         }
 
-        // Obtener los valores
-        $initialValue = $initialIndexValue->value;
-        $finalValue = $finalIndexValue->value;
-
-        \Log::info('📊 Valores de índice encontrados', [
-            'initial_date' => $initialIndexValue->effective_date,
-            'initial_value' => $initialValue,
-            'final_date' => $finalIndexValue->effective_date,
-            'final_value' => $finalValue,
-        ]);
-
-        // Calcular la variación porcentual directa
-        $percentageChange = $this->calculatePercentageFromRatio($finalValue, $initialValue);
-
-        \Log::info('✅ Cálculo RATIO completado (estándar argentino)', [
-            'initial_value' => $initialValue,
-            'final_value' => $finalValue,
-            'final_percentage' => $percentageChange,
-            'formula' => "(({$finalValue} - {$initialValue}) / {$initialValue}) * 100",
+        // Cálculo
+        $percentageChange = $this->calculatePercentageFromRatio($finalIndexValue->value, $initialIndexValue->value);
+        \Log::info('✅ RATIO calculado', [
+            'initial_value' => $initialIndexValue->value,
+            'final_value' => $finalIndexValue->value,
+            'percentage' => $percentageChange,
         ]);
 
         return $percentageChange;
     }
 
-    /**
-     * Calcula el porcentaje de ajuste basado en valores ratio explícitos
-     *
-     * @param float $currentValue
-     * @param float $baseValue
-     * @return float
-     */
+
     private function calculatePercentageFromRatio(float $currentValue, float $baseValue): float
     {
-        if ($baseValue == 0) {
-            return 0.0;
-        }
-
-        $percentageChange = (($currentValue - $baseValue) / $baseValue) * 100;
-        return round($percentageChange, 2);
+        return $baseValue == 0 ? 0.0 : round((($currentValue - $baseValue) / $baseValue) * 100, 2);
     }
 
-    /**
-     * Calculate multiplicative chain adjustment
-     * Multiplica coeficientes mensuales entre sí desde el mes siguiente al inicio del contrato hasta el mes del ajuste
-     * Metodología oficial Casa Propia: excluye el mes de inicio del contrato, incluye el mes del ajuste
-     *
-     * @param ContractAdjustment $adjustment
-     * @param \App\Models\Contract $contract
-     * @return float|null
-     */
-    private function calculateMultiplicativeChain(ContractAdjustment $adjustment, \App\Models\Contract $contract): ?float
+    private function calculateMultiplicativeChain(ContractAdjustment $adjustment, Contract $contract): ?float
     {
         $startDate = $contract->start_date;
         $effectiveDate = $adjustment->effective_date;
         $indexType = \App\Models\IndexType::find($adjustment->index_type_id);
 
-        \Log::info('🔗 Iniciando cálculo MULTIPLICATIVE_CHAIN (metodología Casa Propia)', [
+        \Log::info('🔗 Cálculo MULTIPLICATIVE_CHAIN', [
             'contract_id' => $contract->id,
-            'start_date' => $startDate->format('Y-m-d'),
-            'effective_date' => $effectiveDate->format('Y-m-d'),
+            'start_date' => $startDate,
+            'effective_date' => $effectiveDate,
             'index_type_id' => $adjustment->index_type_id,
-            'index_type_code' => $indexType->code,
-            'calculation_mode' => $indexType->calculation_mode->value ?? $indexType->calculation_mode,
             'frequency' => $indexType->frequency->value ?? $indexType->frequency,
-            'methodology' => 'Casa Propia: excluye mes inicio, incluye mes ajuste',
         ]);
 
-        // Generar períodos mensuales (excluye mes inicio, incluye mes ajuste)
-        $periods = $this->generateMonthlyPeriods($startDate, $effectiveDate, true);
+        // Generar períodos según frecuencia
+        $periods = $indexType->frequency === 'monthly'
+            ? $this->generateMonthlyPeriods($startDate, $effectiveDate, true)
+            : $this->generateDailyPeriods($startDate, $effectiveDate);
 
         if (empty($periods)) {
-            \Log::warning('⚠️ No se generaron períodos para el cálculo', [
-                'start_date' => $startDate->format('Y-m-d'),
-                'effective_date' => $effectiveDate->format('Y-m-d'),
-                'note' => 'Esto puede ocurrir si el ajuste es en el mismo mes que el inicio del contrato',
+            \Log::warning('⚠️ No hay períodos generados', [
+                'start_date' => $startDate,
+                'effective_date' => $effectiveDate,
             ]);
             return null;
         }
 
-        \Log::info('📅 Períodos a procesar (metodología Casa Propia)', [
-            'start_date' => $startDate->format('Y-m-d'),
-            'effective_date' => $effectiveDate->format('Y-m-d'),
-            'periods' => $periods,
-            'total_periods' => count($periods),
-            'excluded_start_month' => $startDate->format('Y-m'),
-            'included_end_month' => $effectiveDate->format('Y-m'),
-        ]);
-
-        // Buscar todos los valores de índice para las fechas efectivas
+        // Buscar valores de índice
         $indexValues = \App\Models\IndexValue::where('index_type_id', $adjustment->index_type_id)
             ->whereIn('effective_date', $periods)
             ->whereNotNull('value')
@@ -423,114 +335,86 @@ class ContractAdjustmentService
             ->get();
 
         if ($indexValues->isEmpty()) {
-            \Log::warning('⚠️ No se encontraron valores de índice para las fechas efectivas', [
-                'periods' => $periods,
-                'index_type_id' => $adjustment->index_type_id,
-                'found_values_count' => $indexValues->count(),
-                'methodology' => 'Casa Propia: excluye mes inicio, incluye mes ajuste',
-            ]);
+            \Log::warning('⚠️ No se encontraron valores de índice', ['expected_periods' => $periods]);
             return null;
         }
 
-        // Verificar que tenemos valores para todos los períodos
-        $foundPeriods = $indexValues->pluck('effective_date')->map(function($date) {
-            return $date->format('Y-m');
-        })->toArray();
-        $missingPeriods = array_diff($periods, $foundPeriods);
+        // Validar valores faltantes
+        $foundPeriods = $indexValues->pluck('effective_date')->map(
+            fn($d) => $d->format($indexType->frequency === 'monthly' ? 'Y-m-d' : 'Y-m-d')
+        )->toArray();
 
+        $missingPeriods = array_diff($periods, $foundPeriods);
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'periods' => $periods,
+            'found_periods' => $foundPeriods,
+            'missing_periods' => $missingPeriods,
+        ]);
         if (!empty($missingPeriods)) {
-            \Log::warning('⚠️ Faltan valores de índice para algunos períodos', [
+            \Log::warning('⚠️ Faltan valores de índice en la cadena', [
                 'missing_periods' => $missingPeriods,
                 'found_periods' => $foundPeriods,
-                'total_expected' => count($periods),
-                'total_found' => count($foundPeriods),
-                'methodology' => 'Casa Propia: excluye mes inicio, incluye mes ajuste',
             ]);
             return null;
         }
 
-        // Extraer los coeficientes y multiplicarlos
+        // Validación de antigüedad para índices diarios
+        if ($indexType->frequency === 'daily') {
+            $lastIndexDate = $indexValues->last()->effective_date;
+            $daysDiff = $lastIndexDate->diffInDays($effectiveDate);
+
+            if ($daysDiff > $this->maxIndexAgeDays) { // tolerancia configurable
+                \Log::warning('⚠️ Valor diario demasiado antiguo para ajuste', [
+                    'last_index_date' => $lastIndexDate->format('Y-m-d'),
+                    'effective_date' => $effectiveDate->format('Y-m-d'),
+                    'days_diff' => $daysDiff,
+                ]);
+                return null;
+            }
+        }
+
+        // Multiplicar coeficientes
         $coefficients = $indexValues->pluck('value')->toArray();
+        $result = array_reduce($coefficients, fn($carry, $coef) => $carry * $coef, 1.0);
 
-        \Log::info('📊 Coeficientes encontrados (metodología Casa Propia)', [
-            'coefficients' => $coefficients,
-            'periods' => $foundPeriods,
-            'total_coefficients' => count($coefficients),
-            'methodology' => 'Casa Propia: excluye mes inicio, incluye mes ajuste',
-        ]);
-
-        // Multiplicar todos los coeficientes
-        $result = array_reduce($coefficients, function($carry, $coefficient) {
-            return $carry * $coefficient;
-        }, 1.0);
-
-        \Log::info('✅ Cálculo MULTIPLICATIVE_CHAIN completado (metodología Casa Propia)', [
+        \Log::info('✅ MULTIPLICATIVE_CHAIN calculado', [
             'coefficients' => $coefficients,
             'result' => $result,
-            'formula' => '1.0 * ' . implode(' * ', $coefficients) . ' = ' . $result,
-            'total_coefficients' => count($coefficients),
-            'methodology' => 'Casa Propia: excluye mes inicio, incluye mes ajuste',
-            'start_date' => $startDate->format('Y-m-d'),
-            'effective_date' => $effectiveDate->format('Y-m-d'),
-            'excluded_start_month' => $startDate->format('Y-m'),
-            'included_end_month' => $effectiveDate->format('Y-m'),
+            'formula' => implode(' * ', $coefficients),
         ]);
 
         return $result;
     }
 
-    /**
-     * Generate monthly periods between two dates
-     * For multiplicative_chain: excludes the start month but includes the end month (Casa Propia methodology)
-     * For other modes: includes all months between start and end dates
-     *
-     * @param \Carbon\Carbon $startDate
-     * @param \Carbon\Carbon $endDate
-     * @param bool $excludeStartMonth Whether to exclude the start month (for multiplicative_chain)
-     * @return array
-     */
+
     private function generateMonthlyPeriods(\Carbon\Carbon $startDate, \Carbon\Carbon $endDate, bool $excludeStartMonth = false): array
     {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'excludeStartMonth' => $excludeStartMonth,
+        ]);
         $periods = [];
-
-        if ($excludeStartMonth) {
-            // Para multiplicative_chain: comenzar desde el mes siguiente al inicio del contrato
-            $currentDate = $startDate->copy()->startOfMonth()->addMonth();
-
-            \Log::info('📅 Generando períodos mensuales (metodología Casa Propia)', [
-                'start_date' => $startDate->format('Y-m-d'),
-                'effective_date' => $endDate->format('Y-m-d'),
-                'start_month_excluded' => $startDate->format('Y-m'),
-                'first_month_included' => $currentDate->format('Y-m'),
-                'last_month_included' => $endDate->copy()->startOfMonth()->format('Y-m'),
-                'note' => 'Excluye el mes de inicio del contrato, incluye el mes del ajuste',
-            ]);
-        } else {
-            // Para otros modos: incluir todos los meses
-            $currentDate = $startDate->copy()->startOfMonth();
-
-            \Log::info('📅 Generando períodos mensuales (modo estándar)', [
-                'start_date' => $startDate->format('Y-m-d'),
-                'effective_date' => $endDate->format('Y-m-d'),
-                'first_month_included' => $currentDate->format('Y-m'),
-                'last_month_included' => $endDate->copy()->startOfMonth()->format('Y-m'),
-                'note' => 'Incluye todos los meses entre las fechas',
-            ]);
-        }
-
+        $currentDate = $excludeStartMonth
+            ? $startDate->copy()->startOfMonth()->addMonth()
+            : $startDate->copy()->startOfMonth();
         $endMonth = $endDate->copy()->startOfMonth();
 
         while ($currentDate->lte($endMonth)) {
             $periods[] = $currentDate->format('Y-m');
             $currentDate->addMonth();
         }
+        return $periods;
+    }
 
-        \Log::info('📊 Períodos generados', [
-            'periods' => $periods,
-            'total_periods' => count($periods),
-            'methodology' => $excludeStartMonth ? 'Casa Propia: excluye mes inicio, incluye mes ajuste' : 'Estándar: incluye todos los meses',
-        ]);
-
+    private function generateDailyPeriods(\Carbon\Carbon $startDate, \Carbon\Carbon $endDate): array
+    {
+        $periods = [];
+        $currentDate = $startDate->copy()->addDay();
+        while ($currentDate->lte($endDate)) {
+            $periods[] = $currentDate->format('Y-m-d');
+            $currentDate->addDay();
+        }
         return $periods;
     }
 }

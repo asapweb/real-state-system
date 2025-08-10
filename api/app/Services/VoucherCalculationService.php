@@ -11,17 +11,26 @@ class VoucherCalculationService
     /**
      * Calcula subtotal, IVA y total para un ítem individual (no lo persiste)
      */
-    public function calculateItem(VoucherItem $item): VoucherItem
+    public function calculateItem(VoucherItem $item, $letter): VoucherItem
     {
+        \Log::info('calculatItem');
+        \Log::info('debug', ['item' => $item]);
         $item->subtotal = $item->quantity * $item->unit_price;
-
+        $item->subtotal_with_vat = $item->subtotal;
         if ($item->taxRate && $item->taxRate->rate > 0) {
-            $item->vat_amount = round($item->subtotal * ($item->taxRate->rate / 100), 2);
+            if ($letter === 'B') {
+                $item->vat_amount = round(
+                    $item->subtotal * ($item->taxRate->rate / (100 + $item->taxRate->rate)),
+                    2
+                );
+            } else {
+                $item->vat_amount = round($item->subtotal * ($item->taxRate->rate / 100), 2);
+                $item->subtotal_with_vat = $item->subtotal + $item->vat_amount;
+            }   
+            // $item->vat_amount = round($item->subtotal * ($item->taxRate->rate / 100), 2);
         } else {
             $item->vat_amount = 0;
         }
-
-        $item->subtotal_with_vat = $item->subtotal + $item->vat_amount;
 
         return $item;
     }
@@ -32,6 +41,8 @@ class VoucherCalculationService
      */
     public function calculateVoucher(Voucher $voucher): void
     {
+        \Log::info('calculateVoucher');
+        \Log::info('debug', ['voucher' => $voucher]);
         $type = strtoupper($voucher->voucher_type_short_name);
 
         if (in_array($type, ['RCB', 'RPG'])) {
@@ -51,13 +62,16 @@ class VoucherCalculationService
         $subtotal_untaxed = 0;
         $subtotal_taxed = 0;
         $subtotal_vat = 0;
-        $total = 0;
+        $subtotal_other_taxes = 0;
+        $subtotal = 0;
+        $total = 0; 
 
         $items = $voucher->items ?? collect();
 
         foreach ($items as $item) {
-            $this->calculateItem($item);
-
+            $this->calculateItem($item, $voucher->voucher_type_letter);
+            
+            $subtotal += $item->subtotal;
             if (!$item->taxRate) {
                 $subtotal_untaxed += $item->subtotal;
                 $total += $item->subtotal_with_vat;
@@ -73,8 +87,13 @@ class VoucherCalculationService
                     break;
                 default:
                     if ($item->taxRate->included_in_vat_detail) {
-                        $subtotal_taxed += $item->subtotal;
-                        $subtotal_vat += $item->vat_amount;
+                        if ($voucher->voucher_type_letter === 'B') {
+                            $subtotal_taxed += $item->subtotal - $item->vat_amount;
+                            $subtotal_vat += $item->vat_amount;
+                        } else {
+                            $subtotal_taxed += $item->subtotal;
+                            $subtotal_vat += $item->vat_amount;
+                        }
                     } else {
                         $subtotal_untaxed += $item->subtotal;
                     }
@@ -83,13 +102,16 @@ class VoucherCalculationService
 
             $total += $item->subtotal_with_vat;
         }
-
         $voucher->subtotal_exempt = $subtotal_exempt;
         $voucher->subtotal_untaxed = $subtotal_untaxed;
         $voucher->subtotal_taxed = $subtotal_taxed;
         $voucher->subtotal_vat = $subtotal_vat;
-        $voucher->subtotal_other_taxes = 0;
+        $voucher->subtotal_other_taxes = $subtotal_other_taxes;
+        $voucher->subtotal = $subtotal;
         $voucher->total = $total;
+        // throw ValidationException::withMessages([
+        //     'items calculated!' => $voucher,
+        // ]);
     }
 
     /**
@@ -122,6 +144,7 @@ class VoucherCalculationService
         $voucher->subtotal_taxed = 0;
         $voucher->subtotal_vat = 0;
         $voucher->subtotal_other_taxes = 0;
+        $voucher->subtotal = 0;
         $voucher->total = $payments->sum('amount');
     }
 }

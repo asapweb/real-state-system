@@ -7,6 +7,7 @@ enum VoucherItemType: string
     // Tipos heredados de CollectionItemType
     case RENT = 'rent';
     case INSURANCE = 'insurance';
+    case EXPENSE = 'expense';
     case COMMISSION = 'commission';
     case SERVICE = 'service';
     case PENALTY = 'penalty';

@@ -28,7 +28,7 @@
 
           <!-- Vigencia y monto -->
           <v-row>
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="2">
               <v-text-field
                 v-model="formData.start_date"
                 label="Desde"
@@ -36,20 +36,12 @@
                 :error-messages="v$.start_date.$errors.map((e) => e.$message)"
               />
             </v-col>
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="2">
               <v-text-field
                 v-model="formData.end_date"
                 label="Hasta"
                 type="date"
                 :error-messages="v$.end_date.$errors.map((e) => e.$message)"
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="formData.monthly_amount"
-                label="Monto mensual"
-                type="number"
-                :error-messages="v$.monthly_amount.$errors.map((e) => e.$message)"
               />
             </v-col>
             <v-col cols="12" md="2">
@@ -61,8 +53,48 @@
                 item-value="value"
               />
             </v-col>
+            <v-col cols="12" md="3">
+              <v-text-field
+                v-model="formData.monthly_amount"
+                label="Monto mensual"
+                type="number"
+                :error-messages="v$.monthly_amount.$errors.map((e) => e.$message)"
+              />
+            </v-col>
             <v-col cols="12" md="2">
               <v-text-field v-model="formData.payment_day" label="Día de pago" type="number" />
+            </v-col>
+          </v-row>
+          <!-- Punitorios -->
+          <v-row>
+            <v-col cols="12" md="3">
+              <v-switch v-model="formData.has_penalty" label="¿Tiene punitorio?" />
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-select
+                v-model="formData.penalty_type"
+                :items="penaltyTypeOptions"
+                label="Tipo"
+                item-title="label"
+                item-value="value"
+                :disabled="!formData.has_penalty"
+              />
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-text-field
+                v-model="formData.penalty_value"
+                label="Valor"
+                type="number"
+                :disabled="!formData.has_penalty"
+              />
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-text-field
+                v-model="formData.penalty_grace_days"
+                label="Días de gracia"
+                type="number"
+                :disabled="!formData.has_penalty"
+              />
             </v-col>
           </v-row>
 
@@ -114,6 +146,27 @@
               <v-checkbox
                 v-model="formData.prorate_last_month"
                 label="Prorratear último mes (si finaliza antes del último día)"
+              />
+            </v-col>
+          </v-row>
+
+          <v-divider class="my-4" />
+
+          <!-- Talonarios -->
+          <v-row>
+            <v-col cols="12" md="6">
+              <BookletSelect
+                v-model="selectedCollectionBooklet"
+                voucher-type="FAC"
+                letter="X"
+                label="Talonario para cobranzas"
+              />
+            </v-col>
+            <v-col cols="12" md="6">
+              <BookletSelect
+                v-model="selectedSettlementBooklet"
+                voucher-type="LIQ"
+                label="Talonario para liquidaciones"
               />
             </v-col>
           </v-row>
@@ -180,38 +233,7 @@
 
           <v-divider class="my-4" />
 
-          <!-- Punitorios -->
-          <v-row>
-            <v-col cols="12" md="3">
-              <v-switch v-model="formData.has_penalty" label="¿Tiene punitorio?" />
-            </v-col>
-            <v-col cols="12" md="3">
-              <v-select
-                v-model="formData.penalty_type"
-                :items="penaltyTypeOptions"
-                label="Tipo"
-                item-title="label"
-                item-value="value"
-                :disabled="!formData.has_penalty"
-              />
-            </v-col>
-            <v-col cols="12" md="3">
-              <v-text-field
-                v-model="formData.penalty_value"
-                label="Valor"
-                type="number"
-                :disabled="!formData.has_penalty"
-              />
-            </v-col>
-            <v-col cols="12" md="3">
-              <v-text-field
-                v-model="formData.penalty_grace_days"
-                label="Días de gracia"
-                type="number"
-                :disabled="!formData.has_penalty"
-              />
-            </v-col>
-          </v-row>
+          
 
           <v-divider class="my-4" />
 
@@ -245,11 +267,12 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, watchEffect } from 'vue'
 import { useVuelidate } from '@vuelidate/core'
 import { required, numeric } from '@vuelidate/validators'
 import RentalApplicationAutocomplete from '@/views/components/RentalApplicationAutocomplete.vue'
 import PropertyAutocomplete from '@/views/components/PropertyAutocomplete.vue'
+import BookletSelect from '@/views/components/form/BookletSelect.vue'
 
 const props = defineProps({
   initialData: Object,
@@ -285,6 +308,16 @@ const formData = reactive({
   penalty_grace_days: 0,
   status: 'draft',
   notes: '',
+  collection_booklet_id: null,
+  settlement_booklet_id: null,
+})
+
+const selectedCollectionBooklet = ref(null)
+const selectedSettlementBooklet = ref(null)
+
+watchEffect(() => {
+  formData.collection_booklet_id = selectedCollectionBooklet.value?.id ?? null
+  formData.settlement_booklet_id = selectedSettlementBooklet.value?.id ?? null
 })
 
 const rules = {
@@ -357,6 +390,15 @@ onMounted(() => {
       start_date: props.initialData.start_date?.substring(0, 10) || null,
       end_date: props.initialData.end_date?.substring(0, 10) || null,
     })
+  }
+
+  // Después de que formData esté poblado
+  if (props.initialData?.collection_booklet) {
+    selectedCollectionBooklet.value = props.initialData.collection_booklet
+  }
+
+  if (props.initialData?.settlement_booklet) {
+    selectedSettlementBooklet.value = props.initialData.settlement_booklet
   }
 })
 

@@ -17,6 +17,8 @@ class StoreVoucherRequest extends FormRequest
 
          // Reglas base que siempre se aplican
          $baseRules = [
+            'generated_from_collection' => ['nullable', 'boolean'],
+            'voucher_type_short_name' => ['required', 'string'],
             'booklet_id' => ['required', 'exists:booklets,id'],
             'currency' => ['required', 'string', 'size:3'],
             'issue_date' => ['required', 'date'],
@@ -29,12 +31,19 @@ class StoreVoucherRequest extends FormRequest
             'client_tax_condition_name' => ['nullable', 'string'],
             'client_tax_id_number' => ['nullable', 'string'],
             'contract_id' => ['nullable', 'exists:contracts,id'],
-            'period' => ['nullable', 'string'],
+            'period' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
+
+            'items' => ['nullable', 'array'],
+            'items.*.type' => ['required', 'string'],
+            'items.*.description' => ['required_with:items', 'string'],
+            'items.*.quantity' => ['required_with:items', 'numeric'],
+            'items.*.unit_price' => ['required_with:items', 'numeric'],
+            'items.*.tax_rate_id' => ['nullable', 'exists:tax_rates,id'],
         ];
 
         $specificRules = match ($type) {
-            'COB' => $this->rulesForCob(),
+            'ALQ' => $this->rulesForCob(),
             'LIQ' => $this->rulesForLiq(),
             'RCB', 'RPG' => $this->rulesForRecibo(),
             'FAC', 'N/C', 'N/D' => $this->rulesForFiscal(),
@@ -49,7 +58,7 @@ class StoreVoucherRequest extends FormRequest
         return [
             'issue_date' => ['required', 'date'],
             'due_date' => ['required', 'date'],
-            'period' => ['required', 'string'],
+            'period' => ['required', 'date'],
             'contract_id' => ['required', 'exists:contracts,id'],
             'client_id' => ['required', 'exists:clients,id', function($attribute, $value, $fail) {
                 if (!$this->input('contract_id')) {
@@ -68,10 +77,6 @@ class StoreVoucherRequest extends FormRequest
                 }
             }],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.description' => ['required', 'string'],
-            'items.*.quantity' => ['required', 'numeric'],
-            'items.*.unit_price' => ['required', 'numeric'],
-            'items.*.tax_rate_id' => ['nullable', 'exists:tax_rates,id'],
 
             // Datos del cliente editables
         ];
@@ -83,12 +88,6 @@ class StoreVoucherRequest extends FormRequest
             'voucher_type_short_name' => ['in:LIQ'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.description' => ['required', 'string'],
-            'items.*.quantity' => ['required', 'numeric'],
-            'items.*.unit_price' => ['required', 'numeric'],
-            'items.*.tax_rate_id' => ['nullable', 'exists:tax_rates,id'],
-
-
-            // Datos del cliente editables
         ];
     }
 
@@ -97,9 +96,7 @@ class StoreVoucherRequest extends FormRequest
         $total = floatval($this->input('total', 0));
 
         return [
-            'payments' => $total > 0
-                ? ['required', 'array', 'min:1']
-                : ['nullable', 'array'],
+            'payments' => ['nullable', 'array'],
 
             'payments.*.payment_method_id' => ['required_with:payments.*', 'exists:payment_methods,id'],
             'payments.*.cash_account_id' => ['nullable', 'exists:cash_accounts,id'],
@@ -114,37 +111,31 @@ class StoreVoucherRequest extends FormRequest
     protected function rulesForFiscal(): array
     {
         $type = $this->input('voucher_type_short_name');
+        $letter = $this->input('letter');
 
         $rules = [
             'due_date' => ['required', 'date'],
-            'afip_operation_type_id' => ['required', 'exists:afip_operation_types,id'],
-            'service_date_from' => ['required', 'date'],
-            'service_date_to' => ['required', 'date'],
+            'afip_operation_type_id' => ['nullable', 'exists:afip_operation_types,id'],
+            'service_date_from' => ['nullable', 'date'],
+            'service_date_to' => ['nullable', 'date'],
+            'items' => ['required', 'array', 'min:1'],
         ];
 
-        if (in_array($type, ['FAC', 'N/D'])) {
-            $rules['items'] = ['required', 'array', 'min:1'];
-            $rules['items.*.description'] = ['required', 'string'];
-            $rules['items.*.quantity'] = ['required', 'numeric'];
-            $rules['items.*.unit_price'] = ['required', 'numeric'];
+        if (in_array($letter, ['A', 'B', 'C'])) {
+            $rules['afip_operation_type_id'] = ['required', 'exists:afip_operation_types,id'];
+            $rules['service_date_from'] = ['required', 'date'];
+            $rules['service_date_to'] = ['required', 'date'];
+        }
+
+        // Validación condicional para tax_rate_id según la letra
+        if (in_array($letter, ['A', 'B'])) {
+            $rules['items.*.tax_rate_id'] = ['required', 'exists:tax_rates,id'];
+        } else {
             $rules['items.*.tax_rate_id'] = ['nullable', 'exists:tax_rates,id'];
         }
 
-        if ($type === 'N/C') {
-            $rules['items'] = ['nullable', 'array'];
-            $rules['items.*.description'] = ['required_with:items', 'string'];
-            $rules['items.*.quantity'] = ['required_with:items', 'numeric'];
-            $rules['items.*.unit_price'] = ['required_with:items', 'numeric'];
-            $rules['items.*.tax_rate_id'] = ['nullable', 'exists:tax_rates,id'];
-
-            $rules['applications'] = ['nullable', 'array'];
-            $rules['applications.*.applied_to_id'] = ['required_with:applications', 'exists:vouchers,id'];
-            $rules['applications.*.amount'] = ['required_with:applications', 'numeric', 'min:0.01'];
-            $rules['applications.*.description'] = ['nullable', 'string'];
-        }
-
-        if ($type === 'N/D') {
-            $rules['associated_voucher_ids'] = ['required', 'array', 'min:1'];
+        if (in_array($type, ['N/C', 'N/D'])) {
+            // $rules['associated_voucher_ids'] = ['required', 'array', 'min:1'];
         } else {
             $rules['associated_voucher_ids'] = ['nullable'];
         }

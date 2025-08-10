@@ -56,6 +56,9 @@ class UpdateContractRequest extends FormRequest
 
             'status' => ['required', new Enum(ContractStatus::class)],
             'notes' => ['nullable', 'string'],
+
+            'collection_booklet_id' => ['nullable', 'exists:booklets,id'],
+            'settlement_booklet_id' => ['nullable', 'exists:booklets,id'],
         ];
     }
 }

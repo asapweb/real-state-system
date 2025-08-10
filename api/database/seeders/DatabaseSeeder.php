@@ -18,7 +18,9 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
 
             IndexTypeSeeder::class,
-            IndexValueSeeder::class,
+            CreebbaIndexSeeder::class,
+            CasaPropiaIndexSeeder::class,
+
             TaxConditionSeeder::class,
             DocumentTypeSeeder::class,
             PropertyTypeSeeder::class,
@@ -36,6 +38,7 @@ class DatabaseSeeder extends Seeder
             PaymentMethodSeeder::class,
             SalePointSeeder::class,
             VoucherTypeSeeder::class,
+            ServiceTypeSeeder::class,
             BookletSeeder::class,
             CashAccountSeeder::class,
         ]);

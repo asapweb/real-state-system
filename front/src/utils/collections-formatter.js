@@ -20,16 +20,37 @@ export function formatStatus(status) {
   }
 }
 
+/**
+ * Devuelve etiqueta legible para el estado de la cobranza.
+ */
+export function statusLabel(status) {
+  switch (status) {
+    case 'pending_adjustment':
+      return 'Ajuste pendiente'
+    case 'pending':
+      return 'Pendiente'
+    case 'draft':
+      return 'Borrador'
+    case 'issued':
+      return 'Emitida'
+    default:
+      return status
+  }
+}
+
+/**
+ * Devuelve color para chip según estado.
+ */
 export function statusColor(status) {
   switch (status) {
+    case 'pending_adjustment':
+      return 'orange'
     case 'pending':
       return 'warning'
-    case 'paid':
+    case 'draft':
+      return 'blue-grey'
+    case 'issued':
       return 'success'
-    case 'partially_paid':
-      return 'info'
-    case 'canceled':
-      return 'error'
     default:
       return 'default'
   }

@@ -17,23 +17,26 @@
 
   <div v-if="contract">
     <v-row>
-      <v-col cols="12" md="6">
+      <v-col cols="12" md="12">
         <ContractInfoCard :contract="contract" @edit="goToEdit" />
+      </v-col>
+      <v-col cols="12" id="adjustments">
+        <ContractAdjustmentTable :contract-id="contract?.id" />
+      </v-col>
+      <v-col cols="12">
+        <ContractExpense v-if="contract" :contract-id="contract?.id" />
+      </v-col>
+      <v-col cols="12" md="12">
+        <ContractCollectionManager :contract-id="contract?.id" :period="selectedPeriod" />
       </v-col>
       <v-col cols="12" md="6">
         <AttachmentManager :attachable-type="'contract'" :attachable-id="contract.id" />
-      </v-col>
-      <v-col cols="12">
-        <ContractExpense v-if="contract" :contract-id="contract.id" />
       </v-col>
       <v-col cols="12">
         <ContractClientTable :contract-id="contract?.id" />
       </v-col>
       <v-col cols="12">
         <ContractServiceTable :contract-id="contract?.id" />
-      </v-col>
-      <v-col cols="12" id="adjustments">
-        <ContractAdjustmentTable :contract-id="contract?.id" />
       </v-col>
     </v-row>
   </div>
@@ -48,15 +51,20 @@ import { formatModelId } from '@/utils/models-formatter'
 
 import ContractInfoCard from './components/ContractInfoCard.vue'
 import AttachmentManager from '@/views/components/AttachmentManager.vue'
-import ContractExpense from './components/ContractExpense.vue'
 import ContractServiceTable from './components/ContractServiceTable.vue'
 import ContractClientTable from './components/ContractClientTable.vue'
 import ContractAdjustmentTable from './components/ContractAdjustmentTable.vue'
+import ContractRentSummary from './components/ContractRentSummary.vue'
+import ContractCollectionManager from './components/ContractCollectionManager.vue'
+import ContractExpense from './components/ContractExpense.vue'
+
+
 
 const route = useRoute()
 const router = useRouter()
 const snackbar = useSnackbar()
 const contract = ref(null)
+const selectedPeriod = ref(new Date().toISOString().substring(0, 7)) // Mes actual en formato YYYY-MM
 
 const goBack = () => router.push('/contracts')
 const goToEdit = () => router.push(`/contracts/${contract.value.id}/edit`)

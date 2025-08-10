@@ -17,8 +17,11 @@ class BookletController extends Controller
             });
         }
         if ($request->filled('letter')) {
-            $query->where('letter', $request->letter);
+            $query->whereHas('voucherType', function ($q) use ($request) {
+                $q->where('letter', $request->letter);
+            });
         }
+       
         $query->with('voucherType');
         return BookletResource::collection($query->orderBy('name')->get());
     }

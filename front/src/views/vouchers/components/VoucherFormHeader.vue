@@ -7,7 +7,7 @@
             :model-value="modelValue"
             @update:modelValue="$emit('update:modelValue', $event)"
             :voucherType="form.voucher_type || defaultType || null"
-            :letter="form.letter || null"
+            :letter="null"
           />
         </v-col>
         <v-col cols="12" md="4">
@@ -175,6 +175,14 @@ async function fetchAfipOperationTypes() {
   try {
     const { data } = await axios.get('/api/afip-operation-types', { params: { per_page: 50 } })
     afipOperationTypes.value = data.data || data
+    
+    // Establecer el valor por defecto si no hay un valor seleccionado
+    if (!props.form.afip_operation_type_id) {
+      const defaultType = afipOperationTypes.value.find(type => type.is_default === true)
+      if (defaultType) {
+        props.form.afip_operation_type_id = defaultType.id
+      }
+    }
   } finally {
     loadingAfipTypes.value = false
   }

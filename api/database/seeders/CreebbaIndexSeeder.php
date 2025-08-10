@@ -16,7 +16,7 @@ class CreebbaIndexSeeder extends Seeder
             'code' => 'CREEBBA'
         ], [
             'name' => 'IPC CREEBBA',
-            'calculation_mode' => 'percentage', // o 'ratio' si usás valores relativos
+            'calculation_mode' => 'ratio', // o 'ratio' si usás valores relativos
         ]);
 
         $values = [

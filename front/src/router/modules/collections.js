@@ -5,19 +5,22 @@ const collectionRoutes = [
     component: () => import('@/views/collections/CollectionIndex.vue'),
   },
   {
-    path: 'create',
-    name: 'CollectionCreate',
-    component: () => import('@/views/collections/CollectionCreate.vue'),
+    path: ':contractId/editor',
+    name: 'collections.editor',
+    component: () => import('@/views/collections/CollectionEditor.vue'),
+    props: (route) => ({
+      contractId: Number(route.params.contractId),
+      period: route.query.period,
+    }),
   },
   {
-    path: 'generation',
-    name: 'CollectionGeneration',
-    component: () => import('@/views/collections/CollectionGeneration.vue'),
-  },
-  {
-    path: ':id',
-    name: 'CollectionsShow',
-    component: () => import('@/views/collections/CollectionShow.vue'),
+    path: ':contractId/view',
+    name: 'CollectionView',
+    component: () => import('@/views/collections/CollectionView.vue'),
+    props: (route) => ({
+      contractId: Number(route.params.contractId),
+      period: route.query.period,
+    }),
   },
 ];
 

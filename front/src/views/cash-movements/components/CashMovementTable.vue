@@ -23,14 +23,25 @@
     </template>
     <template #item.amount="{ item }">
       <span class="text-right" style="display: inline-block; min-width: 90px;">
-        {{ formatMoney(item.amount, item.cash_account?.currency) }}
+        {{ formatMoney(item.amount, item.currency) }}
       </span>
     </template>
     <template #item.concept="{ item }">
       {{ item.concept }}
     </template>
     <template #item.reference="{ item }">
-      {{ item.reference }}
+      <div v-if="item.reference" mb-2>
+        {{ item.reference }}
+      </div>
+      <v-btn
+        v-if="item.voucher"
+        variant="text"
+        color="primary"
+        size="small"
+        @click="goToVoucher(item.voucher.id)"
+      >
+        {{ item.voucher.full_number }}
+      </v-btn>
     </template>
     <template #item.actions="{ item }">
       <v-btn icon size="small" @click="$emit('show-cash-movement', item)">
@@ -45,6 +56,7 @@
 
 <script setup>
 import { defineProps, defineEmits, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { formatMoney } from '@/utils/money.js';
 import { format } from 'date-fns';
 
@@ -54,6 +66,8 @@ const props = defineProps({
   total: { type: Number, default: 0 },
   options: { type: Object, required: true },
 });
+
+const router = useRouter();
 
 const headers = [
   { title: 'Fecha', key: 'date' },
@@ -80,5 +94,9 @@ function formatDate(date) {
   } catch {
     return date;
   }
+}
+
+function goToVoucher(voucherId) {
+  router.push(`/vouchers/${voucherId}`);
 }
 </script>

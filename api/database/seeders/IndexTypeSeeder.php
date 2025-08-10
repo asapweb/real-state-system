@@ -46,5 +46,14 @@ class IndexTypeSeeder extends Seeder
             ]
         );
 
+        IndexType::updateOrCreate(
+            ['code' => 'CVS'],
+            [
+                'name' => 'Casa Propia',
+                'is_active' => true,
+                'calculation_mode' => CalculationMode::RATIO,
+                'frequency' => IndexFrequency::MONTHLY,
+            ]
+        );
     }
 }

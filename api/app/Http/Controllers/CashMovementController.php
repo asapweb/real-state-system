@@ -27,11 +27,15 @@ class CashMovementController extends Controller
             $query->whereDate('date', '<=', $request->input('date_to'));
         }
         if ($request->filled('currency')) {
-            $query->whereHas('cashAccount', function ($q) use ($request) {
-                $q->where('currency', $request->input('currency'));
+            $query->where('currency', $request->input('currency'));
+        }
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('concept', 'like', '%' . $request->input('search') . '%')
+                  ->orWhere('reference', 'like', '%' . $request->input('search') . '%');
             });
         }
-        $query->with('cashAccount');
+        $query->with(['cashAccount', 'voucher']);
         $query->orderByDesc('date');
         $movements = $query->paginate($request->input('per_page', 10));
         return CashMovementResource::collection($movements);
@@ -42,6 +46,7 @@ class CashMovementController extends Controller
         $validated = $request->validate([
             'cash_account_id' => 'required|exists:cash_accounts,id',
             'amount' => 'required|numeric|min:0.01',
+            'currency' => 'required|string|in:ARS,USD',
             'direction' => ['required', Rule::in(['in', 'out'])],
             'concept' => 'nullable|string|max:255',
             'reference' => 'nullable|string|max:255',
@@ -49,6 +54,12 @@ class CashMovementController extends Controller
         ]);
 
         $account = CashAccount::findOrFail($validated['cash_account_id']);
+        
+        // Verificar que la moneda del movimiento coincida con la de la cuenta
+        if ($account->currency !== $validated['currency']) {
+            return response()->json(['message' => 'La moneda del movimiento debe coincidir con la moneda de la cuenta.'], 422);
+        }
+        
         if ($validated['direction'] === 'out') {
             $balance = $account->balance;
             if ($balance < $validated['amount']) {
@@ -60,6 +71,7 @@ class CashMovementController extends Controller
             return CashMovement::create([
                 'cash_account_id' => $validated['cash_account_id'],
                 'amount' => $validated['amount'],
+                'currency' => $validated['currency'],
                 'direction' => $validated['direction'],
                 'concept' => $validated['concept'] ?? null,
                 'reference' => $validated['reference'] ?? null,

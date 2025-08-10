@@ -193,7 +193,7 @@ const fetchProperties = async () => {
 onMounted(async () => {
   try {
     const { data } = await axios.get('/api/property-types')
-    propertyTypes.value = data
+    propertyTypes.value = data.data
   } catch (error) {
     console.error('Error al cargar tipos de propiedad:', error)
     emit('error', 'No se pudieron cargar los tipos de propiedad.')

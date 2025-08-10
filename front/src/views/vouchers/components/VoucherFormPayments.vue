@@ -155,7 +155,7 @@ const props = defineProps({
   loadingCashAccounts: Boolean,
 })
 
-const emit = defineEmits(['creationRowChanged'])
+const emit = defineEmits(['creationRowChanged', 'itemsUpdated'])
 
 const showCreationRow = ref(false)
 
@@ -191,6 +191,7 @@ const paymentDifference = computed(() => {
 
 function addPayment() {
   props.form.payments.push({ ...newPayment })
+  emit('itemsUpdated')
   resetNewPayment()
   showCreationRow.value = false
 }

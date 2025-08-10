@@ -210,6 +210,7 @@ async function onFormSubmit(data) {
   formLoading.value = true;
   try {
     await CashMovementService.createCashMovement(data);
+    // await CashMovementService.createCashMovement({ ...form });
     snackbar.success('Movimiento registrado correctamente');
     openForm.value = false;
     editingMovement.value = null;

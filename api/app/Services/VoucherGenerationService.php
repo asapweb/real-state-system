@@ -2,375 +2,495 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Collection as SupportCollection;
-use App\Models\Voucher;
-use App\Models\VoucherItem;
 use App\Models\Contract;
 use App\Models\Booklet;
-use App\Enums\VoucherItemType;
-use App\Exceptions\CollectionGenerationException;
+use App\Enums\ContractExpenseStatus;
+use App\Models\ContractExpense;
+use App\Models\Voucher;
+use App\Models\VoucherItem;
+use App\Models\VoucherType;
+use App\Exceptions\PendingAdjustmentException;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
 class VoucherGenerationService
 {
-    public function previewForMonth(Carbon $period): array
+    public function __construct(
+        protected ContractBillingService $billingService,
+        protected VoucherService $voucherService
+    ) {}
+
+    /**
+     * Generación manual desde el Editor de Cobranzas.
+     * Reemplaza los vouchers existentes para ese contrato + período.
+     */
+    public function generateFromEditor(Contract $contract, string $period, array $items): void
     {
-        $period = normalizePeriodOrFail($period);
-
-        $summary = [
-            'period' => $period->format('Y-m'),
-            'total_contracts' => 0,
-            'already_generated' => 0,
-            'pending_generation' => 0,
-            'blocked_due_to_missing_months' => 0,
-            'blocked_due_to_previous_pending' => 0,
-            'blocked_contracts' => [],
-        ];
-
-        Contract::activeDuring($period)
-            ->with(['clients', 'adjustments', 'vouchers'])
-            ->get()
-            ->each(function ($contract) use (&$summary, $period) {
-                $summary['total_contracts']++;
-                if ($this->hasPendingVouchersForPreviousPeriods($contract, $period)) {
-                    $tenant = $contract->mainTenant();
-                    $summary['blocked_due_to_previous_pending']++;
-                    $summary['blocked_contracts'][] = [
-                        'id' => $contract->id,
-                        'name' => $tenant?->name . ' ' . $tenant?->last_name,
-                        'reason' => 'pending_previous_periods',
-                    ];
-                    return;
-                }
-
-                if ($this->hasMissingVouchers($contract, $period)) {
-                    $tenant = $contract->mainTenant();
-                    $summary['blocked_due_to_missing_months']++;
-                    $summary['blocked_contracts'][] = [
-                        'id' => $contract->id,
-                        'name' => $tenant?->name . ' ' . $tenant?->last_name,
-                        'reason' => 'missing_months',
-                        'missing_period' => $this->firstMissingMonth($contract, $period)?->format('Y-m'),
-                    ];
-                    return;
-                }
-
-                $existingCurrencies = $contract->vouchers()
-                    ->whereHas('booklet.voucherType', function ($query) {
-                        $query->where('code', 'COB');
-                    })
-                    ->where('period', $period->format('Y-m'))
-                    ->where('status', '!=', 'canceled')
-                    ->pluck('currency')
-                    ->unique();
-
-                $items = $this->generateItemsForContract($contract, $period);
-                $allCurrencies = collect($items)->pluck('currency')->unique();
-
-                $summary['already_generated'] += $existingCurrencies->count();
-                $summary['pending_generation'] += $allCurrencies->diff($existingCurrencies)->count();
+        \Log::info('generateFromEditor');
+        \Log::info('debug', ['items' => $items]);
+        DB::transaction(function () use ($contract, $period, $items) {
+            $grouped = collect($items)->groupBy(function ($item) use ($contract) {
+                return $item['id'] === 'rent'
+                    ? $contract->currency
+                    : ContractExpense::findOrFail((int) str_replace('expense-', '', $item['id']))->currency;
             });
+            foreach ($grouped as $currency => $groupItems) {
+                $voucherItems = [];
+                $selectedExpenseIds = [];
+                \Log::info('--------------------------------');
+                \Log::info('groupItems',['groupItems' => $groupItems]);
+                foreach ($groupItems as $item) {
+                    \Log::info('item',['item' => $item]);
+                    if ($item['type'] === 'rent') {
+                        $voucherItems[] = [
+                            'description' => $item['description'],
+                            'quantity' => 1,
+                            'unit_price' => $item['amount'],
+                            'type' => 'rent',
+                        ];
+                    } elseif ($item['type'] === 'expense') {
+                        $expenseId = (int) str_replace('expense-', '', $item['id']);
+                        \Log::info('expenseId',['expenseId' => $item['type']]);
+                        \Log::info('expenseId',['expenseId' => $expenseId]);
+                        $expense = ContractExpense::findOrFail($expenseId);
 
-        $summary['status'] = match (true) {
-            $summary['total_contracts'] === 0 => 'empty',
-            $summary['pending_generation'] === 0
-                && $summary['blocked_due_to_missing_months'] === 0
-                && $summary['blocked_due_to_previous_pending'] === 0 => 'complete',
-            $summary['pending_generation'] > 0 => 'partial',
-            default => 'blocked',
-        };
+                        $voucherItems[] = [
+                            'description' => $item['description'],
+                            'quantity' => 1,
+                            'unit_price' => $item['amount'],
+                            'type' => 'expense',
+                        ];
 
-        return $summary;
-    }
-
-    public function generateForMonth(Carbon $period): SupportCollection
-    {
-        $period = normalizePeriodOrFail($period);
-
-        // Obtener un booklet compatible con COB
-        $booklet = Booklet::whereHas('voucherType', function ($query) {
-            $query->where('code', 'COB');
-        })->first();
-
-        if (!$booklet) {
-            throw new \Exception('No se encontró un booklet compatible con tipo COB');
-        }
-
-        $contracts = Contract::activeDuring($period)
-            ->with(['vouchers', 'expenses'])
-            ->get();
-
-        $generated = collect();
-
-        foreach ($contracts as $contract) {
-            if ($this->hasPendingVouchersForPreviousPeriods($contract, $period)) {
-                \Log::debug("Bloqueado: contrato {$contract->id} tiene vouchers previos pendientes");
-                continue;
-            }
-
-            $tenant = $contract->mainTenant();
-            \Log::debug("Procesando contrato {$contract->id} para cliente {$tenant?->name}");
-
-            $contract->unsetRelation('expenses');
-            $contract->load('expenses');
-
-            $items = $this->generateItemsForContract($contract, $period);
-            \Log::debug("Ítems generados", ['items' => $items]);
-
-            $itemsGrouped = collect($items)->groupBy('currency');
-            \Log::debug("Items agrupados por moneda", ['monedas' => $itemsGrouped->keys()]);
-
-            $alreadyGeneratedCurrencies = $contract->vouchers()
-                ->whereHas('booklet.voucherType', function ($query) {
-                    $query->where('code', 'COB');
-                })
-                ->where('period', $period->format('Y-m'))
-                ->where('status', '!=', 'canceled')
-                ->pluck('currency')
-                ->unique();
-
-            foreach ($itemsGrouped as $currency => $groupedItems) {
-                \Log::debug("Procesando moneda {$currency}");
-
-                if ($alreadyGeneratedCurrencies->contains($currency)) {
-                    \Log::debug("Saltando moneda ya generada: {$currency}");
-                    continue;
+                        $selectedExpenseIds[] = $expense->id;
+                    }
                 }
+                \Log::info('========================================');
+                \Log::info('voucherItems',['voucherItems' => $voucherItems]);
+                \Log::info('groupItems',['groupItems' => $groupItems]);
+                // $voucherType = VoucherType::where('short_name', 'COB')->firstOrFail();
+                // $booklet = $voucherType->booklets()->where('currency', $currency)->firstOrFail();
+                $booklet = $contract->collectionBooklet;
 
-                \Log::debug("Verificando ítems antes de sumar", [
-                    'currency' => $currency,
-                    'groupedItems' => $groupedItems->toArray(),
-                ]);
-                $totalAmount = collect($groupedItems)->sum(function ($item) {
-                    \Log::debug('Item en suma', ['item' => $item]);
-                    return $item['subtotal'] ?? 0;
-                });
+                $existingVoucher = $contract->vouchers()
+                    ->where('period', $period)
+                    ->where('currency', $currency)
+                    ->where('status', 'draft')
+                    ->where('generated_from_collection', true)
+                    ->first();
 
-                \Log::debug("Total a cobrar en {$currency}: {$totalAmount}");
-
-                $client = $tenant->client()->with('documentType', 'taxCondition')->first();
-
-                $voucher = Voucher::create([
-                    'booklet_id' => $booklet->id,
-                    'number' => $this->generateVoucherNumber($booklet),
-                    'client_id' => $tenant->client_id,
-                    'client_name' => $client->name,
-                    'client_address' => $client->address,
-                    'client_document_type_name' => $client->documentType?->name,
-                    'client_document_number' => $client->document_number,
-                    'client_tax_condition_name' => $client->taxCondition?->name,
-                    'client_tax_id_number' => $client->tax_id_number,
-                    'contract_id' => $contract->id,
-                    'currency' => $currency,
-                    'issue_date' => now(),
-                    'due_date' => $this->calculateDueDate($contract, $period),
-                    'period' => $period->format('Y-m'),
-                    'status' => 'draft',
-                    'total' => $totalAmount,
-                ]);
-
-                foreach ($groupedItems as $item) {
-                    $createdItem = $voucher->items()->create([
-                        'type' => $item['type'],
-                        'description' => $item['description'],
-                        'quantity' => $item['quantity'],
-                        'unit_price' => $item['unit_price'],
-                        'subtotal' => $item['subtotal'],
-                        'meta' => $item['meta'] ?? [],
+                if ($existingVoucher) {
+                    // 🔄 Eliminar gastos actualmente vinculados a este voucher
+                    ContractExpense::where('voucher_id', $existingVoucher->id)->update([
+                        'voucher_id' => null,
+                        'included_in_voucher' => false,
+                        'status' => ContractExpenseStatus::PENDING,
                     ]);
 
-                    if (
-                        $createdItem->type === VoucherItemType::SERVICE &&
-                        !empty($createdItem->meta['expense_id'])
-                    ) {
-                        \App\Models\ContractExpense::where('id', $createdItem->meta['expense_id'])
-                            ->update(['included_in_collection' => true]);
+                    // 🔄 Actualizar el voucher existente
+                    app(VoucherService::class)->updateFromArray($existingVoucher, [
+                        'booklet_id' => $existingVoucher->booklet_id,
+                        'contract_id' => $existingVoucher->contract_id,
+                        'client_id' => $existingVoucher->client_id,
+                        'client_name' => $existingVoucher->client_name,
+                        'client_address' => $existingVoucher->client_address,
+                        'currency' => $existingVoucher->currency,
+                        'period' => $existingVoucher->period,
+                        'issue_date' => $existingVoucher->issue_date?->toDateString() ?? now()->toDateString(),
+                        'due_date' => $existingVoucher->due_date?->toDateString() ?? now()->toDateString(),
+                        'items' => $voucherItems,
+                        'notes' => $existingVoucher->notes,
+                        'generated_from_collection' => true,
+                    ]);
+
+                    $voucher = $existingVoucher;
+                } else {
+                    \Log::info('booklet',['booklet' => $booklet->voucherType->short_name]);
+                    \Log::info('voucherItems',['voucherItems' => $voucherItems]);
+                    // 🆕 Crear nuevo voucher
+
+                    $client = $contract->mainTenant->client;
+                    $voucher = app(VoucherService::class)->createFromArray([
+                        'booklet_id' => $booklet->id,
+                        'voucher_type_id' => $booklet->voucher_type_id,
+                        'voucher_type_short_name' => $booklet->voucherType->short_name,
+                        'voucher_type_letter' => $booklet->voucherType->letter,
+                        'client_name' => $client->full_name,
+                        'client_address' => $client->address,
+                        'contract_id' => $contract->id,
+                        'client_id' => $contract->mainTenant->client_id,
+                        'currency' => $currency,
+                        'period' => $period,
+                        'issue_date' => now()->toDateString(),
+                        'due_date' => now()->toDateString(),
+                        'items' => $voucherItems,
+                        'generated_from_collection' => true,
+                    ]);
+                }
+
+                // ✅ Marcar gastos seleccionados como incluidos
+                if (!empty($selectedExpenseIds)) {
+                    ContractExpense::whereIn('id', $selectedExpenseIds)->update([
+                        'voucher_id' => $voucher->id,
+                        'included_in_voucher' => true,
+                        'status' => ContractExpenseStatus::BILLED,
+                    ]);
+                }
+            }
+
+            // Eliminar vouchers que no corresponden a las monedas seleccionadas
+            $currenciesFromForm = collect($items)->map(function ($item) use ($contract) {
+                return $item['id'] === 'rent'
+                    ? $contract->currency
+                    : ContractExpense::findOrFail((int) str_replace('expense-', '', $item['id']))->currency;
+            })->unique();
+
+            $existingVouchers = $contract->vouchers()
+                ->where('period', $period)
+                ->where('status', 'draft')
+                ->where('generated_from_collection', true)
+                ->get();
+
+            $orphanedVouchers = $existingVouchers->filter(function ($voucher) use ($currenciesFromForm) {
+                return ! $currenciesFromForm->contains($voucher->currency);
+            });
+
+            foreach ($orphanedVouchers as $voucher) {
+                // 🔄 Desvincular gastos
+                ContractExpense::where('voucher_id', $voucher->id)->update([
+                    'voucher_id' => null,
+                    'included_in_voucher' => false,
+                    'status' => ContractExpenseStatus::PENDING,
+                ]);
+
+                // ❌ Eliminar el voucher
+                $voucher->delete();
+            }
+        });
+    }
+
+    /**
+     * Genera la cobranza mensual de un contrato para un período específico.
+     *
+     * @throws PendingAdjustmentException
+     */
+    public function generateForMonth(Contract $contract, string|Carbon $period): void
+    {
+        $period = normalizePeriodOrFail($period);
+
+        // 1️⃣ Obtener cálculo previo (renta, gastos, ajuste pendiente)
+        $billing = $this->billingService->getBillingPreview($contract, $period);
+
+        // 2️⃣ Validar ajuste pendiente
+        if ($billing['pending_adjustment']) {
+            throw new PendingAdjustmentException(
+                "El contrato {$contract->id} tiene un ajuste pendiente para {$period->format('Y-m')}."
+            );
+        }
+
+        // 3️⃣ Validar continuidad de cobranzas (no generar si hay gaps previos)
+        $this->validateNoGap($contract, $period);
+
+        // 4️⃣ Generar voucher principal (renta + gastos en moneda del contrato)
+        $this->generatePrimaryVoucher($contract, $period, $billing);
+
+        // 5️⃣ Generar vouchers adicionales para gastos en otras monedas
+        $this->generateForeignCurrencyVouchers($contract, $period, $billing);
+    }
+
+    /**
+     * Valida que no haya períodos previos sin generar.
+     */
+    protected function validateNoGap(Contract $contract, Carbon $period): void
+    {
+        $lastVoucherPeriod = $contract->vouchers()
+            ->where('status', 'issued')
+            ->max('period');
+
+        if ($lastVoucherPeriod) {
+            $expectedNext = Carbon::parse($lastVoucherPeriod)->addMonth()->startOfMonth();
+            if ($expectedNext->lt($period)) {
+                throw new \RuntimeException(
+                    "No se puede generar {$period->format('Y-m')}: hay períodos previos sin cobrar (última cobranza: {$lastVoucherPeriod})."
+                );
+            }
+        }
+    }
+
+    /**
+     * Genera el voucher principal en la moneda del contrato.
+     */
+    protected function generatePrimaryVoucher(Contract $contract, Carbon $period, array $billing): void
+    {
+        $voucherType = VoucherType::where('short_name', 'FAC')->firstOrFail();
+
+        DB::transaction(function () use ($contract, $period, $billing, $voucherType) {
+            // Crear voucher principal
+            $voucher = Voucher::create([
+                'voucher_type_id' => $voucherType->id,
+                'voucher_type_short_name' => $voucherType->short_name,
+                'voucher_type_letter' => 'X', // Factura X
+                'contract_id' => $contract->id,
+                'client_id' => $contract->mainTenant->client_id,
+                'currency' => $contract->currency,
+                'period' => $period,
+                'status' => 'draft',
+                'issue_date' => now(),
+                'due_date' => now()->endOfMonth(),
+                'total' => 0,
+            ]);
+
+            // Agregar ítem de renta
+            VoucherItem::create([
+                'voucher_id' => $voucher->id,
+                'type' => 'rent',
+                'description' => "Alquiler " . $period->translatedFormat('F Y'),
+                'quantity' => 1,
+                'unit_price' => $billing['rent'],
+                'subtotal' => $billing['rent'],
+                'vat_amount' => 0,
+                'subtotal_with_vat' => $billing['rent'],
+                'meta' => ['source' => 'rent'],
+            ]);
+
+            $total = $billing['rent'];
+
+            // Agregar gastos en la moneda del contrato
+            foreach ($billing['expenses'] as $expense) {
+                if ($expense['currency'] === $contract->currency) {
+                    VoucherItem::create([
+                        'voucher_id' => $voucher->id,
+                        'type' => 'expense',
+                        'description' => "Gastos " . $period->translatedFormat('F Y'),
+                        'quantity' => 1,
+                        'unit_price' => $expense['amount'],
+                        'subtotal' => $expense['amount'],
+                        'vat_amount' => 0,
+                        'subtotal_with_vat' => $expense['amount'],
+                        'meta' => ['source' => 'expense'],
+                    ]);
+                    $total += $expense['amount'];
+                }
+            }
+
+            // Actualizar total del voucher
+            $voucher->update(['total' => $total]);
+        });
+    }
+
+    /**
+     * Genera vouchers separados para gastos en monedas distintas.
+     */
+    protected function generateForeignCurrencyVouchers(Contract $contract, Carbon $period, array $billing): void
+    {
+        $voucherType = VoucherType::where('short_name', 'FAC')->firstOrFail();
+
+        foreach ($billing['expenses'] as $expense) {
+            if ($expense['currency'] !== $contract->currency) {
+                DB::transaction(function () use ($contract, $period, $expense, $voucherType) {
+                    $voucher = Voucher::create([
+                        'voucher_type_id' => $voucherType->id,
+                        'voucher_type_short_name' => $voucherType->short_name,
+                        'voucher_type_letter' => 'X',
+                        'contract_id' => $contract->id,
+                        'client_id' => $contract->mainTenant->client_id,
+                        'currency' => $expense['currency'],
+                        'period' => $period,
+                        'status' => 'draft',
+                        'issue_date' => now(),
+                        'due_date' => now()->endOfMonth(),
+                        'total' => $expense['amount'],
+                    ]);
+
+                    VoucherItem::create([
+                        'voucher_id' => $voucher->id,
+                        'type' => 'expense',
+                        'description' => "Gastos " . $period->translatedFormat('F Y'),
+                        'quantity' => 1,
+                        'unit_price' => $expense['amount'],
+                        'subtotal' => $expense['amount'],
+                        'vat_amount' => 0,
+                        'subtotal_with_vat' => $expense['amount'],
+                        'meta' => ['source' => 'expense'],
+                    ]);
+                });
+            }
+        }
+    }
+
+    /**
+     * Generación automática de vouchers desde contrato + período.
+     * Se utiliza en procesos masivos o comandos.
+     *
+     * @param Contract $contract
+     * @param Carbon $period
+     * @param array $items  // [{id: string, amount: float}]
+     * @return array<Voucher>
+     */
+    public function generateForPeriod(Contract $contract, Carbon $period, array $items): array
+    {
+        \Log::info("");
+        \Log::info("------------------------------------------------------------------------------------------------------------------------------");
+        \Log::info("");
+        return DB::transaction(function () use ($contract, $period, $items) {
+            // $voucherType = VoucherType::where('short_name', 'FAC')->firstOrFail();
+            $voucherType = VoucherType::where('id', 17)->firstOrFail();
+            $voucherService = app(VoucherService::class);
+
+            // Obtener talonario interno FAC X
+            // $booklet = Booklet::whereHas('voucherType', fn($q) =>
+            //     $q->where('short_name', 'FAC')
+            // )->where('internal', true)->firstOrFail();
+            $booklet = Booklet::where('id', 17)->firstOrFail();
+            \Log::info("items",  $items);
+            // Agrupar ítems por moneda
+            $itemsByCurrency = $this->groupItemsByCurrency($contract, $items);
+
+            $vouchers = [];
+            \Log::info("itemsByCurrency",  $itemsByCurrency);
+            foreach ($itemsByCurrency as $currency => $currencyItems) {
+                \Log::info("currency",  $currencyItems);
+                // Buscar voucher borrador existente por contrato, período y moneda
+                $voucher = $contract->vouchers()
+                    ->where('voucher_type_id', $voucherType->id)
+                    ->where('status', 'draft')
+                    ->whereDate('period', $period)
+                    ->where('currency', $currency)
+                    ->first();
+
+                if ($voucher) {
+                    \Log::info("voucher encontrado");
+                    // 🔄 Actualizar ítems en el borrador existente
+                    $voucher->items()->delete();
+
+
+                    foreach ($currencyItems as $item) {
+                        \Log::info("item",  $item);
+                        \Log::info("Crearía item",  [
+                            'type' => $this->resolveItemType($item['id']),
+                            'description' => $item['description'],
+                            'quantity' => 1,
+                            'unit_price' => $item['amount'],
+                            'subtotal' => $item['amount'],
+                            'vat_amount' => 0,
+                            'subtotal_with_vat' => $item['amount'],
+                            'meta' => ['source' => 'generated'],
+                        ]);
+                        $voucher->items()->create([
+                            'type' => $this->resolveItemType($item['id']),
+                            'description' => $item['description'],
+                            'quantity' => 1,
+                            'unit_price' => $item['amount'],
+                            'subtotal' => $item['amount'],
+                            'vat_amount' => 0,
+                            'subtotal_with_vat' => $item['amount'],
+                            'meta' => ['source' => 'generated'],
+                        ]);
+
+                        // Si es gasto, marcarlo como incluido
+                        if (str_starts_with($item['id'], 'expense-')) {
+                            $expenseId = (int) str_replace('expense-', '', $item['id']);
+                            ContractExpense::where('id', $expenseId)->update([
+                                'voucher_id' => $voucher->id,
+                                'included_in_voucher' => true,
+                            ]);
+                        }
+                    }
+
+                    // Recalcular totales
+                    app(\App\Services\VoucherCalculationService::class)->calculateVoucher($voucher);
+                    $voucher->save();
+                } else {
+                    \Log::info("no existe voucher para la moneda y lo crea");
+                    // 🆕 Crear voucher nuevo en esta moneda
+                    $voucherData = [
+                        'voucher_type_short_name' => 'FAC',
+                        'booklet_id' => $booklet->id,
+                        'contract_id' => $contract->id,
+                        'client_id' => $contract->mainTenant?->client_id,
+                        'client_name' => $contract->mainTenant?->client?->full_name,
+                        'currency' => $currency,
+                        'period' => $period->toDateString(),
+                        'issue_date' => now()->toDateString(),
+                        'due_date' => now()->copy()->addDays(10)->toDateString(),
+                        'notes' => 'Cobranza mensual generada automáticamente.',
+                        'items' => collect($currencyItems)->map(fn ($item) => [
+                            'type' => $this->resolveItemType($item['id']),
+                            'description' => $item['description'],
+                            'quantity' => 1,
+                            'unit_price' => $item['amount'],
+                            'subtotal' => $item['amount'],
+                            'vat_amount' => 0,
+                            'subtotal_with_vat' => $item['amount'],
+                            'meta' => ['source' => 'generated'],
+                        ])->toArray(),
+                    ];
+
+                    $voucher = $voucherService->createFromArray($voucherData);
+
+                    // 🔗 Marcar gastos incluidos en este nuevo voucher
+                    foreach ($currencyItems as $item) {
+                        if (str_starts_with($item['id'], 'expense-')) {
+                            $expenseId = (int) str_replace('expense-', '', $item['id']);
+                            ContractExpense::where('id', $expenseId)->update([
+                                'voucher_id' => $voucher->id,
+                                'included_in_voucher' => true,
+                            ]);
+                        }
                     }
                 }
 
-                $generated->push($voucher);
-            }
-        }
-
-        if ($generated->isEmpty()) {
-            throw new CollectionGenerationException([
-                'reason' => 'pending_previous_periods',
-                'message' => 'No se pueden generar vouchers porque hay períodos previos pendientes.',
-            ]);
-        }
-
-        return $generated;
-    }
-
-    protected function firstMissingMonth(Contract $contract, Carbon $period): ?Carbon
-    {
-        $startMonth = normalizePeriodOrFail($contract->start_date);
-        $targetMonth = normalizePeriodOrFail($period);
-
-        $possibleCurrencies = $contract->expenses()
-            ->where('paid_by', 'agency')
-            ->pluck('currency')
-            ->merge([$contract->currency])
-            ->unique();
-
-        $validVouchers = $contract->vouchers()
-            ->whereHas('booklet.voucherType', function ($query) {
-                $query->where('code', 'COB');
-            })
-            ->where('status', '!=', 'canceled')
-            ->get()
-            ->groupBy('period');
-
-        while ($startMonth->lt($targetMonth)) {
-            $monthKey = $startMonth->format('Y-m');
-            $vouchersForMonth = $validVouchers->get($monthKey);
-
-            foreach ($possibleCurrencies as $currency) {
-                $hasCurrency = $vouchersForMonth?->contains('currency', $currency);
-                if (!$hasCurrency) {
-                    return $startMonth;
-                }
+                $vouchers[] = $voucher->load('items');
             }
 
-            $startMonth->addMonth();
-        }
-
-        return null;
+            return $vouchers;
+        });
     }
 
-    protected function hasPendingVouchersForPreviousPeriods(Contract $contract, Carbon $period): bool
+    /**
+     * Agrupa ítems seleccionados por moneda.
+     */
+    protected function groupItemsByCurrency(Contract $contract, array $items): array
     {
-        $contract->unsetRelation('vouchers');
-        $contract->load('vouchers');
+        $grouped = [];
 
-        $startMonth = normalizePeriodOrFail($contract->start_date);
-        $targetMonth = normalizePeriodOrFail($period);
-
-        $vouchersByPeriod = $contract->vouchers()
-            ->whereHas('booklet.voucherType', function ($query) {
-                $query->where('code', 'COB');
-            })
-            ->where('status', '!=', 'canceled')
-            ->get()
-            ->groupBy('period');
-
-        $possibleCurrencies = $contract->expenses()
-            ->where('paid_by', 'agency')
-            ->pluck('currency')
-            ->merge([$contract->currency])
-            ->unique();
-
-        while ($startMonth->lt($targetMonth)) {
-            $monthKey = $startMonth->format('Y-m');
-            $vouchersForMonth = $vouchersByPeriod->get($monthKey) ?? collect();
-
-            foreach ($possibleCurrencies as $currency) {
-                $hasCurrency = $vouchersForMonth->contains('currency', $currency);
-                if (!$hasCurrency) {
-                    return true;
-                }
-            }
-
-            $startMonth->addMonth();
-        }
-
-        return false;
-    }
-
-    protected function hasMissingVouchers(Contract $contract, Carbon $period): bool
-    {
-        return $this->firstMissingMonth($contract, $period) !== null;
-    }
-
-    protected function generateItemsForContract(Contract $contract, Carbon $period): \Illuminate\Support\Collection
-    {
-        $items = collect();
-
-        // Alquiler
-        $rentAmount = $contract->monthly_amount;
-        if ($rentAmount > 0) {
-            $items->push([
-                'type' => VoucherItemType::RENT,
-                'description' => 'Alquiler',
-                'quantity' => 1,
-                'unit_price' => $rentAmount,
-                'subtotal' => $rentAmount,
-                'currency' => $contract->currency,
-                'meta' => [],
-            ]);
-        }
-
-        // Comisión
-        $commissionAmount = $contract->commission_amount;
-        if ($commissionAmount > 0) {
-            $items->push([
-                'type' => VoucherItemType::COMMISSION,
-                'description' => 'Comisión',
-                'quantity' => 1,
-                'unit_price' => $commissionAmount,
-                'subtotal' => $commissionAmount,
-                'currency' => $contract->currency,
-                'meta' => [],
-            ]);
-        }
-
-        // Seguro
-        $insuranceAmount = $contract->insurance_amount;
-        if ($insuranceAmount > 0) {
-            $items->push([
-                'type' => VoucherItemType::INSURANCE,
-                'description' => 'Seguro',
-                'quantity' => 1,
-                'unit_price' => $insuranceAmount,
-                'subtotal' => $insuranceAmount,
-                'currency' => $contract->currency,
-                'meta' => [],
-            ]);
-        }
-
-        // Servicios
-        $contract->expenses()
-            ->where('paid_by', 'agency')
-            ->where('included_in_collection', false)
-            ->get()
-            ->each(function ($expense) use ($items) {
-                $items->push([
-                    'type' => VoucherItemType::SERVICE,
-                    'description' => $expense->description,
-                    'quantity' => 1,
-                    'unit_price' => $expense->amount,
-                    'subtotal' => $expense->amount,
-                    'currency' => $expense->currency,
-                    'meta' => [
-                        'expense_id' => $expense->id,
-                    ],
+        foreach ($items as $item) {
+            if ($item['id'] === 'expense-rent') {
+                $grouped[$contract->currency][] = [
+                    'id' => 'rent',
+                    'description' => "Renta {$contract->id}",
+                    'amount' => $item['amount'],
+                ];
+            } elseif (str_starts_with($item['id'], 'expense-')) {
+                $expenseId = (int) str_replace('expense-', '', $item['id']);
+                $expense = ContractExpense::findOrFail($expenseId);
+                $grouped[$expense->currency][] = [
+                    'id' => "expense-{$expenseId}",
+                    'description' => ($expense->description === null ? 'Gasto' : $expense->description),
+                    'amount' => $item['amount'],
+                ];
+            } else {
+                throw ValidationException::withMessages([
+                    'items' => "Ítem desconocido: {$item['id']}",
                 ]);
-            });
-
-        // Penalizaciones
-        $penaltyAmount = $contract->penalty_amount;
-        if ($penaltyAmount > 0) {
-            $items->push([
-                'type' => VoucherItemType::PENALTY,
-                'description' => 'Penalización',
-                'quantity' => 1,
-                'unit_price' => $penaltyAmount,
-                'subtotal' => $penaltyAmount,
-                'currency' => $contract->currency,
-                'meta' => [],
-            ]);
+            }
         }
 
-        return $items;
+        return $grouped;
     }
 
-    protected function calculateDueDate(Contract $contract, Carbon $period): Carbon
+    /**
+     * Determina el tipo de ítem del voucher.
+     */
+    protected function resolveItemType(string $itemId): string
     {
-        return now()->addDays(10);
+        if ($itemId === 'expense-rent') {
+            return 'rent';
+        }
+        if (str_starts_with($itemId, 'expense-')) {
+            return 'expense';
+        }
+        return 'other';
     }
 
-    protected function generateVoucherNumber(Booklet $booklet): string
-    {
-        return $booklet->generateNextNumber();
-    }
 }

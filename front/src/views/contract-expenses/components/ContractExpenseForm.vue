@@ -5,19 +5,31 @@
     </v-card-title>
     <v-card-text>
       <v-form @submit.prevent="submitForm">
-        <div class="d-flex flex-column gap-4">
-          <!-- Contrato (solo cuando no hay contractId fijo) -->
-          <ContractAutocomplete
+        <v-row>
+          <v-col cols="12" md="6">
+            <ContractAutocomplete
             v-if="!props.contractId"
             v-model="form.contract_id"
             :error-messages="v$.contract_id?.$errors.map(e => e.$message)"
           />
-
-          <!-- Tipo de servicio -->
-          <ServiceTypeSelect
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col>
+            <ServiceTypeSelect
             v-model="form.service_type_id"
             :error-messages="v$.service_type_id.$errors.map(e => e.$message)"
+            class="flex-grow-1"
           />
+          </v-col>
+        </v-row>
+          <!-- Contrato (solo cuando no hay contractId fijo) -->
+
+        <div>
+
+
+          <!-- Tipo de servicio -->
+
 
           <!-- Monto y moneda -->
           <div class="d-flex gap-2">
@@ -193,7 +205,7 @@ watch(
 const submitForm = async () => {
   const valid = await v$.value.$validate()
   if (!valid) return
-  
+
   const payload = { ...form }
 
   // Si está en estado validated, eliminamos campos bloqueados

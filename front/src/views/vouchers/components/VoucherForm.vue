@@ -33,7 +33,7 @@
     </div>
 
     <!-- Conceptos -->
-    <div class="mt-15">
+    <div v-if="!['RCB', 'RPG'].includes(form.voucher_type_short_name)" class="mt-15">
       <v-divider class="mt-15 mb-5"></v-divider>
       <VoucherFormItems
         :form="form"
@@ -145,6 +145,8 @@ const showPaymentsSection = computed(() => {
   return form?.voucher_type_short_name === 'RCB' || form?.voucher_type_short_name === 'RPG'
 })
 const showApplicationsSection = computed(() => {
+  console.log(form )
+  console.log(form.voucher_type_short_name === 'RCB')
   return form?.voucher_type_short_name === 'RCB' || form?.voucher_type_short_name === 'RPG'
   // return ['RCB', 'RCP', 'N/C'].includes(form.voucher_type_short_name">
 })

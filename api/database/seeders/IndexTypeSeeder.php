@@ -18,9 +18,10 @@ class IndexTypeSeeder extends Seeder
         IndexType::updateOrCreate(
             ['code' => 'CREEBBA'],
             [
-                'name' => 'Índice CREEBBA',
+                'name' => 'IPC CREEBBA',
                 'is_active' => true,
                 'calculation_mode' => CalculationMode::RATIO,
+                'is_cumulative' => true,
                 'frequency' => IndexFrequency::MONTHLY,
             ]
         );
@@ -29,9 +30,10 @@ class IndexTypeSeeder extends Seeder
         IndexType::updateOrCreate(
             ['code' => 'ICL'],
             [
-                'name' => 'Índice de Costo de la Construcción',
+                'name' => 'Índice de Contratos de Locación',
                 'is_active' => true,
                 'calculation_mode' => CalculationMode::RATIO,
+                'is_cumulative' => true,
                 'frequency' => IndexFrequency::DAILY,
             ]
         );
@@ -42,6 +44,7 @@ class IndexTypeSeeder extends Seeder
                 'name' => 'Unidad de Valor Adquisitivo',
                 'is_active' => true,
                 'calculation_mode' => CalculationMode::RATIO,
+                'is_cumulative' => true,
                 'frequency' => IndexFrequency::DAILY,
             ]
         );
@@ -52,6 +55,7 @@ class IndexTypeSeeder extends Seeder
                 'name' => 'Casa Propia',
                 'is_active' => true,
                 'calculation_mode' => CalculationMode::RATIO,
+                'is_cumulative' => false,
                 'frequency' => IndexFrequency::MONTHLY,
             ]
         );

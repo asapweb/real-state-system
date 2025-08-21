@@ -21,7 +21,9 @@
     item-value="id"
     @update:options="fetchAdjustments"
   >
-    <template #[`item.effective_date`]="{ item }">{{ formatDate(item.effective_date) }}</template>
+    <template #[`item.effective_date`]="{ item }">
+      {{ formatDate(item.effective_date) }}
+    </template>
 
     <template #[`item.contract`]="{ item }">
       <div v-if="item.contract">
@@ -35,26 +37,41 @@
       <span v-else class="text-grey">—</span>
     </template>
 
-    <template #[`item.type`]="{ item }">{{ adjustmentLabel(item.type) }}</template>
+    <template #[`item.type`]="{ item }">
+      <span v-if="item.type === 'index' && item.index_type">{{ item.index_type.code }}</span>
+      <span v-else>{{ adjustmentLabel(item.type) }}</span>
+    </template>
 
     <template #[`item.index_type`]="{ item }">
       <span v-if="item.type === 'index' && item.index_type">{{ item.index_type.name }}</span>
       <span v-else class="text-grey">—</span>
     </template>
-
     <template #[`item.value`]="{ item }">
+
       <template v-if="item.type === 'percentage'">{{ item.value !== null ? `${item.value}%` : '—' }}</template>
       <template v-else-if="item.type === 'fixed' || item.type === 'negotiated'">{{ item.value !== null ? formatMoney(item.value, item.contract?.currency || '$') : '—' }}</template>
       <template v-else-if="item.type === 'index'">
-        <span v-if="item.value !== null">{{ item.value }}%</span>
+        <span v-if="item.value !== null">
+            <a href="#" @click.prevent="showIndexCalc(item)" class="text-primary text-decoration-underline" title="Ver cálculo">
+            {{ item.value }}%
+          </a>
+        </span>
         <span v-else class="text-grey">Pendiente</span>
       </template>
       <template v-else>—</template>
     </template>
 
+    <template #[`item.base_amount`]="{ item }">
+      {{ formatMoney(item.base_amount, item.contract?.currency || '$') }}
+    </template>
+
     <template #[`item.applied_amount`]="{ item }">
       <template v-if="item.applied_amount !== null">{{ formatMoney(item.applied_amount, item.contract?.currency || '$') }}</template>
       <template v-else><span class="text-grey">—</span></template>
+    </template>
+
+    <template #[`item.contract_start_date`]="{ item }">
+      {{ formatDate(item.contract?.start_date) }}
     </template>
 
     <template #[`item.applied_at`]="{ item }">
@@ -87,6 +104,27 @@
       </div>
     </template>
   </v-data-table-server>
+
+  <!-- Modal de cálculo de índice -->
+  <v-dialog v-model="showIndexCalcDialog" max-width="500">
+    <v-card>
+      <v-card-title class="text-h6">Cálculo de índice</v-card-title>
+      <v-card-text>
+        <!-- INSERT_YOUR_CODE -->
+        <div v-if="indexCalcPeriod">
+              Valor inicial: {{ indexCalcPeriod.index_audit.start.value }} ({{ formatDate(indexCalcPeriod.index_audit.start.date) }})<br>
+              Valor final: {{ indexCalcPeriod.index_audit.final.value }} ({{ formatDate(indexCalcPeriod.index_audit.final.date) }})<br>
+              Factor: {{ indexCalcPeriod.factor }}<br>
+              Porcentaje: {{ indexCalcPeriod.value }}%<br>
+
+        </div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn text @click="showIndexCalcDialog = false">Cerrar</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 
   <!-- Dialogo de selección de período -->
   <v-dialog v-model="bulkDialog" max-width="400">
@@ -174,6 +212,8 @@ const loading = ref(false)
 const total = ref(0)
 const assigningIndex = ref(null)
 const applyingAdjustment = ref(null)
+const showIndexCalcDialog = ref(false)
+const indexCalcPeriod = ref(new Date().toISOString().slice(0, 7))
 
 // Opciones y filtros
 const options = reactive({ page: 1, itemsPerPage: 10, sortBy: [{ key: 'effective_date', order: 'asc' }] })
@@ -185,7 +225,7 @@ const clientOptions = ref([])
 
 // Bulk
 const bulkDialog = ref(false)
-const bulkPeriod = ref('')
+const bulkPeriod = ref(new Date().toISOString().slice(0, 7))
 const bulkAction = ref(null)
 const bulkLoading = ref(false)
 const showBulkResultDialog = ref(false)
@@ -193,20 +233,19 @@ const activeTab = ref('success')
 const bulkResults = reactive({ total: 0, success: [], ignored: [], failed: [] })
 
 const headers = [
-    { title: 'Contrato', key: 'contract', sortable: false },
-    { title: 'Tipo', key: 'type', sortable: false },
-    { title: 'Índice', key: 'index_type', sortable: false },
-    { title: 'Inicio ', key: 'contract_start_date', sortable: false },
-    { title: 'Ajuste', key: 'effective_date', sortable: true },
-    { title: 'Valor', key: 'value', sortable: true },
-    { title: 'Base', key: 'contract_monthly_amount', sortable: false },
-    { title: 'Nuevo', key: 'applied_amount', sortable: true },
-    { title: 'Aplicado', key: 'applied_at', sortable: true },
-    { title: 'Notas', key: 'notes', sortable: false },
-    { title: 'Estado', key: 'status', sortable: false },
-    { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
-  ]
-  
+  { title: 'Contrato', key: 'contract', sortable: false },
+  { title: 'Tipo', key: 'type', sortable: false },
+  { title: 'Inicio', key: 'contract_start_date', sortable: false },
+  { title: 'Ajuste', key: 'effective_date', sortable: true },
+  { title: 'Base', key: 'base_amount', sortable: false },
+  { title: 'Valor', key: 'value', sortable: true },
+  { title: 'Nuevo', key: 'applied_amount', sortable: true },
+  { title: 'Aplicado', key: 'applied_at', sortable: true },
+  { title: 'Notas', key: 'notes', sortable: false },
+  { title: 'Estado', key: 'status', sortable: false },
+  { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
+]
+
 // Opciones de filtros
 const statusOptions = [
   { title: 'Pendiente', value: 'pending' },
@@ -235,6 +274,11 @@ const getStatus = (a) => {
   if (a.applied_at) return 'applied'
   if (a.value !== null) return a.effective_date <= today ? 'with_value' : 'pending'
   return a.effective_date <= today ? 'expired_without_value' : 'pending'
+}
+
+const showIndexCalc = (item) => {
+  showIndexCalcDialog.value = true
+  indexCalcPeriod.value = item
 }
 
 // Acciones individuales

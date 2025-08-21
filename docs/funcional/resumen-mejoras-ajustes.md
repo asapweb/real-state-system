@@ -9,7 +9,7 @@ Se ha completado exitosamente la implementación de un sistema robusto de ajuste
 ## ✅ **Funcionalidades Implementadas**
 
 ### 1. **Soporte Multi-Índice**
-- ✅ **ICL (Índice de Costo de la Construcción)**: BCRA
+- ✅ **ICL (Índice de Contratos de Locación)**: BCRA
 - ✅ **ICP (Índice de Casa Propia)**: INDEC  
 - ✅ **UVA (Unidad de Valor Adquisitivo)**: BCRA
 - ✅ **Sistema extensible**: Fácil agregar nuevos índices

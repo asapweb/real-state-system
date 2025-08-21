@@ -6,9 +6,9 @@
       </v-card-title>
       <v-card-text>
         <v-container>
-          <!-- Código -->
           <v-row>
-            <v-col cols="12" md="6">
+            <v-col cols="12" md="5">
+              <!-- Código -->
               <v-text-field
                 v-model="formData.code"
                 label="Código"
@@ -17,11 +17,8 @@
                 required
               />
             </v-col>
-          </v-row>
-
-          <!-- Nombre -->
-          <v-row>
-            <v-col cols="12" md="6">
+            <v-col cols="12" md="7">
+              <!-- Nombre -->
               <v-text-field
                 v-model="formData.name"
                 label="Nombre"
@@ -31,22 +28,22 @@
               />
             </v-col>
           </v-row>
-
-          <!-- Estado -->
           <v-row>
-            <v-col cols="12" md="6">
-              <v-switch
-                v-model="formData.is_active"
-                label="Activo"
-                color="success"
-                hide-details
+            <v-col cols="12" md="3">
+              <!-- Frecuencia -->
+              <v-select
+                v-model="formData.frequency"
+                :items="frequencyOptions"
+                item-title="label"
+                item-value="value"
+                label="Frecuencia"
+                :error-messages="v$?.frequency?.$errors?.map((e) => e.$message) || []"
+                @blur="v$?.frequency?.$touch"
+                required
               />
             </v-col>
-          </v-row>
-
-          <!-- Modo de Cálculo -->
-          <v-row>
             <v-col cols="12" md="6">
+              <!-- Modo de Cálculo -->
               <v-select
                 v-model="formData.calculation_mode"
                 :items="calculationModeOptions"
@@ -58,20 +55,23 @@
                 required
               />
             </v-col>
+            <v-col cols="12" md="3">
+              <v-switch
+                v-model="formData.is_cumulative"
+                label="Acumulado"
+                color="primary"
+                hide-details
+              />
+            </v-col>
           </v-row>
 
-          <!-- Frecuencia -->
           <v-row>
             <v-col cols="12" md="6">
-              <v-select
-                v-model="formData.frequency"
-                :items="frequencyOptions"
-                item-title="label"
-                item-value="value"
-                label="Frecuencia"
-                :error-messages="v$?.frequency?.$errors?.map((e) => e.$message) || []"
-                @blur="v$?.frequency?.$touch"
-                required
+              <v-switch
+                v-model="formData.is_active"
+                label="Activo?"
+                color="primary"
+                hide-details
               />
             </v-col>
           </v-row>

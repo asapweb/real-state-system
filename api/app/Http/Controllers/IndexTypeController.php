@@ -20,7 +20,7 @@ class IndexTypeController extends Controller
         $sortBy = $request->input('sort_by', 'id');
         $sortDirection = strtolower($request->input('sort_direction', 'asc')) === 'desc' ? 'desc' : 'asc';
 
-        $allowedSorts = ['id', 'code', 'name', 'is_active', 'calculation_mode', 'created_at'];
+        $allowedSorts = ['id', 'code', 'name', 'is_active', 'calculation_mode', 'is_cumulative', 'created_at'];
         if (!in_array($sortBy, $allowedSorts)) {
             $sortBy = 'id';
         }
@@ -54,6 +54,7 @@ class IndexTypeController extends Controller
             'code' => 'required|string|max:255|unique:index_types,code',
             'name' => 'required|string|max:255',
             'is_active' => 'boolean',
+            'is_cumulative' => 'boolean',
             'calculation_mode' => 'required|in:' . implode(',', array_column(CalculationMode::cases(), 'value')),
             'frequency' => 'required|in:' . implode(',', array_column(IndexFrequency::cases(), 'value')),
         ]);
@@ -82,6 +83,7 @@ class IndexTypeController extends Controller
             'code' => 'sometimes|required|string|max:255|unique:index_types,code,' . $indexType->id,
             'name' => 'sometimes|required|string|max:255',
             'is_active' => 'sometimes|boolean',
+            'is_cumulative' => 'sometimes|boolean','is_cumulative' => 'sometimes|boolean',
             'calculation_mode' => 'sometimes|required|in:' . implode(',', array_column(CalculationMode::cases(), 'value')),
             'frequency' => 'sometimes|required|in:' . implode(',', array_column(IndexFrequency::cases(), 'value')),
         ]);

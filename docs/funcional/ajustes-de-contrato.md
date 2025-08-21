@@ -31,20 +31,20 @@ Garantizar la correcta actualización del valor de alquiler a lo largo del tiemp
 - **Descripción**: Índice que mide la variación de precios al consumidor
 - **Comando de importación**: `php artisan indices:import-ipc-excel`
 
-### 3.2. ICL (Índice de Costo de la Construcción)
+### 3.2. ICL (Índice de Contratos de Locación)
 - **Fuente**: INDEC
 - **URL**: https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-9-32
 - **Modo de cálculo**: `ratio`
 - **Frecuencia**: `daily`
-- **Descripción**: Índice que mide el costo de la construcción
+- **Descripción**: Índice que mide el Contratos de Locación
 - **Comando de importación**: `php artisan indices:import-icl-excel`
 
-### 3.3. ICP (Índice de Costo de la Construcción)
+### 3.3. ICP (Índice de Contratos de Locación)
 - **Fuente**: INDEC
 - **URL**: https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-9-33
 - **Modo de cálculo**: `ratio`
 - **Frecuencia**: `daily`
-- **Descripción**: Índice que mide el costo de la construcción
+- **Descripción**: Índice que mide el Contratos de Locación
 - **Comando de importación**: `php artisan indices:import-icp-excel`
 
 ### 3.4. UVA (Unidad de Valor Adquisitivo)

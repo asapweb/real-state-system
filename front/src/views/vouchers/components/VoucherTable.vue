@@ -156,12 +156,12 @@ const dialogDelete = ref(false)
 const voucherToDelete = ref(null)
 
 const voucherTypes = [
-  { title: 'Alquiler', value: 'ALQ' },
-  { title: 'Cobranza', value: 'COB' },
-  { title: 'Liquidación', value: 'LIQ' },
+  // { title: 'Alquiler', value: 'ALQ' },
+  // { title: 'Cobranza', value: 'COB' },
   { title: 'Factura', value: 'FAC' },
   { title: 'Nota de Crédito', value: 'N/C' },
   { title: 'Nota de Débito', value: 'N/D' },
+  { title: 'Liquidación', value: 'LIQ' },
   { title: 'Recibo de Cobranza', value: 'RCB' },
   { title: 'Recibo de Pago', value: 'RPG' },
 ]

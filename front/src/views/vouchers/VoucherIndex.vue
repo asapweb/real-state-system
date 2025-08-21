@@ -1,14 +1,14 @@
 <template>
   <div class="mb-8">
     <div class="mb-1 d-flex justify-space-between align-center">
-      <h2>Vouchers</h2>
+      <h2>Comprobantes</h2>
       <v-btn color="primary" prepend-icon="mdi-plus" @click="goToCreate">
-        Nuevo Voucher
+        Nuevo Comprobante
       </v-btn>
     </div>
     <p class="text-medium-emphasis mt-1">
       Comprobantes electrónicos: cobranzas, liquidaciones, notas de crédito, facturas, etc.<br />
-      Utiliza los filtros y acciones para gestionar tus vouchers.
+      Utiliza los filtros y acciones para gestionar tus comprobantes.
     </p>
   </div>
   <v-row>

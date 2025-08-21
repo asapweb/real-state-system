@@ -115,7 +115,7 @@ GET /api/admin/commands/available
       "description": "Importar valores de índices oficiales...",
       "available_types": {
         "ICL": {
-          "name": "Índice de Costo de la Construcción",
+          "name": "Índice de Contratos de Locación",
           "source": "BCRA",
           "command": "indices:import-icl-excel"
         }

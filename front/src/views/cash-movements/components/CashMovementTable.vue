@@ -44,12 +44,9 @@
       </v-btn>
     </template>
     <template #item.actions="{ item }">
-      <v-btn icon size="small" @click="$emit('show-cash-movement', item)">
-        <v-icon>mdi-eye</v-icon>
-      </v-btn>
-      <v-btn icon size="small" color="error" @click="$emit('delete-cash-movement', item)" :disabled="!!item.voucher_id">
-        <v-icon>mdi-delete</v-icon>
-      </v-btn>
+      <v-icon size="small" @click="emit('delete-cash-movement', item)">
+        mdi-delete
+      </v-icon>
     </template>
   </v-data-table-server>
 </template>

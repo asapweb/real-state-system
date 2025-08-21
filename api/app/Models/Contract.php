@@ -49,7 +49,7 @@ class Contract extends Model
         'status',
         'notes',
         'collection_booklet_id',
-    'settlement_booklet_id',
+        'settlement_booklet_id',
     ];
 
     protected $casts = [

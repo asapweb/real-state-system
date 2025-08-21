@@ -49,7 +49,7 @@
       <template #[`item.property.street`]="{ item }">
         <RouterLink
           :to="`/properties/${item.property?.id}`"
-          class="text-primary text-decoration-none font-weight-bold"
+          class="text-primary text-decoration-none "
         >
           <span v-if="item.property?.neighborhood?.name"
             >{{ item.property?.neighborhood?.name }},
@@ -65,7 +65,7 @@
       <template #[`item.main_tenant`]="{ item }">
         <div>{{ item.main_tenant?.client?.last_name }}, {{ item.main_tenant?.client?.name }}</div>
       </template>
-      
+
       <template #[`item.owners`]="{ item }">
         <div v-for="owner in item.owners">
           {{ owner.client?.last_name }}, {{ owner.client?.name }} {{owner.ownership_percentage}}%

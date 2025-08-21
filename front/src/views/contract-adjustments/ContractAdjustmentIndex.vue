@@ -8,21 +8,22 @@
         en las cobranzas.
       </p>
     </div>
-    <div class="d-flex">
-      <v-btn color="primary" class="ml-2" @click="adjustmentTable.openBulkDialog('assign')">
-        <v-icon size="small" class="me-1">mdi-reload</v-icon>
-        Asignar índices en lote
-      </v-btn>
-      <v-btn color="success" class="ml-2" @click="adjustmentTable.openBulkDialog('apply')">
-        <v-icon size="small" class="me-1">mdi-check</v-icon>
-        Aplicar ajustes en lote
-      </v-btn>
-      <v-btn color="secondary" class="ml-2" @click="adjustmentTable.openBulkDialog('process')">
-        <v-icon size="small" class="me-1">mdi-playlist-check</v-icon>
-        Procesar (Asignar + Aplicar)
-      </v-btn>
-    </div>
+    <div class="text-right">
+        <v-btn color="primary" size="small" class="ml-2 mb-1" @click="adjustmentTable.openBulkDialog('assign')">
+          <v-icon size="small" class="me-1">mdi-reload</v-icon>
+          Asignar índices en lote
+        </v-btn><br>
+        <v-btn color="success" size="small" class="ml-2 mb-1" @click="adjustmentTable.openBulkDialog('apply')">
+          <v-icon size="small" class="me-1">mdi-check</v-icon>
+          Aplicar ajustes en lote
+        </v-btn> <br>
+        <v-btn color="secondary" size="small" class="ml-2" @click="adjustmentTable.openBulkDialog('process')">
+          <v-icon size="small" class="me-1">mdi-playlist-check</v-icon>
+          Procesar (Asignar + Aplicar)
+        </v-btn>
+      </div>
   </div>
+
 
   <ContractAdjustmentTable ref="adjustmentTable" />
 </template>

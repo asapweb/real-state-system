@@ -3,9 +3,9 @@
     <!-- Encabezado -->
     <div class="d-flex align-center justify-space-between mb-4">
       <div>
-        <h2 class="mb-1">Collections</h2>
+        <h2 class="mb-1">Cobranzas</h2>
         <p class="text-medium-emphasis">
-          Manage monthly rental collections, drafts, and issued vouchers.
+          Gestiona cobranzas mensuales, borradores y facturas emitidas.
         </p>
       </div>
     </div>
@@ -18,31 +18,34 @@
             <v-select
               v-model="filters.period"
               :items="availablePeriods"
-              label="Period"
-              dense
+              label="Período"
+              flat
+              variant="solo-filled"
             />
           </v-col>
           <v-col cols="12" sm="2">
             <v-select
               v-model="filters.status"
               :items="statuses"
-              label="Status"
-              dense
+              label="Estado"
+              flat
+              variant="solo-filled"
               clearable
             />
           </v-col>
           <v-col cols="12" sm="3">
-            <ClientAutocomplete v-model="filters.client_id" label="Tenant" />
+            <ClientAutocomplete v-model="filters.client_id" label="Inquilino" variant="solo-filled" flat hide-details />
           </v-col>
           <v-col cols="12" sm="3">
-            <ContractAutocomplete v-model="filters.contract_id" label="Contract" />
+            <ContractAutocomplete v-model="filters.contract_id" label="Contrato" variant="solo-filled" flat hide-details />
           </v-col>
           <v-col cols="12" sm="2">
             <v-select
               v-model="filters.currency"
               :items="currencies"
-              label="Currency"
-              dense
+              label="Moneda"
+              variant="solo-filled"
+              flat
               clearable
             />
           </v-col>

@@ -8,13 +8,12 @@
     :sort-by="options.sortBy"
     :items-length="itemsLength"
     @update:options="emitOptions"
-    class="elevation-1"
   >
     <template #item.name="{ item }">
       {{ item.name }}
     </template>
     <template #item.type="{ item }">
-      <span v-if="item.type === 'cash'">Caja</span>
+      <span v-if="item.type === 'cash'">Efectivo</span>
       <span v-else-if="item.type === 'bank'">Banco</span>
       <span v-else-if="item.type === 'virtual'">Virtual</span>
       <span v-else>{{ item.type }}</span>
@@ -33,12 +32,17 @@
       </v-chip>
     </template>
     <template #item.actions="{ item }">
-      <v-btn icon size="small" @click="$emit('edit-cash-account', item)">
-        <v-icon>mdi-pencil</v-icon>
-      </v-btn>
-      <v-btn icon size="small" color="error" @click="$emit('delete-cash-account', item)">
-        <v-icon>mdi-cancel</v-icon>
-      </v-btn>
+      <v-icon
+        class="me-2"
+        size="small"
+        @click="emit('edit-cash-account', item)"
+        title="Editar Propiedad"
+      >
+        mdi-pencil
+      </v-icon>
+      <v-icon size="small" @click="emit('delete-cash-account', item)">
+        mdi-delete
+      </v-icon>
     </template>
   </v-data-table-server>
 </template>

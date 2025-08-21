@@ -18,7 +18,7 @@ Estos comandos crean los tipos de índice ICP y UVA si no existen en la base de 
 
 ## Comandos Principales
 
-### 1. Importar ICL (Índice de Costo de la Construcción)
+### 1. Importar ICL (Índice de Contratos de Locación)
 
 ```bash
 php artisan indices:import-icl-excel [opciones]
@@ -199,7 +199,7 @@ php artisan indices:generate-test-uva-data --months=12 --start-date=2024-01-01
 
 ### BCRA (Banco Central de la República Argentina)
 - **URL:** https://www.bcra.gob.ar/Pdfs/PublicacionesEstadisticas/diar_icl.xls
-- **Índice:** ICL (Índice de Costo de la Construcción)
+- **Índice:** ICL (Índice de Contratos de Locación)
 - **Formato:** Excel (.xls)
 - **Frecuencia:** Mensual
 
@@ -211,11 +211,11 @@ php artisan indices:generate-test-uva-data --months=12 --start-date=2024-01-01
 
 ## Tipos de Índices Soportados
 
-### ICL (Índice de Costo de la Construcción)
+### ICL (Índice de Contratos de Locación)
 - **Código:** `ICL`
 - **Modo de cálculo:** `ratio`
 - **Fuente:** BCRA
-- **Descripción:** Índice que mide la evolución de los costos de construcción
+- **Descripción:** Índice que mide la evolución de los Contratos de Locación
 
 ### UVA (Unidad de Valor Adquisitivo)
 - **Código:** `UVA`

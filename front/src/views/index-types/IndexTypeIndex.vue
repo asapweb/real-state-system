@@ -1,26 +1,17 @@
 <template>
   <div class="mb-8">
-    <h2 class="">Gestión de Tipos de Índice</h2>
+    <div class="mb-1 d-flex justify-space-between align-center">
+      <h2>Gestión de Tipos de Índice</h2>
+      <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog(null)">
+        Crear Índice
+      </v-btn>
+    </div>
     <p class="text-medium-emphasis mt-1">
       Administra los tipos de índice disponibles para los ajustes de contratos.
     </p>
   </div>
-
-  <v-card class="mb-4">
-    <v-card-title class="d-flex align-center">
-      <span>Tipos de Índice</span>
-      <v-spacer />
-      <v-btn
-        color="primary"
-        variant="text"
-        prepend-icon="mdi-plus"
-        @click="openDialog(null)"
-      >
-        + Nuevo Índice
-      </v-btn>
-    </v-card-title>
-    <v-divider />
-    <v-card-text>
+  <v-row>
+    <v-col cols="12" class="mb-4">
       <v-data-table-server
         v-model:items-per-page="options.itemsPerPage"
         v-model:sort-by="options.sortBy"
@@ -33,9 +24,7 @@
         @update:options="fetchIndexTypes"
       >
         <template #[`item.code`]="{ item }">
-          <v-chip size="small" color="primary" variant="flat">
-            {{ item.code }}
-          </v-chip>
+          {{ item.code }}
         </template>
 
         <template #[`item.name`]="{ item }">
@@ -53,27 +42,19 @@
         </template>
 
         <template #[`item.calculation_mode`]="{ item }">
-          <v-chip
-            size="small"
-            :color="getCalculationModeColor(item.calculation_mode)"
-            variant="flat"
-          >
+          <span class="text">
             {{ getCalculationModeLabel(item.calculation_mode) }}
-          </v-chip>
+          </span>
+          <span class="text-medium-emphasis ms-2" v-if="item.is_cumulative">
+            (Acumulado)
+          </span>
         </template>
 
         <template #[`item.frequency`]="{ item }">
-          <v-chip
-            size="small"
-            :color="getFrequencyColor(item.frequency)"
-            variant="flat"
-          >
-            {{ getFrequencyLabel(item.frequency) }}
-          </v-chip>
+          {{ getFrequencyLabel(item.frequency) }}
         </template>
 
         <template #[`item.actions`]="{ item }">
-          <div class="d-flex align-center">
             <v-icon
               class="me-2"
               size="small"
@@ -87,16 +68,14 @@
               @click="confirmDelete(item)"
               title="Eliminar tipo de índice"
             >
-              mdi-delete
-            </v-icon>
-          </div>
+            mdi-delete
+          </v-icon>
         </template>
       </v-data-table-server>
-    </v-card-text>
-  </v-card>
-
+    </v-col>
+  </v-row>
   <!-- Formulario embebido -->
-  <v-dialog v-model="dialog" max-width="500px">
+  <v-dialog v-model="dialog" max-width="780px">
     <IndexTypeForm
       :initial-data="selectedIndexType"
       :loading="saving"
@@ -154,9 +133,9 @@ const filters = reactive({
 const headers = [
   { title: 'Código', key: 'code', sortable: true },
   { title: 'Nombre', key: 'name', sortable: true },
-  { title: 'Estado', key: 'is_active', sortable: true },
-  { title: 'Cálculo', key: 'calculation_mode', sortable: true },
   { title: 'Frecuencia', key: 'frequency', sortable: true },
+  { title: 'Cálculo', key: 'calculation_mode', sortable: true },
+  { title: 'Estado', key: 'is_active', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
 
@@ -242,15 +221,6 @@ const getCalculationModeLabel = (mode) => {
   return labels[mode] || mode
 }
 
-const getCalculationModeColor = (mode) => {
-  const colors = {
-    'percentage': 'success',
-    'ratio': 'info',
-    'multiplicative_chain': 'warning',
-  }
-  return colors[mode] || 'default'
-}
-
 // Funciones helper para Frequency
 const getFrequencyLabel = (frequency) => {
   const labels = {
@@ -258,14 +228,6 @@ const getFrequencyLabel = (frequency) => {
     'monthly': 'Mensual',
   }
   return labels[frequency] || frequency
-}
-
-const getFrequencyColor = (frequency) => {
-  const colors = {
-    'daily': 'success',
-    'monthly': 'warning',
-  }
-  return colors[frequency] || 'default'
 }
 
 onMounted(() => {

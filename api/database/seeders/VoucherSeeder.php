@@ -21,6 +21,7 @@ class VoucherSeeder extends Seeder
             ['name' => 'Factura C', 'short_name' => 'FAC', 'letter' => 'C', 'afip_id' => 11, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
             ['name' => 'Nota de Débito C', 'short_name' => 'N/D', 'letter' => 'C', 'afip_id' => 12, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
             ['name' => 'Nota de Crédito C', 'short_name' => 'N/C', 'letter' => 'C', 'afip_id' => 13, 'credit' => true, 'affects_account' => true, 'affects_cash' => false],
+            ['name' => 'Factura X', 'short_name' => 'FAC', 'letter' => 'X', 'afip_id' => 1, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],
             ['name' => 'Recibo X (Cobranza)', 'short_name' => 'RCB', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => true],
             ['name' => 'Recibo X (Pago)', 'short_name' => 'RPG', 'letter' => 'X', 'afip_id' => null, 'credit' => true, 'affects_account' => true, 'affects_cash' => true],
             ['name' => 'Liquidación X', 'short_name' => 'LIQ', 'letter' => 'X', 'afip_id' => null, 'credit' => false, 'affects_account' => true, 'affects_cash' => false],

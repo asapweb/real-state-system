@@ -156,7 +156,7 @@ class AdminCommandsController extends Controller
                 'description' => 'Importar valores de índices oficiales desde fuentes externas',
                 'available_types' => [
                     'ICL' => [
-                        'name' => 'Índice de Costo de la Construcción',
+                        'name' => 'Índice de Contratos de Locación',
                         'source' => 'BCRA',
                         'command' => 'indices:import-icl-excel',
                     ],

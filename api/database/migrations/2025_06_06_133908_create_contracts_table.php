@@ -29,7 +29,7 @@ return new class extends Migration {
             $table->decimal('commission_amount', 10, 2)->nullable();
             $table->string('commission_payer')->nullable();
             $table->boolean('is_one_time')->default(false);
-            
+
             // Seguro
             $table->boolean('insurance_required')->default(true);
             $table->decimal('insurance_amount', 10, 2)->nullable();

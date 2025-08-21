@@ -7,7 +7,9 @@
       :items="items"
       :item-title="getLabel"
       item-value="id"
-      label="Contrato"
+      :label="label"
+      :flat="flat"
+      :variant="variant"
       clearable
       return-object
       :loading="loading"
@@ -40,6 +42,10 @@ const props = defineProps({
   },
   clientId: [Number, null],
   errorMessages: Array,
+  hideDetails: { type: [String, Boolean], default: 'auto' },
+  flat: { type: Boolean, default: false },
+  variant: { type: String, default: 'solo-filled' },
+  label: { type: String, default: 'Contrato' },
 })
 
 const emit = defineEmits(['update:modelValue', 'blur'])

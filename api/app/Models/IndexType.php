@@ -14,13 +14,21 @@ class IndexType extends Model
         'is_active',
         'calculation_mode',
         'frequency',
+        'is_cumulative',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_cumulative' => 'boolean',
         'calculation_mode' => CalculationMode::class,
         'frequency' => IndexFrequency::class,
     ];
+
+    public function isCumulative(): bool
+    {
+        return $this->is_cumulative;
+    }
+
 
     public function contractAdjustments()
     {
@@ -37,7 +45,7 @@ class IndexType extends Model
      */
     public function ratioValues()
     {
-        return $this->hasMany(IndexValue::class)->whereNotNull('date');
+        return $this->hasMany(IndexValue::class)->whereNotNull('effective_date');
     }
 
     /**

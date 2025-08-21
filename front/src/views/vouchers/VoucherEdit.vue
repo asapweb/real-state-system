@@ -1,7 +1,7 @@
 <template>
   <div class="mb-8">
     <div class="mb-1 d-flex justify-space-between align-center">
-      <h2>Editar Voucher</h2>
+      <h2>Editar Comprobante</h2>
     </div>
     <VoucherForm
       v-if="voucher && !isReadOnly"

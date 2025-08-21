@@ -29,7 +29,7 @@
       <v-col cols="12" md="12">
         <ContractCollectionManager :contract-id="contract?.id" :period="selectedPeriod" />
       </v-col>
-      <v-col cols="12" md="6">
+      <v-col cols="12" md="12">
         <AttachmentManager :attachable-type="'contract'" :attachable-id="contract.id" />
       </v-col>
       <v-col cols="12">

@@ -552,17 +552,17 @@ class ICLExcelImportService
             'bcra' => [
                 'name' => 'BCRA - Banco Central de la República Argentina',
                 'url' => self::EXCEL_URLS['bcra'],
-                'description' => 'Archivo Excel oficial del BCRA - Índice de Costo de la Construcción'
+                'description' => 'Archivo Excel oficial del BCRA - Índice de Contratos de Locación'
             ],
             'indec' => [
                 'name' => 'INDEC - Instituto Nacional de Estadística y Censos',
                 'url' => self::EXCEL_URLS['indec'],
-                'description' => 'Archivo Excel oficial del INDEC - Índice de Costo de la Construcción'
+                'description' => 'Archivo Excel oficial del INDEC - Índice de Contratos de Locación'
             ],
             'bcra_uva' => [
                 'name' => 'BCRA - Banco Central de la República Argentina',
                 'url' => self::EXCEL_URLS['bcra_uva'],
-                'description' => 'Archivo Excel oficial del BCRA - Índice de Valor de la Construcción'
+                'description' => 'Archivo Excel oficial del BCRA - Índice de Contratos de Locación'
             ]
         ];
     }

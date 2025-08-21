@@ -62,5 +62,11 @@ class UsersSeeder extends Seeder
                 DB::table('users')->insert($user);
             }
         }
+
+    // Asignar el rol 'administrador' al usuario con email 'ariel.s.alvarez@gmail.com'
+    $ariel = \App\Models\User::where('email', 'ariel.s.alvarez@gmail.com')->first();
+    if ($ariel && !$ariel->hasRole('administrador')) {
+        $ariel->assignRole('administrador');
+    }
     }
 }

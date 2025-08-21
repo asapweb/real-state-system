@@ -18,6 +18,7 @@ class AttachmentCategorySeeder extends Seeder
             ['name' => 'Reglamento de copropiedad', 'context' => 'property'],
             ['name' => 'Contrato', 'context' => 'contract'],
             ['name' => 'Recibo de pago', 'context' => 'contract'],
+            ['name' => 'Gasto', 'context' => 'contract-expense'],
         ];
 
         foreach ($categories as $cat) {

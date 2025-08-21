@@ -14,7 +14,7 @@ class UpdateClientRequest extends FormRequest
     public function rules(): array
     {
         $clientId = $this->route('client')?->id ?? 'NULL';
-
+        \Log::info('clientId', ['clientId' => $clientId]);
         return [
             'type' => 'sometimes|required|in:individual,company',
             'name' => 'sometimes|required|string|max:150',

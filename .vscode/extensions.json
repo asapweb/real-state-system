@@ -1,6 +1,6 @@
 {
   "recommendations": [
-    "one-dark-pro",                    // Tema visual
+    "binaryify.OneDark-Pro",          // Tema visual
     "esbenp.prettier-vscode",         // Formateo automático
     "mhutchie.git-graph",             // Visualización de git
     "eamodio.gitlens",                // Git avanzado

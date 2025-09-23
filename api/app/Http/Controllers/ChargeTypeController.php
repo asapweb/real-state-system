@@ -13,9 +13,9 @@ class ChargeTypeController extends Controller
         return \App\Http\Resources\ChargeTypeResource::collection(
             \App\Models\ChargeType::active()->orderBy('code')->get()
         );
-    
+
        $q = ChargeType::active()->orderBy('code')->get();
 
-        return ChargeTypeResource::collection($q); 
+        return ChargeTypeResource::collection($q);
     }
 }

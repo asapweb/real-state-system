@@ -1,6 +1,31 @@
 <?php
 
 use Carbon\Carbon;
+/**
+ * Redondeo monetario centralizado.
+ * Ajustá la escala/estrategia según tu política (ej. 2 decimales, half-up).
+ */
+if (!function_exists('money_round')) {
+    function money_round(float|string $value, int $scale = 2): float
+    {
+        // Si usás BCMath:
+        // return (float) bcadd((string)$value, '0', $scale);
+        return round((float)$value, $scale, PHP_ROUND_HALF_UP);
+    }
+}
+
+
+/**
+ * Normaliza número a string/decimal con escala fijada (evita floats sucios).
+ */
+if (!function_exists('numToDecimal')) {
+    function numToDecimal(float|string $n, int $scale = 6): string
+    {
+        // Si usás BCMath:
+        // return bcadd((string)$n, '0', $scale);
+        return number_format((float)$n, $scale, '.', '');
+    }
+}
 
 if (! function_exists('normalizePeriod')) {
     /**

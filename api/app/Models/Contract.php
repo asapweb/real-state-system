@@ -95,6 +95,11 @@ class Contract extends Model
         return $this->hasMany(ContractAdjustment::class);
     }
 
+    public function charges()
+    {
+        return $this->hasMany(ContractCharge::class);
+    }
+
     public function clients()
     {
         return $this->hasMany(ContractClient::class);
@@ -147,7 +152,9 @@ class Contract extends Model
             ->where(function ($q) use ($start) {
                 $q->whereNull('end_date')
                 ->orWhereDate('end_date', '>=', $start);
-            });
+            })
+            // ->where('status', '!=', ContractStatus::ACTIVE)
+                ;
     }
 
 
@@ -249,7 +256,7 @@ class Contract extends Model
     public function calculateRentForPeriod(Carbon|string $period): float
     {
         $period = normalizePeriodOrFail($period);
-        
+
         \Log::debug("🔗 Cálculo de renta para período", [
             'contract_id' => $this->id,
             'period' => $period->format('Y-m'),
@@ -302,7 +309,7 @@ class Contract extends Model
             } else {
                 throw new PendingAdjustmentException(
                     "El contrato {$this->id} tiene un ajuste pendiente de aplicación para el período {$period->format('Y-m')}."
-                );    
+                );
             }
         }
 

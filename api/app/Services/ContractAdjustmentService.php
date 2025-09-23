@@ -32,82 +32,77 @@ class ContractAdjustmentService
      */
     public function apply(ContractAdjustment $adjustment): void
     {
-        Log::info('🚀 Iniciando aplicación de ajuste', [
-            'adjustment_id'  => $adjustment->id,
-            'type'           => $adjustment->type,
-            'value'          => $adjustment->value,
-            'factor'         => $adjustment->factor ?? null,
-            'base_amount'    => $adjustment->base_amount ?? null,
-            'contract_id'    => $adjustment->contract_id,
-        ]);
+        DB::transaction(function () use ($adjustment) {
 
-        if ($adjustment->applied_at) {
-            throw ValidationException::withMessages(['adjustment' => 'El ajuste ya fue aplicado.']);
-        }
-        if (is_null($adjustment->value)) {
-            throw ValidationException::withMessages(['adjustment' => 'El ajuste no tiene un valor asignado.']);
-        }
+            // Re-cargar y bloquear el ajuste para esta transacción
+            $adj = \App\Models\ContractAdjustment::query()
+                ->whereKey($adjustment->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $contract = $adjustment->contract;
-        if (!$contract) {
-            throw ValidationException::withMessages(['adjustment' => 'No se encontró el contrato asociado al ajuste.']);
-        }
-
-        // ⚠️ Para índices NO acumulativos: exigir aplicar en orden.
-        // Si hay un ajuste previo (por fecha efectiva) del mismo índice SIN aplicar, no permitimos aplicar este.
-        if ($adjustment->type === ContractAdjustmentType::INDEX) {
-            $indexType = $adjustment->indexType;
-            if ($indexType && !$indexType->isCumulative()) {
-                $prevUnapplied = ContractAdjustment::query()
-                    ->where('contract_id', $adjustment->contract_id)
-                    ->where('type', ContractAdjustmentType::INDEX)
-                    ->where('index_type_id', $adjustment->index_type_id)
-                    ->where('effective_date', '<', $adjustment->effective_date)
-                    ->whereNull('applied_at')
-                    ->orderBy('effective_date', 'desc')
-                    ->first();
-
-                if ($prevUnapplied) {
-                    throw ValidationException::withMessages([
-                        'adjustment' => sprintf(
-                            'Debe aplicar primero el ajuste previo del %s (ID #%d) para mantener la cadena de base correcta.',
-                            optional($prevUnapplied->effective_date)->toDateString(),
-                            $prevUnapplied->id
-                        ),
-                    ]);
-                }
+            // Revalidaciones bajo lock
+            if ($adj->applied_at) {
+                throw ValidationException::withMessages(['adjustment' => 'El ajuste ya fue aplicado.']);
             }
-        }
+            if (is_null($adj->value)) {
+                throw ValidationException::withMessages(['adjustment' => 'El ajuste no tiene un valor asignado.']);
+            }
 
-        // 🔥 Congelar base_amount definitiva en el momento de aplicar
-        $indexType  = $adjustment->indexType;
-        $baseAmount = $this->resolveBaseAmountForApplication($contract, $adjustment, $indexType);
+            $contract = $adj->contract()->lockForUpdate()->first(); // opcional pero recomendable
+            if (!$contract) {
+                throw ValidationException::withMessages(['adjustment' => 'No se encontró el contrato asociado al ajuste.']);
+            }
 
-        // Calcular monto ajustado
-        $appliedAmount = match ($adjustment->type) {
-            ContractAdjustmentType::INDEX      => $this->applyIndexAdjustment($adjustment->fill(['base_amount' => $baseAmount])),
-            ContractAdjustmentType::PERCENTAGE => round($baseAmount * (1 + $adjustment->value / 100), 2),
-            ContractAdjustmentType::FIXED,
-            ContractAdjustmentType::NEGOTIATED => round($adjustment->value, 2),
-            default => throw ValidationException::withMessages([
-                'adjustment' => 'Tipo de ajuste no soportado: ' . $adjustment->type
-            ]),
-        };
+            $prevWhere = function ($q) use ($adj) {
+                $q->where('effective_date', '<', $adj->effective_date)
+                ->orWhere(function ($q2) use ($adj) {
+                    $q2->whereDate('effective_date', '=', $adj->effective_date)
+                        ->where('id', '<', $adj->id); // desempate por id
+                });
+            };
 
-        // 💾 Persistir snapshot
-        DB::transaction(function () use ($adjustment, $baseAmount, $appliedAmount) {
-            $adjustment->update([
-                'base_amount'    => round($baseAmount, 2),
-                'applied_amount' => $appliedAmount,
-                'applied_at'     => now(),
-            ]);
+            $prevUnapplied = ContractAdjustment::query()
+                ->where('contract_id', $adj->contract_id)
+                ->whereNull('applied_at')
+                ->where($prevWhere)
+                ->lockForUpdate()
+                ->orderBy('effective_date', 'desc')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            if ($prevUnapplied) {
+                throw ValidationException::withMessages([
+                    'adjustment' => sprintf(
+                        'Hay ajustes anteriores sin aplicar (ej. #%d del %s). Debe aplicarlos antes.',
+                        $prevUnapplied->id,
+                        optional($prevUnapplied->effective_date)->toDateString()
+                    ),
+                ]);
+            }
+
+            // Determinar base_amount “congelado” al aplicar
+            $indexType  = $adj->indexType; // puede ser null
+            \Log::info('adj', ['adj' => $adj]);
+            \Log::info('indexType', ['indexType' => $indexType]);
+            $baseAmount = $this->resolveBaseAmountForApplication($contract, $adj, $indexType);
+
+            // Calcular aplicado (con política monetaria centralizada)
+            $appliedAmount = match ($adj->type) {
+                ContractAdjustmentType::INDEX      => $this->applyIndexAdjustment($adj->fill(['base_amount' => $baseAmount])),
+                ContractAdjustmentType::PERCENTAGE => money_round((float)$baseAmount * (1 + ((float)$adj->value / 100))),
+                ContractAdjustmentType::FIXED,
+                ContractAdjustmentType::NEGOTIATED => money_round((float)$adj->value),
+                default => throw ValidationException::withMessages([
+                    'adjustment' => 'Tipo de ajuste no soportado: ' . $adj->type
+                ]),
+            };
+
+            // Persistir snapshot + marcar aplicado (usa el método de dominio)
+            $adj->base_amount    = money_round($baseAmount);
+            $adj->applied_amount = money_round($appliedAmount);
+            // Si tu método permite timestamp custom, podrías pasar Carbon::now()
+            $adj->markAsApplied(); // establece applied_at internamente y guarda
         });
-
-        Log::info('✅ Ajuste aplicado', [
-            'adjustment_id' => $adjustment->id,
-            'base_amount'   => $baseAmount,
-            'final_amount'  => $appliedAmount,
-        ]);
     }
 
     /**
@@ -116,51 +111,65 @@ class ContractAdjustmentService
      */
     public function assignIndexValue(ContractAdjustment $adjustment): void
     {
-        Log::info('🔍 Iniciando assignIndexValue', [
-            'adjustment_id'  => $adjustment->id,
-            'type'           => $adjustment->type,
-            'effective_date' => optional($adjustment->effective_date)->toDateString(),
-            'index_type_id'  => $adjustment->index_type_id,
-        ]);
+        DB::transaction(function () use ($adjustment) {
 
-        if ($adjustment->type !== ContractAdjustmentType::INDEX) {
-            throw ValidationException::withMessages(['index' => 'El ajuste no es de tipo índice.']);
-        }
-        if (!is_null($adjustment->value)) {
-            throw ValidationException::withMessages(['index' => 'El ajuste ya tiene un valor asignado.']);
-        }
-        if (!is_null($adjustment->applied_at)) {
-            throw ValidationException::withMessages(['index' => 'El ajuste ya fue aplicado y no puede modificarse.']);
-        }
+            // Bloquear el ajuste para esta transacción
+            $adj = \App\Models\ContractAdjustment::query()
+            ->whereKey($adjustment->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
 
-        $indexType = $adjustment->indexType;
-        if (!$indexType) {
-            throw ValidationException::withMessages(['index' => 'El ajuste no tiene un tipo de índice válido.']);
-        }
-
-        if ($indexType->calculation_mode === CalculationMode::RATIO) {
-            [$percentage, $ratio, $Sdate, $Fdate, $Sval, $Fval] =
-                $this->calculateRatioWithSnapshot($adjustment, $adjustment->contract);
-
-            $adjustment->value          = $percentage;
-            $adjustment->factor         = $ratio;
-            $adjustment->index_S_date   = $Sdate;
-            $adjustment->index_F_date   = $Fdate;
-            $adjustment->index_S_value  = $Sval;
-            $adjustment->index_F_value  = $Fval;
-
-        } elseif ($indexType->calculation_mode === CalculationMode::MULTIPLICATIVE_CHAIN) {
-            $coef = $this->calculateMultiplicativeChain($adjustment, $adjustment->contract);
-            if (is_null($coef)) {
-                throw ValidationException::withMessages(['index' => 'No se pudo calcular el coeficiente multiplicativo.']);
+            if ($adj->type !== ContractAdjustmentType::INDEX) {
+                throw ValidationException::withMessages(['index' => 'El ajuste no es de tipo índice.']);
             }
-            $adjustment->value  = $coef;
-            $adjustment->factor = (float) $coef;
-        } else {
-            throw ValidationException::withMessages(['index' => 'El tipo de cálculo del índice no está soportado.']);
-        }
+            if (!is_null($adj->value)) {
+                throw ValidationException::withMessages(['index' => 'El ajuste ya tiene un valor asignado.']);
+            }
+            if (!is_null($adj->applied_at)) {
+                throw ValidationException::withMessages(['index' => 'El ajuste ya fue aplicado y no puede modificarse.']);
+            }
 
-        $adjustment->save();
+            $indexType = $adj->indexType;
+            if (!$indexType) {
+                throw ValidationException::withMessages(['index' => 'El ajuste no tiene un tipo de índice válido.']);
+            }
+
+            $contract = $adj->contract()->lockForUpdate()->first(); // recomendado
+            if (!$contract) {
+                throw ValidationException::withMessages(['index' => 'Contrato asociado no encontrado.']);
+            }
+
+            // Cálculo según modo
+            if ($indexType->calculation_mode === CalculationMode::RATIO) {
+
+                [$percentage, $ratio, $sDate, $fDate, $sVal, $fVal] =
+                    $this->calculateRatioWithSnapshot($adj, $contract);
+
+                // Política de tipos: value = %, factor = coef.
+                $adj->value             = numToDecimal($percentage, 6); // ej. 6 decimales
+                $adj->factor            = numToDecimal($ratio, 6);
+                $adj->index_S_date      = $sDate;
+                $adj->index_F_date      = $fDate;
+                $adj->index_S_value     = numToDecimal($sVal, 6);
+                $adj->index_F_value     = numToDecimal($fVal, 6);
+            } elseif ($indexType->calculation_mode === CalculationMode::MULTIPLICATIVE_CHAIN) {
+
+                $coef = $this->calculateMultiplicativeChain($adj, $contract);
+                if ($coef === null) {
+                    throw ValidationException::withMessages(['index' => 'No se pudo calcular el coeficiente multiplicativo.']);
+                }
+
+                // Si solo tenés coeficiente, podés derivar % si te sirve
+                $adj->factor = numToDecimal($coef, 6);
+                $adj->value  = numToDecimal(((string)$coef - 1) * 100, 6);
+
+            } else {
+
+                throw ValidationException::withMessages(['index' => 'Modo de cálculo no soportado.']);
+            }
+
+            $adj->save();
+        });
     }
 
     /**
@@ -191,34 +200,11 @@ class ContractAdjustmentService
     }
 
     /**
-     * Determina la base monetaria al momento de CALCULAR el valor (snapshot).
-     */
-    private function resolveBaseAmountForAssignment(Contract $contract, ContractAdjustment $adjustment, IndexType $indexType): float
-    {
-        if ($indexType->isCumulative()) {
-            // Desde inicio
-            return $contract->index_base_amount
-                ?? $contract->initial_monthly_amount
-                ?? $contract->monthly_amount;
-        }
-
-        // No acumulativo: encadenar sobre el último ajuste aplicado
-        $prevAdj = ContractAdjustment::query()
-            ->where('contract_id', $contract->id)
-            ->whereNotNull('applied_at')
-            ->where('effective_date', '<', $adjustment->effective_date)
-            ->orderBy('effective_date', 'desc')
-            ->first();
-
-        return $prevAdj?->applied_amount ?? $contract->monthly_amount;
-    }
-
-    /**
      * Determina la base monetaria al momento de APLICAR (por compatibilidad si no hay snapshot).
      */
-    private function resolveBaseAmountForApplication(Contract $contract, ContractAdjustment $adjustment, IndexType $indexType): float
+    private function resolveBaseAmountForApplication(Contract $contract, ContractAdjustment $adjustment, ?IndexType $indexType): float
     {
-        if ($indexType->isCumulative()) {
+        if ($indexType && $indexType->isCumulative()) {
             return $contract->index_base_amount
                 ?? $contract->initial_monthly_amount
                 ?? $contract->monthly_amount;
@@ -236,8 +222,8 @@ class ContractAdjustmentService
 
     /**
      * Calcula % (para UI) y ratio exacto I(F)/I(S) con snapshot de fechas y valores.
-     * - Mensual: F = mes anterior al ajuste, S según is_cumulative (inicio contrato) o último ajuste (mes anterior).
-     * - Diario:  F = día anterior al ajuste; S = día de inicio (o día anterior al último ajuste), según is_cumulative.
+     * - Mensual: exige valores EXACTOS para S y F (no permite arrastre hacia atrás).
+     * - Diario: usa <= fecha con control de antigüedad (maxIndexAgeDays).
      *
      * @return array [percentage (rounded), ratio, Sdate, Fdate, Sval, Fval]
      */
@@ -246,19 +232,15 @@ class ContractAdjustmentService
         $indexType     = IndexType::find($adjustment->index_type_id);
         $effectiveDate = $adjustment->effective_date->copy();
 
-        // F
-        if ($indexType->isMonthlyFrequency()) {
-            $Fdate = $effectiveDate->copy()->subMonthNoOverflow()->startOfMonth(); // mes anterior
-        } else {
-            $Fdate = $effectiveDate->copy()->subDay(); // día anterior
-        }
+        // F (fin del tramo)
+        $Fdate = $indexType->isMonthlyFrequency()
+            ? $effectiveDate->copy()->subMonthNoOverflow()->startOfMonth()
+            : $effectiveDate->copy()->subDay();
 
-        // S
+        // S (inicio del tramo)
         if ($indexType->isCumulative()) {
             $Sdate = Carbon::parse(($contract->index_base_date ?? $contract->start_date));
-            $Sdate = $indexType->isMonthlyFrequency()
-                ? $Sdate->startOfMonth()
-                : $Sdate; // diarios: día exacto de inicio
+            $Sdate = $indexType->isMonthlyFrequency() ? $Sdate->startOfMonth() : $Sdate;
         } else {
             $prev = ContractAdjustment::query()
                 ->where('contract_id', $contract->id)
@@ -271,23 +253,62 @@ class ContractAdjustmentService
             if ($prev) {
                 $Sdate = $prev->effective_date->copy();
                 $Sdate = $indexType->isMonthlyFrequency()
-                    ? $Sdate->subMonthNoOverflow()->startOfMonth() // mes anterior al último ajuste
-                    : $Sdate->subDay(); // diarios: día anterior al último ajuste
+                    ? $Sdate->subMonthNoOverflow()->startOfMonth()
+                    : $Sdate->subDay();
             } else {
                 $Sdate = Carbon::parse(($contract->index_base_date ?? $contract->start_date));
                 $Sdate = $indexType->isMonthlyFrequency() ? $Sdate->startOfMonth() : $Sdate;
             }
         }
 
-        // I(S) e I(F)
-        $Sval = $this->getIndexValueAtOrBefore($indexType->id, $Sdate)?->value;
-        $Fval = $this->getIndexValueAtOrBefore($indexType->id, $Fdate)?->value;
+        // --- OBTENCIÓN DE VALORES ---
 
-        if ($Sval === null || $Fval === null) {
-            throw ValidationException::withMessages(['index' => 'Faltan valores de índice para S o F.']);
+        if ($indexType->isMonthlyFrequency()) {
+            // ✅ Mensual: exigir EXACTO S y F
+            $Siv = $this->getMonthlyIndexValueExact($indexType->id, $Sdate);
+            $Fiv = $this->getMonthlyIndexValueExact($indexType->id, $Fdate);
+
+            if (!$Siv) {
+                throw ValidationException::withMessages([
+                    'index' => "Falta el valor de índice para el mes base (S) " . $Sdate->format('Y-m') . ".",
+                ]);
+            }
+            if (!$Fiv) {
+                throw ValidationException::withMessages([
+                    'index' => "Falta el valor de índice para el mes de aplicación (F) " . $Fdate->format('Y-m') . ".",
+                ]);
+            }
+
+            $Sval = (float) $Siv->value;
+            $Fval = (float) $Fiv->value;
+
+        } else {
+            // 📅 Diario: permitir <= pero con control de antigüedad
+            $Siv = $this->getIndexValueAtOrBefore($indexType->id, $Sdate);
+            $Fiv = $this->getIndexValueAtOrBefore($indexType->id, $Fdate);
+
+            if (!$Siv || !$Fiv) {
+                throw ValidationException::withMessages([
+                    'index' => 'Faltan valores de índice para S o F.',
+                ]);
+            }
+
+            // Control de antigüedad del F para diarios
+            $daysDiff = Carbon::parse($Fiv->effective_date)->diffInDays($Fdate);
+            if ($daysDiff > $this->maxIndexAgeDays) {
+                throw ValidationException::withMessages([
+                    'index' => "El último valor diario es demasiado antiguo ("
+                        . Carbon::parse($Fiv->effective_date)->toDateString()
+                        . ") para F " . $Fdate->toDateString() . ".",
+                ]);
+            }
+
+            $Sval = (float) $Siv->value;
+            $Fval = (float) $Fiv->value;
         }
 
-        $ratio      = (float) $Fval / (float) $Sval;
+        // --- CÁLCULO ---
+        $ratio      = $Fval / $Sval;
         $percentage = ($ratio - 1.0) * 100.0;
 
         return [
@@ -295,8 +316,8 @@ class ContractAdjustmentService
             $ratio,
             $Sdate->toDateString(),
             $Fdate->toDateString(),
-            (float) $Sval,
-            (float) $Fval,
+            $Sval,
+            $Fval,
         ];
     }
 
@@ -430,5 +451,19 @@ class ContractAdjustmentService
             $current->addDay();
         }
         return $out;
+    }
+
+    /**
+     * Devuelve el IndexValue EXACTO para el mes indicado (día 1 del mes).
+     * Si no existe ese mes publicado, retorna null.
+     */
+    private function getMonthlyIndexValueExact(int $indexTypeId, Carbon $month): ?IndexValue
+    {
+        $target = $month->copy()->startOfMonth()->toDateString();
+
+        return IndexValue::query()
+            ->where('index_type_id', $indexTypeId)
+            ->whereDate('effective_date', $target)
+            ->first();
     }
 }

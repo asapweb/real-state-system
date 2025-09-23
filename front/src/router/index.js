@@ -11,9 +11,8 @@ import contractAdjustmentRoutes from './modules/contractAdjustments'
 import collectionRoutes from './modules/collections'
 import collectionReceiptRoutes from './modules/collectionReceipts'
 import contractServiceRoutes from './modules/contractServices'
-import contractExpensesRoutes from './modules/contractExpenses'
+import contractChargesRoutes from './modules/contractCharges'
 import paymentRoutes from './modules/payments'
-import expenseRoutes from './modules/expenses'
 import maintenanceRoutes from './modules/maintenance'
 import settlementRoutes from './modules/settlements'
 import indexTypeRoutes from './modules/indexTypes'
@@ -45,8 +44,7 @@ const router = createRouter({
         { path: '/contracts', children: contractRoutes },
         { path: '/contracts/adjustments', children: contractAdjustmentRoutes },
         { path: '/contracts/services', children: contractServiceRoutes },
-        { path: '/contracts/expenses', children: contractExpensesRoutes },
-        { path: '/expenses', children: expenseRoutes },
+        { path: '/contracts/charges', children: contractChargesRoutes },
         { path: '/maintenance', children: maintenanceRoutes },
         { path: '/index-types', children: indexTypeRoutes },
         { path: '/index-values', children: indexValueRoutes },

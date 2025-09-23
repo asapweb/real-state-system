@@ -3,7 +3,7 @@
     <!-- Encabezado -->
     <div class="d-flex align-center justify-space-between mb-4">
       <div>
-        <h2 class="mb-1">Cobranzas</h2>
+        <h2 class="mb-1">Liquidaciones de Inquilinos</h2>
         <p class="text-medium-emphasis">
           Gestiona cobranzas mensuales, borradores y facturas emitidas.
         </p>

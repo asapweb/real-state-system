@@ -34,6 +34,11 @@ function toDate(value) {
 
 // -------- API pública --------
 
+export function formatPeriodWithMonthName(value) {
+  const d = toDate(value)
+  return d ? format(d, 'MMMM yyyy') : ''
+}
+
 /**
  * Formatea fecha. Acepta:
  * - 'YYYY-MM-DD' (DATE) => sin corrimiento de zona horaria

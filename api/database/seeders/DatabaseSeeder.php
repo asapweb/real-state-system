@@ -33,14 +33,17 @@ class DatabaseSeeder extends Seeder
             AttachmentCategorySeeder::class,
             DepartmentSeeder::class,
             ConfigurationSeeder::class,
-
+            ServiceTypeSeeder::class,
+            ChargeTypeSeeder::class,
             TaxRateSeeder::class,
             PaymentMethodSeeder::class,
             SalePointSeeder::class,
             VoucherTypeSeeder::class,
-            ServiceTypeSeeder::class,
             BookletSeeder::class,
             CashAccountSeeder::class,
+
+            // Demo seeder (solo para desarrollo)
+            DemoRealStateSeeder::class,
         ]);
     }
 }

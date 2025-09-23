@@ -1,6 +1,9 @@
 <template>
   <v-select
+    :density="density"
+    :variant="variant"
     :model-value="modelValue"
+    :hide-details="hideDetails"
     @update:model-value="emit('update:modelValue', $event)"
     :items="options"
     item-title="name"
@@ -18,6 +21,9 @@ import axios from '@/services/axios'
 const props = defineProps({
   modelValue: [String, Number], // ✅ Ahora puede ser numérico (ID)
   errorMessages: { type: Array, default: () => [] },
+  density: { type: String, default: 'compact' },
+  variant: { type: String, default: 'solo-filled' },
+  hideDetails: { type: [String, Boolean], default: 'auto' },
 })
 
 const emit = defineEmits(['update:modelValue'])

@@ -16,52 +16,60 @@ class PaymentMethodSeeder extends Seeder
         $mp = CashAccount::where('name', 'Mercado Pago')->first();
         $nacion_usd = CashAccount::where('name', 'Banco Nación USD')->first();
 
-        PaymentMethod::create([
-            'name' => 'Efectivo',
-            'requires_reference' => false,
-            'default_cash_account_id' => $general?->id,
-            'is_default' => true,
-            'handled_by_agency' => true,
-        ]);
+        $data = [
+            [
+                'name' => 'Efectivo',
+                'requires_reference' => false,
+                'default_cash_account_id' => $general?->id,
+                'is_default' => true,
+                'handled_by_agency' => true,
+            ],
+            [
+                'name' => 'Transferencia',
+                'requires_reference' => true,
+                'default_cash_account_id' => $galicia?->id,
+                'is_default' => false,
+                'handled_by_agency' => true,
+            ],
+            [
+                'name' => 'Cheque',
+                'requires_reference' => true,
+                'default_cash_account_id' => $nacion_usd?->id,
+                'is_default' => false,
+                'handled_by_agency' => true,
+            ],
+            [
+                'name' => 'Mercado Pago',
+                'requires_reference' => true,
+                'default_cash_account_id' => $mp?->id,
+                'is_default' => false,
+                'handled_by_agency' => true,
+            ],
+            [
+                'name' => 'Saldo a favor',
+                'requires_reference' => false,
+                'default_cash_account_id' => null,
+                'is_default' => false,
+                'handled_by_agency' => false,
+            ],
+            [
+                'name' => 'Transferencia directa al propietario',
+                'requires_reference' => true,
+                'default_cash_account_id' => null,
+                'is_default' => false,
+                'handled_by_agency' => false, // <- clave para evitar movimientos de caja
+            ],
+        ];
 
-        PaymentMethod::create([
-            'name' => 'Transferencia',
-            'requires_reference' => true,
-            'default_cash_account_id' => $galicia?->id,
-            'is_default' => false,
-            'handled_by_agency' => true,
-        ]);
-
-        PaymentMethod::create([
-            'name' => 'Cheque',
-            'requires_reference' => true,
-            'default_cash_account_id' => $nacion_usd?->id,
-            'is_default' => false,
-            'handled_by_agency' => true,
-        ]);
-
-        PaymentMethod::create([
-            'name' => 'Mercado Pago',
-            'requires_reference' => true,
-            'default_cash_account_id' => $mp?->id,
-            'is_default' => false,
-            'handled_by_agency' => true,
-        ]);
-
-        PaymentMethod::create([
-            'name' => 'Saldo a favor',
-            'requires_reference' => false,
-            'default_cash_account_id' => null,
-            'is_default' => false,
-            'handled_by_agency' => false,
-        ]);
-
-        PaymentMethod::create([
-            'name' => 'Transferencia directa al propietario',
-            'requires_reference' => true,
-            'default_cash_account_id' => null,
-            'is_default' => false,
-            'handled_by_agency' => false, // <- clave para evitar movimientos de caja
-        ]);
+        PaymentMethod::upsert(
+            $data,
+            ['name'], // unique by name
+            [
+                'requires_reference',
+                'default_cash_account_id',
+                'is_default',
+                'handled_by_agency',
+            ]
+        );
     }
 }

@@ -1,5 +1,6 @@
 <?php
-
+use App\Http\Controllers\ContractChargeController;
+use App\Http\Controllers\ChargeTypeController;
 use App\Http\Controllers\AccountMovementController;
 use App\Http\Controllers\VoucherAssociationController;
 use App\Http\Controllers\AccountMovementManagementController;
@@ -50,6 +51,8 @@ use App\Http\Controllers\BookletController;
 use App\Http\Controllers\VoucherCalculationController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\AfipOperationTypeController;
+use App\Http\Controllers\Contracts\VoucherGenerationController;
+use App\Http\Controllers\RentGenerationController;
 use App\Http\Controllers\ServiceTypeController;
 
 Route::middleware(AddApiVersionHeader::class)->group(function () {
@@ -193,20 +196,34 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
         Route::post('contract-adjustments/apply/bulk', [ContractAdjustmentController::class, 'applyBulk']);
         Route::post('contract-adjustments/process/bulk', [ContractAdjustmentController::class, 'processBulk']);
 
-
-
-
         // Contratos
         Route::prefix('contracts')->group(function () {
+            Route::get('lookup', [ContractController::class, 'lookup']);
             Route::get('uncollected-concepts', [ContractController::class, 'uncollectedConcepts']);
-
-            Route::post('{contract}/rent-summary', [VoucherController::class, 'generateRentSummary']); // Genera el resumen de alquiler
-
             Route::get('/', [ContractController::class, 'index']);
             Route::post('/', [ContractController::class, 'store']);
+            Route::get('rents', [RentGenerationController::class, 'index']);
+            Route::get('rents/summary', [RentGenerationController::class, 'summary']);
+            Route::get('rents/list', [RentGenerationController::class, 'list']);
+            Route::post('rents/generate', [RentGenerationController::class, 'generateAll']);
+            Route::get('adjustments/summary', [ContractAdjustmentController::class, 'summary']);
+            Route::get('vouchers/overview', [VoucherGenerationController::class, 'overview']);
+            Route::get('vouchers/list', [VoucherGenerationController::class, 'list']);
+            Route::post('vouchers/generate', [VoucherGenerationController::class, 'generate']);
+
+            Route::post('{contract}/vouchers/generate', [VoucherController::class, 'generateVouchers']); // Genera los comprobantes
+            Route::get('{contract}/rents/generate', [RentGenerationController::class, 'generateForContract']);
+            Route::post('{contract}/rent-summary', [VoucherController::class, 'generateRentSummary']); // Genera el resumen de alquiler
             Route::get('{contract}', [ContractController::class, 'show']);
             Route::put('{contract}', [ContractController::class, 'update']);
             Route::delete('{contract}', [ContractController::class, 'destroy']);
+
+            // Vouchers generation (COB overview/list/generate)
+            Route::prefix('vouchers')->group(function () {
+                Route::get('overview', [\App\Http\Controllers\Contracts\VoucherGenerationController::class, 'overview']);
+                Route::get('list', [\App\Http\Controllers\Contracts\VoucherGenerationController::class, 'list']);
+                Route::post('generate', [\App\Http\Controllers\Contracts\VoucherGenerationController::class, 'generate']);
+            });
 
             // 🔸 Contract Services
             Route::get('{contract}/services', [ContractServiceController::class, 'index']);
@@ -252,6 +269,23 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
             Route::get('collections/{voucher}', [VoucherController::class, 'show']);
             Route::get('collections/{voucher}/print', [VoucherController::class, 'print']);
         });
+
+        // Catálogos (combos)
+        Route::get('charge-types', [ChargeTypeController::class, 'index']);
+        Route::get('service-types', [ServiceTypeController::class, 'index']);
+
+        // Contract Charges (REST + extras)
+        Route::get('contract-charges', [ContractChargeController::class, 'index']);
+        Route::post('contract-charges', [ContractChargeController::class, 'store']);
+        Route::get('contract-charges/{contractCharge}', [ContractChargeController::class, 'show']);
+        Route::put('contract-charges/{contractCharge}', [ContractChargeController::class, 'update']);
+        Route::delete('contract-charges/{contractCharge}', [ContractChargeController::class, 'destroy']);
+
+        // Acciones específicas
+        Route::post('contract-charges/{contractCharge}/register-payment', [ContractChargeController::class, 'registerPayment']);
+        Route::post('contract-charges/{contractCharge}/validate', [ContractChargeController::class, 'validateCharge']);
+        Route::post('contract-charges/{contractCharge}/change-status', [ContractChargeController::class, 'changeStatus']);
+
 
         Route::prefix('contract-expenses')->group(function () {
             Route::get('/', [ContractExpenseController::class, 'index']);

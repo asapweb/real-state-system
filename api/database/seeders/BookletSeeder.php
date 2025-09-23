@@ -26,7 +26,8 @@ class BookletSeeder extends Seeder
 
             ['name' => 'Recibo de Cobranza X', 'short_name' => 'RCB', 'letter' => 'X'],
             ['name' => 'Recibo de Pago X', 'short_name' => 'RPG', 'letter' => 'X'],
-            ['name' => 'Liquidación X', 'short_name' => 'LIQ', 'letter' => 'X'],
+            ['name' => 'Liquidación Inquilino X', 'short_name' => 'LQI', 'letter' => 'X'],
+            ['name' => 'Liquidación Propietario X', 'short_name' => 'LQP', 'letter' => 'X'],
             ['name' => 'Factura X', 'short_name' => 'FAC', 'letter' => 'X'],
             ['name' => 'Nota de Crédito X', 'short_name' => 'N/C', 'letter' => 'X'],
             ['name' => 'Nota de Débito X', 'short_name' => 'N/D', 'letter' => 'X'],

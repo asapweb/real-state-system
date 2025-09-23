@@ -12,6 +12,7 @@ class VoucherItem extends Model
 
     protected $fillable = [
         'voucher_id',
+        'contract_charge_id',
         'type',
         'description',
         'quantity',

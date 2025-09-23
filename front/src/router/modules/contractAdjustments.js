@@ -1,7 +1,7 @@
 const contractAdjustmentRoutes = [
   {
     path: '',
-    name: 'ContractAdjustmentIndex',
+    name: 'contract.adjustments.index',
     component: () => import('@/views/contract-adjustments/ContractAdjustmentIndex.vue'),
   },
 ];

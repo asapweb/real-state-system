@@ -77,6 +77,21 @@ class ContractAdjustmentResource extends JsonResource
                             ],
                         ];
                     }),
+                    // 👇 main tenant directo y plano
+                    'main_tenant'    => $this->contract->relationLoaded('mainTenant') && $this->contract->mainTenant
+                    ? [
+                        'contract_client_id' => $this->contract->mainTenant->id,
+                        'role'               => $this->contract->mainTenant->role,
+                        'client' => [
+                            'id'           => $this->contract->mainTenant->client->id,
+                            'name'         => $this->contract->mainTenant->client->name,
+                            'last_name'    => $this->contract->mainTenant->client->last_name,
+                            'company_name' => $this->contract->mainTenant->client->company_name,
+                            'client_type'  => $this->contract->mainTenant->client->client_type,
+                            'full_name'  => $this->contract->mainTenant->client->full_name,
+                        ],
+                    ]
+                    : null,
                 ];
             }),
 

@@ -1,5 +1,8 @@
 <template>
   <v-select
+    :density="density"
+    :variant="variant"
+    :hide-details="hideDetails"
     v-model="modelValue"
     :items="currencies"
     item-title="label"
@@ -19,6 +22,9 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  density: { type: String, default: 'compact' },
+  variant: { type: String, default: 'solo-filled' },
+  hideDetails: { type: [String, Boolean], default: 'auto' },
 })
 
 const emit = defineEmits(['update:modelValue'])

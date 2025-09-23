@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\ServiceType;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -10,30 +9,30 @@ class ServiceTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        $types = [
-            ['code' => 'rent', 'name' => 'Alquiler mensual'],
-            ['code' => 'expensas_ordinarias', 'name' => 'Expensas ordinarias'],
-            ['code' => 'expensas_extraordinarias', 'name' => 'Expensas extraordinarias'],
-            ['code' => 'agua', 'name' => 'Agua'],
-            ['code' => 'luz', 'name' => 'Luz'],
-            ['code' => 'gas', 'name' => 'Gas'],
-            ['code' => 'internet', 'name' => 'Internet / Cable'],
-            ['code' => 'abl', 'name' => 'Impuesto municipal (ABL)'],
-            ['code' => 'inmobiliario', 'name' => 'Impuesto inmobiliario'],
-            ['code' => 'rentas', 'name' => 'Rentas provinciales'],
-            ['code' => 'seguro_inmueble', 'name' => 'Seguro de inmueble'],
-            ['code' => 'seguro_contenido', 'name' => 'Seguro de contenido'],
-            ['code' => 'mantenimiento_menor', 'name' => 'Mantenimiento menor'],
-            ['code' => 'mantenimiento_mayor', 'name' => 'Mantenimiento mayor'],
-            ['code' => 'gastos_administrativos', 'name' => 'Gastos administrativos'],
-            ['code' => 'penalidades', 'name' => 'Penalidades contractuales'],
-            ['code' => 'otros', 'name' => 'Otros'],
+        $now = now();
+
+        $rows = [
+            ['code' => 'WATER',                 'name' => 'Agua',                       'is_active' => true],
+            ['code' => 'GAS',                   'name' => 'Gas',                        'is_active' => true],
+            ['code' => 'ELECTRICITY',           'name' => 'Electricidad',               'is_active' => true],
+            ['code' => 'CONDO_FEES',            'name' => 'Expensas',                   'is_active' => true],
+            ['code' => 'CONDO_EXTRAORDINARY',   'name' => 'Expensas extraordinarias',   'is_active' => true],
+            ['code' => 'INSURANCE',             'name' => 'Seguro',                     'is_active' => true],
+            ['code' => 'INTERNET',              'name' => 'Internet',                   'is_active' => true],
+            ['code' => 'MUNICIPAL_TAX',         'name' => 'Impuesto municipal',         'is_active' => true],
+            ['code' => 'SEWER',                 'name' => 'Cloacas / saneamiento',      'is_active' => true],
+            ['code' => 'MAINTENANCE',           'name' => 'Mantenimiento',              'is_active' => true],
         ];
 
-        foreach ($types as $type) {
-            ServiceType::updateOrCreate(
-                ['code' => $type['code']],
-                ['name' => $type['name']]
+        foreach ($rows as $r) {
+            DB::table('service_types')->updateOrInsert(
+                ['code' => $r['code']],
+                [
+                    'name'       => $r['name'],
+                    'is_active'  => $r['is_active'],
+                    'updated_at' => $now,
+                    'created_at' => $now,
+                ]
             );
         }
     }

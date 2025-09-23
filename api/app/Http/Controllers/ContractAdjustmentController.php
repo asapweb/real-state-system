@@ -11,7 +11,7 @@ use App\Http\Resources\ContractAdjustmentResource;
 use App\Services\ContractAdjustmentService;
 use App\Enums\ContractAdjustmentType;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Http\JsonResponse;
 
 class ContractAdjustmentController extends Controller
 {
@@ -22,9 +22,47 @@ class ContractAdjustmentController extends Controller
         $this->contractAdjustmentService = $contractAdjustmentService;
     }
 
+    public function summary(Request $request): JsonResponse
+    {
+        $periodStr = $request->query('period');
+        if (!$periodStr) {
+            return response()->json(['message' => 'Parámetro period requerido (YYYY-MM)'], 422);
+        }
+
+        $period = normalizePeriodOrFail($periodStr);
+        $startOfMonth = $period->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $period->copy()->endOfMonth()->toDateString();
+
+        $baseQuery = Contract::query()->activeDuring($period);
+
+        $totals = [];
+        $totals['active_contracts'] = (clone $baseQuery)->count();
+
+        // Single query to get all adjustment statistics for the period
+        $adjustmentStats = ContractAdjustment::query()
+            ->whereBetween('effective_date', [$startOfMonth, $endOfMonth])
+            ->selectRaw('
+                COUNT(*) as total_adjustments,
+                COUNT(CASE WHEN value IS NULL THEN 1 END) as adjustments_without_value,
+                COUNT(CASE WHEN applied_at IS NULL THEN 1 END) as adjustments_not_applied,
+                COUNT(CASE WHEN applied_at IS NULL THEN 1 END) as adjustments_not_applied
+            ')
+            ->first();
+
+        $totals['adjustments'] = $adjustmentStats->total_adjustments ?? 0;
+        $totals['adjustments_pending_value'] = $adjustmentStats->adjustments_without_value ?? 0;
+        $totals['adjustments_pending_apply'] = $adjustmentStats->adjustments_not_applied ?? 0;
+
+        return response()->json([
+            'period' => $period->format('Y-m'),
+            'totals' => $totals,
+        ]);
+    }
+
+
     public function globalIndex(Request $request)
     {
-        $query = ContractAdjustment::with('contract.clients.client', 'indexType');
+        $query = ContractAdjustment::with('contract.mainTenant.client', 'contract.clients.client', 'indexType');
 
         if ($request->filled('contract_id')) {
             $query->where('contract_id', $request->input('contract_id'));
@@ -54,6 +92,13 @@ class ContractAdjustmentController extends Controller
 
         if ($request->filled('effective_date_to')) {
             $query->whereDate('effective_date', '<=', $request->input('effective_date_to'));
+        }
+
+        if ($request->filled('period')) {
+            $period = normalizePeriodOrFail($request->input('period'));
+            $startOfMonth = $period->copy()->startOfMonth()->toDateString();
+            $endOfMonth = $period->copy()->endOfMonth()->toDateString();
+            $query->whereBetween('effective_date', [$startOfMonth, $endOfMonth]);
         }
 
         if ($request->filled('status')) {
@@ -235,7 +280,7 @@ class ContractAdjustmentController extends Controller
                     'contract_id' => $adjustment->contract_id,
                     'message' => 'Índice asignado correctamente.',
                 ];
-                
+
             } catch (\Illuminate\Validation\ValidationException $e) {
                 $message = collect($e->errors())->flatten()->first() ?? 'Error de validación al asignar índice.';
                 $results['failed'][] = [

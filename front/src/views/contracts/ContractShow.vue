@@ -24,7 +24,7 @@
         <ContractAdjustmentTable :contract-id="contract?.id" />
       </v-col>
       <v-col cols="12">
-        <ContractExpense v-if="contract" :contract-id="contract?.id" />
+        Gastos?
       </v-col>
       <v-col cols="12" md="12">
         <ContractCollectionManager :contract-id="contract?.id" :period="selectedPeriod" />
@@ -56,7 +56,6 @@ import ContractClientTable from './components/ContractClientTable.vue'
 import ContractAdjustmentTable from './components/ContractAdjustmentTable.vue'
 import ContractRentSummary from './components/ContractRentSummary.vue'
 import ContractCollectionManager from './components/ContractCollectionManager.vue'
-import ContractExpense from './components/ContractExpense.vue'
 
 
 

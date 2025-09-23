@@ -1,15 +1,5 @@
 <template>
-  <!-- Filtros -->
-  <div class="d-flex align-center mb-5">
-    <v-select v-model="filters.status" :items="statusOptions" item-title="title" item-value="value" label="Estado" variant="solo-filled" flat hide-details clearable style="max-width: 220px" />
-    <v-select v-model="filters.type" :items="typeOptions" item-title="title" item-value="value" label="Tipo" variant="solo-filled" flat hide-details clearable style="max-width: 180px" class="ml-2" />
-    <v-select v-model="filters.contract_id" :items="contractOptions" item-title="title" item-value="value" label="Contrato" variant="solo-filled" flat hide-details clearable style="max-width: 200px" class="ml-2" />
-    <v-select v-model="filters.client_id" :items="clientOptions" item-title="title" item-value="value" label="Cliente" variant="solo-filled" flat hide-details clearable style="max-width: 200px" class="ml-2" />
-    <v-text-field v-model="filters.effective_date_from" label="Fecha desde" type="date" variant="solo-filled" flat hide-details style="max-width: 160px" class="ml-2" />
-    <v-text-field v-model="filters.effective_date_to" label="Fecha hasta" type="date" variant="solo-filled" flat hide-details style="max-width: 160px" class="ml-2" />
-  </div>
-
-  <!-- Tabla -->
+    <!-- Tabla -->
   <v-data-table-server
     v-model:items-per-page="options.itemsPerPage"
     v-model:sort-by="options.sortBy"
@@ -26,17 +16,17 @@
     </template>
 
     <template #[`item.contract`]="{ item }">
-      <div v-if="item.contract">
-        <RouterLink :to="`/contracts/${item.contract.id}`" class="text-primary text-decoration-none font-weight-bold">
-          {{ formatModelId(item.contract.id, 'CON') }}
-        </RouterLink>
-        <div v-if="item.contract.clients?.length" class="text-caption text-grey">
-          {{ item.contract.clients.map(c => c.client.name + ' ' + c.client.last_name).join(', ') }}
-        </div>
+      <!-- Contrato / Inquilino -->
+      <div v-if="item.contract" class="d-flex flex-column">
+          <span class="font-weight-medium">{{ item.contract.main_tenant.client.full_name}}</span>
+          <small class="text-medium-emphasis"><RouterLink :to="`/contracts/${item.contract.id}`" class="text-primary text-decoration-none">
+          {{ formatModelId(item.contract.id, 'CON') }} 
+            <!-- {{ item.contract.id }} -->
+        </RouterLink> ({{ formatDate(item.contract?.start_date) }})</small>
       </div>
       <span v-else class="text-grey">—</span>
     </template>
-
+    
     <template #[`item.type`]="{ item }">
       <span v-if="item.type === 'index' && item.index_type">{{ item.index_type.code }}</span>
       <span v-else>{{ adjustmentLabel(item.type) }}</span>
@@ -47,31 +37,34 @@
       <span v-else class="text-grey">—</span>
     </template>
     <template #[`item.value`]="{ item }">
-
       <template v-if="item.type === 'percentage'">{{ item.value !== null ? `${item.value}%` : '—' }}</template>
-      <template v-else-if="item.type === 'fixed' || item.type === 'negotiated'">{{ item.value !== null ? formatMoney(item.value, item.contract?.currency || '$') : '—' }}</template>
-      <template v-else-if="item.type === 'index'">
-        <span v-if="item.value !== null">
-            <a href="#" @click.prevent="showIndexCalc(item)" class="text-primary text-decoration-underline" title="Ver cálculo">
-            {{ item.value }}%
-          </a>
-        </span>
-        <span v-else class="text-grey">Pendiente</span>
-      </template>
-      <template v-else>—</template>
+        <template v-else-if="item.type === 'fixed' || item.type === 'negotiated'">{{ item.value !== null ? formatMoney(item.value, item.contract?.currency || '$') : '—' }}</template>
+          <template v-else-if="item.type === 'index'">
+            <span v-if="item.value !== null">
+                <a href="#" @click.prevent="showIndexCalc(item)" class="text-primary text-decoration-underline" title="Ver cálculo">
+                {{ item.value }}%
+              </a>
+            </span>
+            <span v-else class="text-grey">Pendiente</span>
+          </template>
+        <template v-else>—</template>
     </template>
 
-    <template #[`item.base_amount`]="{ item }">
-      {{ formatMoney(item.base_amount, item.contract?.currency || '$') }}
-    </template>
-
+    <!-- Nuevo valor -->
     <template #[`item.applied_amount`]="{ item }">
-      <template v-if="item.applied_amount !== null">{{ formatMoney(item.applied_amount, item.contract?.currency || '$') }}</template>
+      <template v-if="item.applied_amount !== null">
+        <div class="d-flex flex-column">
+          <span class="font-weight-medium">{{ formatMoney(item.applied_amount, item.contract?.currency || '$') }}</span>
+          <!-- {{ formatMoney(item.applied_amount, item.contract?.currency || '$') }} --> 
+          <small class="text-medium-emphasis">BASE: {{ formatMoney(item.base_amount, item.contract?.currency || '$') }}</small>
+        </div>
+      </template>
       <template v-else><span class="text-grey">—</span></template>
     </template>
 
+
     <template #[`item.contract_start_date`]="{ item }">
-      {{ formatDate(item.contract?.start_date) }}
+      --  
     </template>
 
     <template #[`item.applied_at`]="{ item }">
@@ -98,9 +91,6 @@
         <v-btn v-if="item.value !== null && item.applied_at === null" size="small" color="success" variant="text" :loading="applyingAdjustment === item.id" :disabled="applyingAdjustment !== null" @click="applyAdjustment(item)" class="me-2">
           <v-icon size="small" class="me-1">mdi-check</v-icon> Aplicar
         </v-btn>
-        <v-chip v-else-if="item.applied_at !== null" size="small" color="success" variant="flat" class="me-2">
-          <v-icon size="small" class="me-1">mdi-check-circle</v-icon> Aplicado
-        </v-chip>
       </div>
     </template>
   </v-data-table-server>
@@ -205,6 +195,17 @@ import { formatDate } from '@/utils/date-formatter'
 import { formatMoney } from '@/utils/money'
 import { useSnackbar } from '@/composables/useSnackbar'
 
+const props = defineProps({
+  period: {
+    type: String,
+    default: null
+  },
+  filters: {
+    type: Object,
+    default: () => ({})
+  }
+})
+
 const snackbar = useSnackbar()
 
 const adjustments = ref([])
@@ -217,7 +218,7 @@ const indexCalcPeriod = ref(new Date().toISOString().slice(0, 7))
 
 // Opciones y filtros
 const options = reactive({ page: 1, itemsPerPage: 10, sortBy: [{ key: 'effective_date', order: 'asc' }] })
-const filters = reactive({ status: null, type: null, contract_id: null, client_id: null, effective_date_from: null, effective_date_to: null })
+
 
 // Combos
 const contractOptions = ref([])
@@ -233,15 +234,12 @@ const activeTab = ref('success')
 const bulkResults = reactive({ total: 0, success: [], ignored: [], failed: [] })
 
 const headers = [
-  { title: 'Contrato', key: 'contract', sortable: false },
+  { title: 'Contrato / Inquilino', key: 'contract', sortable: false },
+  { title: 'Fecha', key: 'effective_date', sortable: true },
   { title: 'Tipo', key: 'type', sortable: false },
-  { title: 'Inicio', key: 'contract_start_date', sortable: false },
-  { title: 'Ajuste', key: 'effective_date', sortable: true },
-  { title: 'Base', key: 'base_amount', sortable: false },
   { title: 'Valor', key: 'value', sortable: true },
-  { title: 'Nuevo', key: 'applied_amount', sortable: true },
+  { title: 'Nuevo Importe', key: 'applied_amount', sortable: true },
   { title: 'Aplicado', key: 'applied_at', sortable: true },
-  { title: 'Notas', key: 'notes', sortable: false },
   { title: 'Estado', key: 'status', sortable: false },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
 ]
@@ -351,7 +349,11 @@ const confirmBulkAction = async () => {
 const fetchAdjustments = async () => {
   loading.value = true
   try {
-    const { data } = await axios.get('/api/contract-adjustments/global', { params: { page: options.page, per_page: options.itemsPerPage, ...filters } })
+    const params = { page: options.page, per_page: options.itemsPerPage, ...props.filters }
+    if (props.period) {
+      params.period = props.period
+    }
+    const { data } = await axios.get('/api/contract-adjustments/global', { params })
     adjustments.value = data.data
     total.value = data.meta.total
   } catch (e) {
@@ -369,7 +371,35 @@ const fetchClients = async () => {
   clientOptions.value = data.data.map(c => ({ title: `${c.name} ${c.last_name}`, value: c.id }))
 }
 
-watch(filters, () => { options.page = 1; fetchAdjustments() }, { deep: true })
+watch(props.filters, () => { options.page = 1; fetchAdjustments() }, { deep: true })
+
+watch(() => props.period, () => {
+  const firstDay = new Date(Date.UTC(
+    parseInt(props.period.split('-')[0]),
+    parseInt(props.period.split('-')[1]) - 1,
+    1
+  ));
+
+  const lastDay = new Date(Date.UTC(
+    parseInt(props.period.split('-')[0]),
+    parseInt(props.period.split('-')[1]),
+    0
+  ));
+
+  console.log(firstDay.toISOString()); // 2025-12-01T00:00:00.000Z
+  console.log(lastDay.toISOString());  // 2025-12-31T00:00:00.000Z
+  console.log(lastDay.toISOString());  // 2025-12-31T00:00:00.000Z
+  console.log(firstDay.getDate());     // 1
+  console.log(lastDay.getDate());      // 31
+
+
+  props.filters.effective_date_from = props.period ? `${props.period}-01` : null
+  props.filters.effective_date_to =lastDay.toISOString().split('T')[0];
+  fetchAdjustments()
+ }, { immediate: true })
+
+console.log('props.period')
+console.log(props.period)
 onMounted(() => { fetchContracts(); fetchClients(); fetchAdjustments() })
 defineExpose({ openBulkDialog })
 </script>

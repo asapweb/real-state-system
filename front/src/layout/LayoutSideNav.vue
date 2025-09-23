@@ -32,6 +32,7 @@
             <v-list-item
               v-bind="props"
               :prepend-icon="link.icon"
+              :to="link.to"
               :title="link.title"
             />
           </template>
@@ -40,6 +41,7 @@
             :key="child.title"
             :title="child.title"
             :to="child.to"
+            :exact="true"
             link
             class="ml-4"
           />
@@ -219,10 +221,12 @@ const mainNavGeneral = [
     icon: 'mdi-file-sign',
     title: 'Contratos',
     children: [
+      { title: 'Dashboard', to: '/contracts/rents/dashboard', icon: 'mdi-format-list-bulleted' },
       { title: 'Listado', to: '/contracts', icon: 'mdi-format-list-bulleted' },
       { title: 'Gestión de Ajustes', to: '/contracts/adjustments', icon: 'mdi-cogs' },
-      { title: 'Gestión de Gastos', to: '/contracts/expenses', icon: 'mdi-cogs' },
-      { title: 'Pendientes de cobranza', icon: 'mdi-alert', to: '/contracts/pending-concepts' }
+      { title: 'Gestión de Cuotas', to: '/contracts/rents', icon: 'mdi-cogs' },
+      { title: 'Gestión de Cargos', to: '/contracts/charges', icon: 'mdi-cogs' },
+      { title: 'Generación de Comprobantes', to: '/contracts/vouchers/generation', icon: 'mdi-calendar-refresh' }
     ],
   },
   {

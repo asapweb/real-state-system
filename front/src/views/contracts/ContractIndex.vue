@@ -1,4 +1,9 @@
 <template>
+  <div class="mb-8 d-flex align-center justify-space-between">
+    <div>
+      <h2 class="text-h5"><a href="/contracts" @click="goToContracts" class="text-medium-emphasis text-decoration-none font-weight-light">Contratos </a >/ Listado</h2>
+    </div>
+  </div>
   <div class="mb-8">
     <div class="d-flex justify-space-between align-center">
       <h2>Contratos</h2>

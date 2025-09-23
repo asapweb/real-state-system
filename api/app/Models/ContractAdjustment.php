@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use App\Enums\ContractAdjustmentType;
 use Carbon\Carbon;
@@ -66,5 +67,20 @@ class ContractAdjustment extends Model
     public function indexType()
     {
         return $this->belongsTo(IndexType::class);
+    }
+
+    /**
+     * Ajustes vigentes (effective_date <= inicio de P)
+     * que NO están aplicados (sin applied_at o sin applied_amount).
+     */
+    public function scopeBlockingForPeriod(Builder $q, Carbon $period): Builder
+    {
+        $start = $period->copy()->startOfMonth()->toDateString();
+
+        return $q->whereDate('effective_date', '<=', $start)
+                 ->where(function (Builder $qq) {
+                     $qq->whereNull('applied_at')
+                        ->orWhereNull('applied_amount');
+                 });
     }
 }

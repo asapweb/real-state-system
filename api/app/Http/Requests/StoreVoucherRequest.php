@@ -40,6 +40,8 @@ class StoreVoucherRequest extends FormRequest
             'items.*.quantity' => ['required_with:items', 'numeric'],
             'items.*.unit_price' => ['required_with:items', 'numeric'],
             'items.*.tax_rate_id' => ['nullable', 'exists:tax_rates,id'],
+            'items.*.contract_charge_id' => ['nullable', 'exists:contract_charges,id'],
+            'items.*.impact' => ['nullable', 'string'],
         ];
 
         $specificRules = match ($type) {

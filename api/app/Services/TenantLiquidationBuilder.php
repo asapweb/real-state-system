@@ -17,6 +17,7 @@ class TenantLiquidationBuilder
             // 1) traer cargos elegibles
             $charges = ContractCharge::query()
                 ->forContract($contract->id)
+                ->active()
                 ->with('chargeType')
                 ->get()
                 ->filter(fn(ContractCharge $c) => $c->shouldIncludeInTenantLiquidation($period));

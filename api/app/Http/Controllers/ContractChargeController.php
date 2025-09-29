@@ -3,23 +3,50 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\ContractChargeResource;
+use App\Http\Requests\CancelContractChargeRequest;
 use App\Http\Requests\StoreContractChargeRequest;
 use App\Http\Requests\UpdateContractChargeRequest;
 use App\Models\ContractCharge;
 use App\Models\ChargeType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use DomainException;
 
 class ContractChargeController extends Controller
 {
     /** Lista paginada por contrato (filtros básicos) */
     public function index(Request $request)
     {
+        // Periodo
+        $periodStr = $request->input('period'); // 'YYYY-MM'
+        $period = Carbon::createFromFormat('Y-m', $periodStr);
+        $from = $period->copy()->startOfMonth()->toDateString();
+        $to   = $period->copy()->startOfMonth()->addMonth()->toDateString();
+
+
         $query = ContractCharge::query()
-            ->with(['chargeType','counterparty', 'contract.mainTenant.client', 'contract.clients.client'])
+            ->with(['chargeType','counterparty','serviceType', 'contract.mainTenant.client', 'contract.clients.client', 'canceledBy', 'tenantLiquidationVoucher'])
             ->when($request->contract_id, fn($q, $id) => $q->where('contract_id', $id))
             ->when($request->type_code, function ($q, $code) {
                 $q->whereHas('chargeType', fn($qq) => $qq->where('code', $code));
+            })
+            ->when($request->period, function  ($q) use ($from, $to) {
+                $q->where('effective_date', '>=', $from)
+                ->where('effective_date', '<', $to);
+            })
+            ->when($request->get('status'), function ($q, $status) {
+                if ($status === 'canceled') {
+                    $q->canceled();
+                } elseif ($status === 'all') {
+                    // sin filtro adicional
+                } else {
+                    $q->active();
+                }
+            }, function ($q) {
+                $q->active();
             })
             ->orderByDesc('effective_date')
             ->orderByDesc('id');
@@ -60,7 +87,7 @@ class ContractChargeController extends Controller
         ]);
 
         return response()->json(
-            $charge->load(['chargeType','counterparty']),
+            new ContractChargeResource($charge->load(['chargeType','counterparty','serviceType'])),
             Response::HTTP_CREATED
         );
     }
@@ -68,19 +95,17 @@ class ContractChargeController extends Controller
     /** Ver cargo */
     public function show(ContractCharge $contractCharge)
     {
-        return $contractCharge->load(['chargeType','counterparty']);
+        $contractCharge->load(['chargeType','counterparty','serviceType','canceledBy']);
+
+        return new ContractChargeResource($contractCharge);
     }
 
     /** Actualizar cargo */
     public function update(UpdateContractChargeRequest $request, ContractCharge $contractCharge)
     {
-        // Si cambia el tipo, podrías revalidar requires_counterparty / service_period
-        if ($request->has('charge_type_id') && $request->charge_type_id != $contractCharge->charge_type_id) {
-            $type = ChargeType::findOrFail($request->charge_type_id);
-            // (Opcional) agregar validación similar a Store para el nuevo tipo
-        }
+        $data = $request->validated();
 
-        $contractCharge->fill($request->only([
+        $financialFields = [
             'service_type_id',
             'counterparty_contract_client_id',
             'amount',
@@ -90,16 +115,72 @@ class ContractChargeController extends Controller
             'service_period_start',
             'service_period_end',
             'invoice_date',
-            'description',
-        ]));
+        ];
 
-        if ($contractCharge->isDirty('currency')) {
-            $contractCharge->currency = strtoupper($contractCharge->currency);
+        $lockedByVoucher = $contractCharge->hasLockedLiquidationVoucher();
+        $isCanceled = $contractCharge->is_canceled;
+
+        if ($lockedByVoucher || $isCanceled) {
+            $changed = array_filter($financialFields, function ($field) use ($data, $contractCharge) {
+                if (!array_key_exists($field, $data)) {
+                    return false;
+                }
+
+                $newValue = $data[$field];
+                $currentValue = $contractCharge->{$field};
+
+                if ($currentValue instanceof \DateTimeInterface) {
+                    $currentValue = $currentValue->format('Y-m-d');
+                }
+
+                if ($newValue instanceof \DateTimeInterface) {
+                    $newValue = $newValue->format('Y-m-d');
+                }
+
+                if (in_array($field, ['service_type_id', 'counterparty_contract_client_id'], true)) {
+                    $currentValue = $currentValue ? (int) $currentValue : null;
+                    $newValue = $newValue !== null ? (int) $newValue : null;
+                } elseif ($field === 'amount') {
+                    $currentValue = $currentValue !== null ? (float) $currentValue : null;
+                    $newValue = $newValue !== null ? (float) $newValue : null;
+                } elseif (in_array($field, ['currency'], true)) {
+                    $currentValue = $currentValue ? strtoupper((string) $currentValue) : $currentValue;
+                    $newValue = $newValue ? strtoupper((string) $newValue) : $newValue;
+                }
+
+                return $currentValue !== $newValue;
+            });
+
+            if (!empty($changed)) {
+                $message = $isCanceled
+                    ? 'El cargo está cancelado y no permite modificar datos financieros.'
+                    : 'El cargo está asentado en una liquidación y no permite modificar datos financieros.';
+
+                return response()->json([
+                    'message' => $message,
+                    'errors' => [
+                        'fields' => array_values($changed),
+                    ],
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
         }
 
+        $editableFields = ['description'];
+
+        if (!$lockedByVoucher && !$isCanceled) {
+            $editableFields = array_merge($financialFields, ['description']);
+        }
+
+        $payload = Arr::only($data, $editableFields);
+
+        if (array_key_exists('currency', $payload)) {
+            $payload['currency'] = strtoupper($payload['currency']);
+        }
+
+        $contractCharge->fill($payload);
         $contractCharge->save();
 
-        return $contractCharge->load(['chargeType','counterparty']);
+        return new ContractChargeResource($contractCharge->load(['chargeType','counterparty','serviceType','canceledBy']));
     }
 
     /** Borrar cargo (en dev puede ser hard delete; en prod podrías hacer soft-delete) */
@@ -107,5 +188,42 @@ class ContractChargeController extends Controller
     {
         $contractCharge->delete();
         return response()->noContent();
+    }
+
+    public function cancel(CancelContractChargeRequest $request, ContractCharge $contractCharge)
+    {
+        if ($contractCharge->is_canceled) {
+            return response()->json([
+                'message' => 'El cargo ya se encuentra cancelado.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $user = $request->user() ?? auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Acceso no autorizado.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        try {
+            DB::transaction(function () use ($contractCharge, $request, $user) {
+                $contractCharge->cancel($request->validated()['reason'], $user);
+            });
+        } catch (DomainException $exception) {
+            if ($exception->getMessage() === 'has_non_draft_voucher') {
+                return response()->json([
+                    'message' => 'No se puede cancelar el cargo porque está asentado en una liquidación confirmada.',
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            return response()->json([
+                'message' => 'No se pudo cancelar el cargo.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $contractCharge->load(['chargeType','counterparty','serviceType','canceledBy']);
+
+        return new ContractChargeResource($contractCharge);
     }
 }

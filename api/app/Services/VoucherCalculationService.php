@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Voucher;
 use App\Models\VoucherItem;
+use App\Enums\VoucherItemImpact;
+
 use Illuminate\Validation\ValidationException;
 
 class VoucherCalculationService
@@ -26,7 +28,7 @@ class VoucherCalculationService
             } else {
                 $item->vat_amount = round($item->subtotal * ($item->taxRate->rate / 100), 2);
                 $item->subtotal_with_vat = $item->subtotal + $item->vat_amount;
-            }   
+            }
             // $item->vat_amount = round($item->subtotal * ($item->taxRate->rate / 100), 2);
         } else {
             $item->vat_amount = 0;
@@ -64,43 +66,61 @@ class VoucherCalculationService
         $subtotal_vat = 0;
         $subtotal_other_taxes = 0;
         $subtotal = 0;
-        $total = 0; 
+        $total = 0;
 
+        \Log::info('- ITEMS CALCULATIONNNNN  -------------------------------');
         $items = $voucher->items ?? collect();
-
+        \Log::info('- ITEMS  -------------------------------');
+        \Log::info('items', ['items' => $items]);
+        \Log::info('- ITEMS  -------------------------------');
+        \Log::info('- ITEMS  -------------------------------');
+        \Log::info('- ITEMS  -------------------------------');
+        \Log::info('- ITEMS  -------------------------------');
         foreach ($items as $item) {
+            \Log::info('- ITEM  -------------------------------');
+            \Log::info('item', ['item' => $item]);
+            \Log::info('- ITEM  -------------------------------');
+            \Log::info('- ITEM  -------------------------------');
             $this->calculateItem($item, $voucher->voucher_type_letter);
-            
-            $subtotal += $item->subtotal;
+
+            // Determinar el signo según impact (string o PHP enum)
+            $sign = $item->impact instanceof VoucherItemImpact
+            ? $item->impact->sign()
+            : (strtolower((string)($item->impact ?? 'add')) === 'subtract' ? -1 : 1);
+
+            // Subtotales "base"
+            $subtotal += $sign * $item->subtotal;
+
             if (!$item->taxRate) {
-                $subtotal_untaxed += $item->subtotal;
-                $total += $item->subtotal_with_vat;
+                $subtotal_untaxed += $sign * $item->subtotal;
+                $total += $sign * $item->subtotal_with_vat;
                 continue;
             }
 
             switch ($item->taxRate->id) {
                 case 1: // Exento
-                    $subtotal_exempt += $item->subtotal;
+                    $subtotal_exempt += $sign * $item->subtotal;
                     break;
                 case 2: // No Gravado
-                    $subtotal_untaxed += $item->subtotal;
+                    $subtotal_untaxed += $sign * $item->subtotal;
                     break;
                 default:
                     if ($item->taxRate->included_in_vat_detail) {
                         if ($voucher->voucher_type_letter === 'B') {
-                            $subtotal_taxed += $item->subtotal - $item->vat_amount;
-                            $subtotal_vat += $item->vat_amount;
+                            $subtotal_taxed += $sign * ($item->subtotal - $item->vat_amount);
+                            $subtotal_vat   += $sign * $item->vat_amount;
                         } else {
-                            $subtotal_taxed += $item->subtotal;
-                            $subtotal_vat += $item->vat_amount;
+                            $subtotal_taxed += $sign * $item->subtotal;
+                            $subtotal_vat   += $sign * $item->vat_amount;
                         }
                     } else {
-                        $subtotal_untaxed += $item->subtotal;
+                        $subtotal_untaxed += $sign * $item->subtotal;
                     }
                     break;
             }
 
-            $total += $item->subtotal_with_vat;
+            // Total siempre con IVA incluido (según tu lógica actual)
+            $total += $sign * $item->subtotal_with_vat;
         }
         $voucher->subtotal_exempt = $subtotal_exempt;
         $voucher->subtotal_untaxed = $subtotal_untaxed;

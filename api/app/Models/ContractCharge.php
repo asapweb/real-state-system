@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Events\ContractChargeCanceled;
+use App\Models\User;
+use BackedEnum;
+use DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -23,26 +27,33 @@ class ContractCharge extends Model
         'service_period_end',
         'invoice_date',
 
-        // nuevas referencias a LIQ por lado
         'tenant_liquidation_voucher_id',
         'owner_liquidation_voucher_id',
 
-        // marcas de asentado (cuando la LIQ pasa a NO-DRAFT)
-        'tenant_settled_at',
-        'owner_settled_at',
+        // nombres alineados con la migración
+        'tenant_liquidation_settled_at',
+        'owner_liquidation_settled_at',
 
         'description',
+
+        'canceled_at',
+        'canceled_by',
+        'canceled_reason',
+        'is_canceled',
     ];
 
     protected $casts = [
-        'amount'                 => 'decimal:2',
-        'effective_date'         => 'date',
-        'due_date'               => 'date',
-        'service_period_start'   => 'date',
-        'service_period_end'     => 'date',
-        'invoice_date'           => 'date',
-        'tenant_settled_at'      => 'datetime',
-        'owner_settled_at'       => 'datetime',
+        'amount'                          => 'decimal:2',
+        'effective_date'                  => 'date',
+        'due_date'                        => 'date',
+        'service_period_start'            => 'date',
+        'service_period_end'              => 'date',
+        'invoice_date'                    => 'date',
+        'tenant_liquidation_settled_at'   => 'datetime',
+        'owner_liquidation_settled_at'    => 'datetime',
+        // quitar requires_* porque no existen en la tabla
+        'is_canceled'                     => 'bool',
+        'canceled_at'                     => 'datetime',
     ];
 
     /* =========================
@@ -68,16 +79,19 @@ class ContractCharge extends Model
         return $this->belongsTo(ContractClient::class, 'counterparty_contract_client_id');
     }
 
-    // LIQ inquilino (documento de deuda / AR)
     public function tenantLiquidationVoucher(): BelongsTo
     {
         return $this->belongsTo(Voucher::class, 'tenant_liquidation_voucher_id');
     }
 
-    // LIQ propietario
     public function ownerLiquidationVoucher(): BelongsTo
     {
         return $this->belongsTo(Voucher::class, 'owner_liquidation_voucher_id');
+    }
+
+    public function canceledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'canceled_by');
     }
 
     /* =========================
@@ -106,32 +120,44 @@ class ContractCharge extends Model
         return $q->with('chargeType');
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where('is_canceled', false)
+                     ->whereNull('canceled_at');
+    }
+
+    public function scopeCanceled($query)
+    {
+        return $query->whereNotNull('canceled_at')
+                     ->where('is_canceled', true);
+    }
+
     /* =========================
      * Helpers de impacto y elegibilidad
      * ========================= */
-
-    /** true si se debe incluir en la LIQ del inquilino para un período dado */
     public function shouldIncludeInTenantLiquidation(Carbon $period): bool
     {
-        $type = $this->getLoadedType();
+        if ($this->is_canceled) return false;
+
+        $type   = $this->getLoadedType();
         $impact = $type->tenant_impact->value ?? $type->tenant_impact;
 
         if (!in_array($impact, ['add','subtract'], true)) return false;
         if (!$this->isInPeriod($period)) return false;
 
-        // Si el tipo requiere contraparte tenant y no está seteada, no incluir
         if (($type->requires_counterparty ?? null) === 'tenant' && !$this->counterparty_contract_client_id) return false;
 
-        // Si ya está asentado (LIQ posteada), no volver a incluir
-        if (!is_null($this->tenant_settled_at)) return false;
+        // usar nombre alineado
+        if (!is_null($this->tenant_liquidation_settled_at)) return false;
 
         return true;
     }
 
-    /** true si se debe incluir en la LIQ del propietario para un período dado */
     public function shouldIncludeInOwnerLiquidation(Carbon $period): bool
     {
-        $type = $this->getLoadedType();
+        if ($this->is_canceled) return false;
+
+        $type   = $this->getLoadedType();
         $impact = $type->owner_impact->value ?? $type->owner_impact;
 
         if (!in_array($impact, ['add','subtract'], true)) return false;
@@ -139,57 +165,92 @@ class ContractCharge extends Model
 
         if (($type->requires_counterparty ?? null) === 'owner' && !$this->counterparty_contract_client_id) return false;
 
-        if (!is_null($this->owner_settled_at)) return false;
+        if (!is_null($this->owner_liquidation_settled_at)) return false;
 
         return true;
     }
 
-    /** Devuelve el monto firmado para inquilino (amount siempre positivo en DB) */
     public function signedAmountForTenant(): float
     {
         $type = $this->getLoadedType();
         return (float) $type->signedAmountForTenant((float) $this->amount);
     }
 
-    /** Devuelve el monto firmado para propietario (amount siempre positivo en DB) */
     public function signedAmountForOwner(): float
     {
         $type = $this->getLoadedType();
         return (float) $type->signedAmountForOwner((float) $this->amount);
     }
 
-    /** Marca “asentado” del lado tenant (cuando la LIQ pasa a NO-DRAFT) */
     public function markTenantSettled(?Carbon $at = null): void
     {
-        $this->tenant_settled_at = $at ?: now();
+        $this->tenant_liquidation_settled_at = $at ?: now();
         $this->save();
     }
 
-    /** Marca “asentado” del lado owner */
     public function markOwnerSettled(?Carbon $at = null): void
     {
-        $this->owner_settled_at = $at ?: now();
+        $this->owner_liquidation_settled_at = $at ?: now();
         $this->save();
     }
 
-    /** Reabre (si el voucher vuelve a DRAFT o se anula) */
     public function reopenTenantSide(): void
     {
-        $this->tenant_settled_at = null;
+        $this->tenant_liquidation_settled_at = null;
         $this->save();
     }
 
     public function reopenOwnerSide(): void
     {
-        $this->owner_settled_at = null;
+        $this->owner_liquidation_settled_at = null;
         $this->save();
+    }
+
+    public function cancel(string $reason, User $by): void
+    {
+        if ($this->is_canceled) {
+            return;
+        }
+
+        if ($this->hasLockedLiquidationVoucher()) {
+            throw new DomainException('has_non_draft_voucher');
+        }
+
+        $this->canceled_at     = now();
+        $this->canceled_reason = $reason;
+        $this->canceled_by     = $by->id;
+        $this->is_canceled     = true;
+        $this->save();
+
+        ContractChargeCanceled::dispatch($this->fresh(['chargeType', 'counterparty', 'canceledBy']));
+    }
+
+    public function unCancel(): void
+    {
+        if (!$this->is_canceled) {
+            return;
+        }
+
+        if ($this->hasLockedLiquidationVoucher()) {
+            throw new DomainException('has_non_draft_voucher');
+        }
+
+        $this->canceled_at     = null;
+        $this->canceled_reason = null;
+        $this->canceled_by     = null;
+        $this->is_canceled     = false;
+        $this->save();
+    }
+
+    public function hasLockedLiquidationVoucher(): bool
+    {
+        return $this->voucherIsNonDraft($this->resolveVoucher('tenantLiquidationVoucher', 'tenant_liquidation_voucher_id'))
+            || $this->voucherIsNonDraft($this->resolveVoucher('ownerLiquidationVoucher', 'owner_liquidation_voucher_id'));
     }
 
     /* =========================
      * Utilitarios
      * ========================= */
-
-    /** período mensual (effective_date dentro del mes de $period) */
     public function isInPeriod(Carbon $period): bool
     {
         $start = $period->copy()->startOfMonth();
@@ -199,11 +260,36 @@ class ContractCharge extends Model
             && $this->effective_date->lessThan($end);
     }
 
-    /** Evita N+1 en helpers */
     private function getLoadedType(): ChargeType
     {
         return $this->relationLoaded('chargeType')
             ? $this->chargeType
             : $this->chargeType()->firstOrFail();
+    }
+
+    private function resolveVoucher(string $relation, string $foreignKey): ?Voucher
+    {
+        if (!$this->{$foreignKey}) {
+            return null;
+        }
+
+        if ($this->relationLoaded($relation)) {
+            return $this->{$relation};
+        }
+
+        return $this->{$relation}()->first();
+    }
+
+    private function voucherIsNonDraft(?Voucher $voucher): bool
+    {
+        if (!$voucher) return false;
+
+        $status = $voucher->status;
+        if ($status instanceof BackedEnum) {
+            $status = $status->value;
+        }
+        if ($status === null) return false;
+
+        return strtoupper((string) $status) !== 'DRAFT';
     }
 }

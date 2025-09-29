@@ -382,6 +382,10 @@ class VoucherController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->has('currency')) {
+            $query->where('currency', strtoupper($request->currency));
+        }
+
         // Filtrar por cliente
         if ($request->has('client_id')) {
             $query->where('client_id', $request->client_id);

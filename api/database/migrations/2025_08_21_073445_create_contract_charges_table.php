@@ -41,11 +41,18 @@ return new class extends Migration {
                   ->nullable()->constrained('vouchers')->nullOnDelete();  // Liquidación al propietario
 
             // Marcas de "asentado" (cuando la liquidación pasa a NO-DRAFT)
-            $table->timestamp('tenant_settled_at')->nullable();
-            $table->timestamp('owner_settled_at')->nullable();
+            $table->timestamp('tenant_liquidation_settled_at')->nullable();
+            $table->timestamp('owner_liquidation_settled_at')->nullable();
 
             // Meta
             $table->text('description')->nullable();
+
+            // Cancelación (app mantiene is_canceled)
+            $table->timestamp('canceled_at')->nullable();
+            $table->foreignId('canceled_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('canceled_reason')->nullable();
+            $table->boolean('is_canceled')->default(false)->index();
+
             $table->timestamps();
 
             // Índices útiles

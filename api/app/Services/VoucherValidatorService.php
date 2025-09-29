@@ -31,6 +31,29 @@ class VoucherValidatorService
             ]);
         }
 
+        // Dentro de validateBeforeIssue(Voucher $voucher)
+        $type = $voucher->booklet?->voucherType;
+        $isLqi = ($type?->code === 'LQI') || (strtoupper($type?->short_name ?? '') === 'LIQ');
+
+        if ($isLqi) {
+            // Debe tener items
+            if (!$voucher->items || $voucher->items->isEmpty()) {
+                throw ValidationException::withMessages(['items' => 'La LQI no tiene ítems elegibles.']);
+            }
+
+            // Todos los items deben tener contract_charge_id
+            if ($voucher->items->contains(fn($it) => empty($it->contract_charge_id))) {
+                throw ValidationException::withMessages(['items' => 'Todos los ítems de LQI deben referenciar un cargo.']);
+            }
+
+            // Moneda uniforme (los cargos ya la garantizan; adicional por seguridad)
+            // (Si tenés currency por ítem, chequealo; si no, omití esto)
+
+            // Prohibir ítems subtract en comprobantes NO LQI/LQP
+            // (esta regla inversa ponela en el else de tipos tradicionales)
+        }
+
+
         // Recalcular totales
         $this->calculationService->calculateVoucher($voucher);
 
@@ -39,11 +62,20 @@ class VoucherValidatorService
         // Validar saltos en la numeración
         $this->validateNoMissingPreviousVouchers($voucher);
 
+        // Prohibir subtract fuera de LQI/LQP
+        $isLqiOrLqp = in_array($type, ['LQI','LQP'], true);
+        if (!$isLqiOrLqp && $voucher->items->contains(fn($it) => ($it->impact ?? 'add') === 'subtract')) {
+            throw ValidationException::withMessages([
+                'items' => 'Este tipo de comprobante no admite ítems con impacto negativo.',
+            ]);
+        }
+
         // Validar fecha de emisión
         $this->validateNoEarlierIssueDate($voucher);
 
         match ($type) {
-            'FAC', 'COB', 'LIQ', 'N/D' => $this->validateItemsRequired($voucher),
+            'FAC', 'COB' => $this->validateItemsRequired($voucher),
+            'LIQ', 'LQP' => $this->validateItemsRequired($voucher),
             'N/D' => $this->validateDebitNote($voucher),
             'N/C' => $this->validateCreditNote($voucher),
             'RCB', 'RPG' => $this->validateReceipt($voucher),
@@ -199,7 +231,7 @@ class VoucherValidatorService
                 ]);
             }
         }
-       
+
         // ✅ Caso 1: total > 0
         if ((float) $voucher->total > $tolerance) {
             if ($sumPayments <= 0) {
@@ -217,7 +249,7 @@ class VoucherValidatorService
                     ]);
                 }
             }
-            
+
 
             if (abs((float) $sumItemsAndApplications - $sumPayments) > $tolerance) {
                 throw ValidationException::withMessages([

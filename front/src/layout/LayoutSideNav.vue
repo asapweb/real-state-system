@@ -252,6 +252,11 @@ const mainNavLinks = [
     to: '/vouchers/invoices',
     icon: 'mdi-invoice-text-outline',
   },
+  {
+    title: 'Liquidaciones LQI',
+    to: '/lqi',
+    icon: 'mdi-clipboard-text-clock',
+  },
 ]
 
 const secondaryNavLinks = [

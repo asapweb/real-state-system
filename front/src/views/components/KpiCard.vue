@@ -6,7 +6,7 @@
     :class="{ 'kpi-card--hover': hover }"
   >
     <!-- Título + Tooltip -->
-    <div class="text-caption text-medium-emphasis d-flex align-center">
+    <div class="text-caption text-medium-emphasis d-flex align-center justify-space-between">
       {{ title }}
       <v-tooltip
         v-if="tooltip"
@@ -28,7 +28,7 @@
     </div>
 
     <!-- Contenido principal: valor o spinner -->
-    <div class="text-h6 mt-1 d-flex align-center">
+    <div class="d-flex align-center">
       <v-progress-circular
         v-if="loading"
         indeterminate
@@ -37,7 +37,12 @@
         color="primary"
         class="me-2"
       />
-      <span v-else>{{ value }}</span>
+      <span v-else>
+        <span class="text-h6 mt-1 ">
+        {{ value }}
+        </span>
+        <small v-if="total"> / {{ total }}</small>
+      </span>
     </div>
   </div>
 </template>
@@ -53,6 +58,10 @@ defineProps({
     default: ''
   },
   value: {
+    type: [String, Number],
+    required: true
+  },
+  total: {
     type: [String, Number],
     required: true
   },

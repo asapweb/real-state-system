@@ -5,12 +5,29 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\ChargeType;
 use App\Models\ContractClient;
+// use App\Models\Contract; // <- si validás currency del contrato (ver abajo)
 
 class StoreContractChargeRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true; // ajustá a tu política
+    }
+
+    /**
+     * Normalizaciones rápidas antes de validar:
+     * - amount siempre positivo (el signo lo da el tipo)
+     * - currency en mayúsculas
+     */
+    protected function prepareForValidation(): void
+    {
+        $amount = $this->input('amount');
+        $currency = $this->input('currency');
+
+        $this->merge([
+            'amount'   => is_numeric($amount) ? abs((float)$amount) : $amount,
+            'currency' => is_string($currency) ? strtoupper($currency) : $currency,
+        ]);
     }
 
     public function rules(): array
@@ -45,7 +62,7 @@ class StoreContractChargeRequest extends FormRequest
             $ccId = $this->input('counterparty_contract_client_id');
             if ($req !== null) {
                 if (!$ccId) {
-                    $v->errors()->add('counterparty_contract_client_id', 'Counterparty is required for this charge type.');
+                    $v->errors()->add('counterparty_contract_client_id', 'La contraparte es obligatoria para este tipo de cargo.');
                     return;
                 }
                 $cc = ContractClient::query()
@@ -53,24 +70,39 @@ class StoreContractChargeRequest extends FormRequest
                     ->where('contract_id', $this->input('contract_id'))
                     ->first();
                 if (!$cc) {
-                    $v->errors()->add('counterparty_contract_client_id', 'Counterparty must belong to the same contract.');
+                    $v->errors()->add('counterparty_contract_client_id', 'La contraparte debe pertenecer al mismo contrato.');
                     return;
                 }
-                $role = strtolower($cc->role); // e.g. 'tenant' | 'owner'
+                $role = strtolower($cc->role); // 'tenant' | 'owner'
                 if ($req !== $role) {
-                    $v->errors()->add('counterparty_contract_client_id', "Counterparty must be a {$req}.");
+                    $v->errors()->add('counterparty_contract_client_id', "La contraparte debe ser de tipo {$req}.");
                 }
             }
 
             // 2) requires_service_period
             if ($type->requires_service_period) {
                 if (!$this->input('service_period_start') || !$this->input('service_period_end')) {
-                    $v->errors()->add('service_period_start', 'Service period is required for this charge type.');
+                    $v->errors()->add('service_period_start', 'El período de servicio es obligatorio para este tipo de cargo.');
                 }
             }
 
-            // 3) currency policy (opcional: fuerza moneda de contrato)
-            // Si usás CONTRACT_CURRENCY, podrías validar contra la moneda del contrato aquí.
+            // 3) NEW: requires_service_type
+            if (property_exists($type, 'requires_service_type') ? (bool)$type->requires_service_type : false) {
+                if (!$this->input('service_type_id')) {
+                    $v->errors()->add('service_type_id', 'El tipo de servicio es obligatorio para este tipo de cargo.');
+                }
+            }
+
+            // 4) (Opcional) Política de moneda CONTRACT_CURRENCY
+            // Si querés forzar la moneda del contrato cuando currency_policy = CONTRACT_CURRENCY:
+            /*
+            if (($type->currency_policy ?? null) === 'CONTRACT_CURRENCY') {
+                $contract = Contract::find($this->input('contract_id'));
+                if ($contract && strtoupper($this->input('currency')) !== strtoupper($contract->currency)) {
+                    $v->errors()->add('currency', 'La moneda debe coincidir con la moneda del contrato para este tipo de cargo.');
+                }
+            }
+            */
         });
     }
 }

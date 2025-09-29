@@ -6,48 +6,41 @@
     <PeriodNavigation v-model="periodInput" />
   </div>
   <v-row dense>
-    <v-col cols="12" sm="auto" class="flex-grow-1">
+    <v-col cols="12" sm="6" md="3" class="flex-grow-1">
       <KpiCard
         title="Contratos activos"
-        tooltip="Contratos en estado activo para el período seleccionado"
-        :value="summary.totals.active_contracts || 0"
+        tooltip="Contratos en estado activo durante el período"
+        :value="summary.totals.contracts_active || 0"
         :loading="loading.summary"
         @click="goToContracts"
       />
     </v-col>
-    <v-col cols="12" sm="auto" class="flex-grow-1">
+    <v-col cols="12" sm="6" md="3" class="flex-grow-1">
       <KpiCard
         title="Ajuste pendiente"
-        tooltip="Contratos con ajuste pendiente de aplicar"
-        :value="summary.totals.adjustments_pending || 0"
+        tooltip="Ajustes del período sin aplicar"
+        :value="summary.totals.adjustments?.pending || 0"
+        :total="summary.totals.adjustments?.scheduled || 0"
         :loading="loading.summary"
         @click="goToAdjustments"
       />
 
     </v-col>
-    <v-col cols="12" sm="auto" class="flex-grow-1">
+    <v-col cols="12" sm="6" md="3" class="flex-grow-1">
       <KpiCard
         title="Cuota pendiente"
-        tooltip="Contratos con cuota pendiente de generar"
-        :value="summary.totals.rents_pending || 0"
+        tooltip="Contratos sin cuota generada"
+        :value="summary.totals.rent?.missing || 0"
+        :total="summary.totals.rent?.expected || 0"
         :loading="loading.summary"
         @click="goToRent"
       />
     </v-col>
-    <v-col cols="12" sm="auto" class="flex-grow-1">
+    <v-col cols="12" sm="6" md="3"class="flex-grow-1">
       <KpiCard
-        title="Cargos pendiente"
-        tooltip="Contratos con cargos que no fueron agregados a la liquidación del inquilino"
-        :value="summary.totals.vouchers_pending || 0"
-        :loading="loading.summary"
-        @click="goToRent"
-      />
-    </v-col>
-    <v-col cols="12" sm="auto" class="flex-grow-1">
-      <KpiCard
-        title="Aviso pendiente"
-        tooltip="Contratos con cargos que no fueron agregados a la liquidación del inquilino"
-        :value="summary.totals.active_contracts || 0"
+        title="Liq. Inq. a generar"
+        tooltip="Contratos con cargos sin liquidar al inquilino"
+        :value="summary.totals.lqi?.to_generate || 0"
         :loading="loading.summary"
         @click="goToVoucher"
       />
@@ -95,7 +88,7 @@ const goToAdjustments = () => {
 }
 
 const goToRent = () => {
-  router.push({ name: 'contracts.rents.generation' })
+  router.push({ name: 'contracts.rents' })
 }
 
 const goToVoucher = () => {
@@ -117,7 +110,7 @@ const fetchSummary = async () => {
   if (!period.value) return
   loading.summary = true
   try {
-    const { data } = await axios.get('/api/contracts/rents/summary', { params: { period: period.value } })
+    const { data } = await axios.get('/api/dashboard/summary', { params: { period: period.value } })
     summary.period = data.period
     summary.totals = data.totals || {}
   } catch (e) {

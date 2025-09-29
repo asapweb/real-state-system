@@ -21,7 +21,8 @@ import adminCommandRoutes from './modules/adminCommands'
 import settingsRoutes from './modules/settings'
 import voucherRoutes from './modules/vouchers'
 import voucherInvoiceRoutes from './modules/vouchers/invoices'
-
+import lqiRoutes from './modules/lqi'
+import periodDashboardRoutes from './modules/periodDashboard'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -40,6 +41,7 @@ const router = createRouter({
         { path: '/admin/commands', children: adminCommandRoutes },
         { path: '/clients', children: clientRoutes },
         { path: '/collections', children: collectionRoutes },
+        { path: '/lqi', children: lqiRoutes },
         { path: '/collection-receipts', children: collectionReceiptRoutes },
         { path: '/contracts', children: contractRoutes },
         { path: '/contracts/adjustments', children: contractAdjustmentRoutes },
@@ -55,6 +57,7 @@ const router = createRouter({
         { path: '/settlements', children: settlementRoutes },
         { path: '/vouchers', children: voucherRoutes },
         { path: '/vouchers', children: voucherInvoiceRoutes },
+        { path: '/period-dashboard', children: periodDashboardRoutes },
         // Rutas individuales
         {
           path: '/cash-accounts',

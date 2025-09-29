@@ -9,11 +9,8 @@ return new class extends Migration {
     {
         if (Schema::hasTable('voucher_items') && !Schema::hasColumn('voucher_items', 'contract_charge_id')) {
             Schema::table('voucher_items', function (Blueprint $table) {
-                $table->foreignId('contract_charge_id')
-                    ->nullable()
-                    ->after('voucher_id')
-                    ->constrained('contract_charges')
-                    ->nullOnDelete();
+                $table->foreignId('contract_charge_id')->nullable()->after('voucher_id')->constrained('contract_charges')->nullOnDelete();
+                $table->string('impact', 10)->default('add');
 
                 // Evita duplicar el mismo cargo en el mismo voucher
                 $table->unique(['voucher_id', 'contract_charge_id'], 'uq_vi_voucher_charge');

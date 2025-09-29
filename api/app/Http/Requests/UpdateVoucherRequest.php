@@ -41,12 +41,15 @@ class UpdateVoucherRequest extends FormRequest
             'items.*.quantity' => ['required_with:items', 'numeric'],
             'items.*.unit_price' => ['required_with:items', 'numeric'],
             'items.*.tax_rate_id' => ['nullable', 'exists:tax_rates,id'],
+            'items.*.impact' => ['nullable', 'in:add,subtract'],
 
             'payments' => ['nullable', 'array'],
             'payments.*.payment_method_id' => ['required_with:payments.*', 'exists:payment_methods,id'],
             'payments.*.cash_account_id' => ['nullable', 'exists:cash_accounts,id'],
             'payments.*.amount' => ['required_with:payments.*', 'numeric'],
             'payments.*.reference' => ['nullable', 'string'],
+            'items.*.contract_charge_id' => ['nullable', 'exists:contract_charges,id'],
+            'items.*.impact' => ['nullable', 'in:add,subtract'],
         ];
 
         $specificRules = match ($type) {

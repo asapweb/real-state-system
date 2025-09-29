@@ -49,6 +49,16 @@
       <span v-else>—</span>
     </template>
 
+    <template #[`item.status`]="{ item }">
+      <v-chip
+        size="small"
+        :color="item.is_canceled ? 'error' : 'success'"
+        variant="tonal"
+      >
+        {{ item.is_canceled ? 'Cancelado' : 'Activo' }}
+      </v-chip>
+    </template>
+
     <template #[`item.amount`]="{ item }">
       {{ formatMoney(item.amount, item.currency) }}
     </template>
@@ -56,11 +66,11 @@
     <template #[`item.vouchers`]="{ item }">
       <div class="d-flex flex-column gap-1">
         <RouterLink
-          v-if="item.voucher_id"
-          :to="{ name: 'VoucherShow', params: { id: item.voucher_id } }"
+          v-if="item.tenant_liquidation_voucher_id"
+          :to="{ name: 'VoucherShow', params: { id: item.tenant_liquidation_voucher_id } }"
           class="text-primary text-decoration-none"
         >
-          COB {{ formatModelId(item.voucher_id, 'VOU') }}
+          {{ formatModelId(item.tenant_liquidation_voucher_id, 'LQI') }}
         </RouterLink>
         <RouterLink
           v-if="item.liquidation_voucher_id"
@@ -82,6 +92,17 @@
     <template #[`item.actions`]="{ item }">
       <div class="d-flex align-center justify-end">
         <v-btn
+          v-if="!item.is_canceled && (item.can_cancel ?? true)"
+          icon
+          size="small"
+          variant="text"
+          color="error"
+          :title="`Cancelar #${item.id}`"
+          @click="openCancel(item)"
+        >
+          <v-icon size="20">mdi-close-circle</v-icon>
+        </v-btn>
+        <v-btn
           icon
           size="small"
           variant="text"
@@ -93,6 +114,33 @@
       </div>
     </template>
   </v-data-table-server>
+
+  <v-dialog v-model="cancelDialog" max-width="520">
+    <v-card>
+      <v-card-title class="text-h6">Cancelar cargo</v-card-title>
+      <v-card-text>
+        <p class="text-body-2 mb-4">
+          Confirmá la cancelación del cargo <strong>{{ cancelDialogTitle }}</strong>.
+        </p>
+        <v-textarea
+          v-model="cancelReason"
+          label="Motivo de cancelación"
+          auto-grow
+          rows="2"
+          variant="solo-filled"
+          :error-messages="cancelReasonErrors"
+          :disabled="canceling"
+        />
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" :disabled="canceling" @click="closeCancelDialog">Cerrar</v-btn>
+        <v-btn color="error" :loading="canceling" :disabled="cancelReasonErrors.length > 0" @click="confirmCancellation">
+          Cancelar cargo
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -113,6 +161,10 @@ const snackbar = useSnackbar()
 const charges = ref([])
 const total = ref(0)
 const loading = ref(false)
+const cancelDialog = ref(false)
+const cancelReason = ref('')
+const canceling = ref(false)
+const selectedCharge = ref(null)
 const options = reactive({
   page: 1,
   itemsPerPage: 10,
@@ -123,11 +175,12 @@ const headers = computed(() => {
   return [
     ...(props.contractId ? [] : [{ title: 'Contrato / Inquilino', key: 'contract', sortable: false },]),
     { title: 'Fecha efectiva', key: 'effective_date', sortable: true },
-    { title: 'Vencimiento', key: 'due_date', sortable: true },
-    { title: 'Tipo de cargo', key: 'charge_type', sortable: false },
+    { title: 'Cargo', key: 'charge_type', sortable: false },
+    { title: 'Monto', key: 'amount', sortable: true },
     { title: 'Contraparte', key: 'counterparty', sortable: false },
     { title: 'Período servicio', key: 'service_period', sortable: false },
-    { title: 'Monto', key: 'amount', sortable: true },
+    { title: 'Vencimiento', key: 'due_date', sortable: true },
+    { title: 'Estado', key: 'status', sortable: false },
     { title: 'Vouchers', key: 'vouchers', sortable: false },
     { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
   ]
@@ -169,6 +222,7 @@ const fetchCharges = async () => {
         sort_direction: options.sortBy[0]?.order,
         type_code: props.filters?.type_code || undefined,
         period: props.filters?.period || undefined,
+        status: props.filters?.status || undefined,
       },
     })
     charges.value = data.data
@@ -183,6 +237,49 @@ const fetchCharges = async () => {
 
 onMounted(fetchCharges)
 defineExpose({ fetchCharges })
+
+const cancelReasonErrors = computed(() => {
+  if (!cancelDialog.value) return []
+  return cancelReason.value.trim().length >= 3
+    ? []
+    : ['Ingresá un motivo (mínimo 3 caracteres).']
+})
+
+const cancelDialogTitle = computed(() => {
+  if (!selectedCharge.value) return ''
+  return formatModelId(selectedCharge.value.id, 'CC')
+})
+
+const openCancel = (charge) => {
+  selectedCharge.value = charge
+  cancelReason.value = ''
+  cancelDialog.value = true
+}
+
+const closeCancelDialog = () => {
+  cancelDialog.value = false
+  cancelReason.value = ''
+  selectedCharge.value = null
+}
+
+const confirmCancellation = async () => {
+  if (!selectedCharge.value || cancelReasonErrors.value.length > 0) return
+  canceling.value = true
+  try {
+    await axios.post(`/api/contract-charges/${selectedCharge.value.id}/cancel`, {
+      reason: cancelReason.value.trim(),
+    })
+    snackbar.success('Cargo cancelado correctamente')
+    closeCancelDialog()
+    fetchCharges()
+  } catch (error) {
+    console.error(error)
+    const message = error.response?.data?.message || 'No se pudo cancelar el cargo'
+    snackbar.error(message)
+  } finally {
+    canceling.value = false
+  }
+}
 
 watch(
   () => props.filters,

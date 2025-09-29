@@ -256,14 +256,6 @@ class Contract extends Model
     public function calculateRentForPeriod(Carbon|string $period): float
     {
         $period = normalizePeriodOrFail($period);
-
-        \Log::debug("🔗 Cálculo de renta para período", [
-            'contract_id' => $this->id,
-            'period' => $period->format('Y-m'),
-            'prorate_first_month' => $this->prorate_first_month,
-            'prorate_last_month' => $this->prorate_last_month,
-            'is_active' => $this->isActiveDuring($period),
-        ]);
         // Si el contrato no está activo en el período, no hay renta
         if (!$this->isActiveDuring($period)) {
             \Log::debug("🔗 No está activo en el período", [

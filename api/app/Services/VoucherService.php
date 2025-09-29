@@ -40,12 +40,41 @@ class VoucherService
                 $voucher->loadMissing('payments.paymentMethod');
             }
 
-            $voucher->number = $voucher->booklet->generateNextNumber();
+            if (!$voucher->number) {
+                $voucher->number = $voucher->booklet->generateNextNumber();
+            }
 
             // ✅ Validación funcional por tipo (RCB, NC, FAC...) con lógica completa
             $this->validatorService->validateBeforeIssue($voucher);
             $voucher->status = 'issued';
             $voucher->save();
+
+            // +++ INICIO PARCHE LQI +++
+            $type = $voucher->booklet?->voucherType;
+
+            // Identificar LQI por code o short_name (ajustá a tus valores reales)
+            $isLqi = ($type?->short === 'LQI') || (strtoupper($type?->short_name ?? '') === 'LQI');
+\Log::info('- isLqi', ['isLqi' => $isLqi]);
+            if ($isLqi) {
+                // Cargar items con contract_charge_id
+                $voucher->loadMissing('items');
+\Log::info('- items', ['items' => $voucher->items]);
+                $chargeIds = $voucher->items
+                    ->pluck('contract_charge_id')
+                    ->filter()
+                    ->unique()
+                    ->values();
+\Log::info('- chargeIds', ['chargeIds' => $chargeIds]);
+                if ($chargeIds->isNotEmpty()) {
+                    \App\Models\ContractCharge::whereIn('id', $chargeIds)
+                        ->whereNull('tenant_liquidation_settled_at') // idempotencia suave
+                        ->update([
+                            'tenant_liquidation_voucher_id' => $voucher->id,
+                            'tenant_liquidation_settled_at' => now(),
+                        ]);
+                }
+            }
+            // +++ FIN PARCHE LQI +++
 
             $sign = $type->credit ? 1 : -1;
             $date = $voucher->issue_date ?? now();
@@ -106,11 +135,12 @@ class VoucherService
 
     public function createFromArray(array $data): Voucher
     {
+
+
         $request = new StoreVoucherRequest();
         $request->replace($data); // ✅ Esto es clave
 
         $validator = Validator::make($data, $request->rules(), $request->messages());
-
 
         if ($validator->fails()) {
             throw new ValidationException($validator);
@@ -129,10 +159,11 @@ class VoucherService
         }
 
         return DB::transaction(function () use ($validatedData) {
+
             $booklet = \App\Models\Booklet::findOrFail($validatedData['booklet_id']);
 
             // Obtener cliente (con validación especial para COB)
-            if (($validatedData['voucher_type_short_name'] ?? $booklet->voucherType->short_name) === 'ALQ') {
+            if (($validatedData['voucher_type_short_name'] ?? $booklet->voucherType->short_name) === 'LQI') {
                 $contract = \App\Models\Contract::with('clients')->findOrFail($validatedData['contract_id']);
                 $isTenant = $contract->clients()
                 ->where('role', \App\Enums\ContractClientRole::TENANT)
@@ -145,7 +176,6 @@ class VoucherService
                     ]);
                 }
             }
-
             // Preparar datos
             $voucherData = $validatedData;
             $voucherData['booklet_id'] = $booklet->id;
@@ -178,7 +208,6 @@ class VoucherService
                 }
                 $voucher->setRelation('payments', collect($payments));
             }
-
             // Cálculo de totales según tipo
             app(\App\Services\VoucherCalculationService::class)->calculateVoucher($voucher);
 
@@ -222,8 +251,9 @@ class VoucherService
 
     public function updateFromArray(Voucher $voucher, array $data): Voucher
     {
-        \Log::info('************************************************');
-        \Log::info('data', ['data', $data]);
+        \Log::info('- updateFromArray : UPDATE FROM ARRAY  -------------------------------');
+        \Log::info('- updateFromArray : data', ['data' => $data]);
+
         $request = new \App\Http\Requests\UpdateVoucherRequest();
         $request->replace($data);
 
@@ -302,7 +332,7 @@ class VoucherService
                 $voucher->setRelation('items', $items);
             }
 
-            \Log::info('pagos', ['pagos', $validatedData]);
+
             // Preparar pagos (no guardar aún)
             if (!empty($validatedData['payments'])) {
                 $voucher->payments()->delete();
@@ -328,7 +358,7 @@ class VoucherService
                 });
                 $voucher->setRelation('payments', $payments);
             }
-
+            \Log::info('- updateFromArray : ITEMS pre calculo', ['items' => $voucher->items]);
             // Calcular totales en base a ítems y pagos en memoria
             app(\App\Services\VoucherCalculationService::class)->calculateVoucher($voucher);
 
@@ -369,5 +399,45 @@ class VoucherService
             return $voucher;
         });
     }
+
+    public function reopenLqi(Voucher $voucher, string $reason = null): Voucher
+{
+    return DB::transaction(function () use ($voucher, $reason) {
+        $type = $voucher->booklet?->voucherType;
+        $isLqi = ($type?->short === 'LQI') || (strtoupper($type?->short_name ?? '') === 'LQI');
+
+        if (!$isLqi) {
+            throw new \Exception('Solo LQI puede reabrirse con este servicio.');
+        }
+        if ($voucher->status !== 'issued') {
+            throw new \Exception('Solo se puede reabrir un voucher emitido.');
+        }
+
+        // Verificá que no haya cobranzas aplicadas (adaptá esta verificación a tu modelo)
+        $hasReceipts = $voucher->applications()->exists() || $voucher->payments()->exists();
+        if ($hasReceipts) {
+            throw new \Exception('No se puede reabrir: el documento tiene cobranzas aplicadas.');
+        }
+
+        // Limpiar asentados de cargos
+        $chargeIds = $voucher->items()->pluck('contract_charge_id')->filter()->unique();
+        if ($chargeIds->isNotEmpty()) {
+            \App\Models\ContractCharge::whereIn('id', $chargeIds)->update([
+                'tenant_liquidation_voucher_id' => null,
+                'tenant_liquidation_settled_at' => null,
+            ]);
+        }
+
+        // Devolver a draft
+        $voucher->status = 'draft';
+        $voucher->notes = trim(($voucher->notes ?? '')."\nReapertura LQI: ".$reason);
+        $voucher->save();
+
+        // Revertir CC devengada por la emisión
+        \App\Models\AccountMovement::where('voucher_id', $voucher->id)->delete();
+
+        return $voucher->fresh(['items']);
+    });
+}
 
 }

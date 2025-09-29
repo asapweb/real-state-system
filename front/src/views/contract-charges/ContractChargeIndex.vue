@@ -51,6 +51,16 @@
           <v-col cols="12" sm="7" md="4">
             <CurrencySelect v-model="filters.currency" />
           </v-col>
+          <v-col cols="12" sm="5" md="4">
+            <v-select
+              v-model="filters.status"
+              :items="statusOptions"
+              label="Estado"
+              variant="solo-filled"
+              density="compact"
+              hide-details
+            />
+          </v-col>
           <v-col cols="12" sm="4">
             <v-text-field v-model="periodInput" label="Período (YYYY-MM)" type="month" variant="solo-filled" hide-details class="" flat style="" />
           </v-col>
@@ -60,21 +70,19 @@
         </v-row>
 </div>
     <!-- Tabla de cargos -->
-    <ContractChargeTable :period="period" :filters="filters" />
+    <ContractChargeTable :filters="filters" />
   </div>
 
 </template>
 
 <script setup>
-import { reactive, computed, ref, onMounted } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import ContractChargeTable from './components/ContractChargeTable.vue'
 import ContractAutocomplete from '@/views/components/ContractAutocomplete.vue'
 import ServiceTypeSelect from '@/views/components/form/ServiceTypeSelect.vue'
 import CurrencySelect from '@/views/components/form/CurrencySelect.vue'
 import { formatPeriodWithMonthName } from '@/utils/date-formatter'
-import { useRoute } from 'vue-router'
 import ChargeTypeSelect from '@/views/components/form/ChargeTypeSelect.vue'
-const route = useRoute()
 const now = new Date()
 const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 const periodInput = ref(defaultMonth)
@@ -99,42 +107,16 @@ const resetToCurrentMonth = () => {
 const filters = reactive({
   contract_id: null,
   service_type_id: null,
-  status: null,
-  paid_by: null,
-  responsible_party: null,
   currency: null,
-  included_in_voucher: null,
-  effective_date_from: null,
-  effective_date_to: null,
-  search_id: null,
+  status: 'active',
   search_description: '',
   period: computed(() => periodInput.value || null),
 })
 
 const statusOptions = [
-  { title: 'Borrador', value: 'draft' },
-  { title: 'Pendiente', value: 'pending' },
-  { title: 'Validado', value: 'validated' },
-  { title: 'Facturado', value: 'billed' },
-  { title: 'Con Nota de Crédito', value: 'credited' },
-  { title: 'Liquidado', value: 'liquidated' },
-  { title: 'Cancelado', value: 'canceled' },
-]
-
-const paidByOptions = [
-  { title: 'Inquilino', value: 'tenant' },
-  { title: 'Propietario', value: 'owner' },
-  { title: 'Inmobiliaria', value: 'agency' },
-]
-
-const responsibleOptions = [
-  { title: 'Inquilino', value: 'tenant' },
-  { title: 'Propietario', value: 'owner' },
-]
-
-const yesNoOptions = [
-  { title: 'Sí', value: true },
-  { title: 'No', value: false },
+  { title: 'Activos', value: 'active' },
+  { title: 'Cancelados', value: 'canceled' },
+  { title: 'Todos', value: 'all' },
 ]
 </script>
 

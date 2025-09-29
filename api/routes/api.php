@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\ContractChargeController;
 use App\Http\Controllers\ChargeTypeController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AccountMovementController;
 use App\Http\Controllers\VoucherAssociationController;
 use App\Http\Controllers\AccountMovementManagementController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\AttachmentCategoryController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\BillingDetailController;
 use App\Http\Controllers\CashMovementController;
+use App\Http\Controllers\LqiController;
 use App\Http\Controllers\CashAccountController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\CivilStatusController;
@@ -77,6 +79,14 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
     Route::get('service-types', [ServiceTypeController::class, 'index']);
 
     Route::middleware(['auth:sanctum'])->group(function () {
+
+        Route::prefix('dashboard')->group(function () {
+            Route::get('summary', [DashboardController::class, 'summary']);
+            Route::get('rents',   [DashboardController::class, 'rents']);
+            Route::get('lqi',     [DashboardController::class, 'lqi']);
+        });
+
+
         // Index Types - CRUD completo
         Route::prefix('index-types')->group(function () {
             Route::get('/', [IndexTypeController::class, 'index']);
@@ -225,6 +235,12 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
                 Route::post('generate', [\App\Http\Controllers\Contracts\VoucherGenerationController::class, 'generate']);
             });
 
+            Route::prefix('{contract}')->group(function () {
+                Route::post('lqi/sync',   [LqiController::class, 'sync']);    // Crea/actualiza borrador
+                Route::post('lqi/issue',  [LqiController::class, 'issue']);   // Emite LQI
+                Route::post('lqi/reopen', [LqiController::class, 'reopen']);  // Reabre LQI emitida s/recibos
+            });
+
             // 🔸 Contract Services
             Route::get('{contract}/services', [ContractServiceController::class, 'index']);
             Route::post('{contract}/services', [ContractServiceController::class, 'store']);
@@ -280,6 +296,7 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
         Route::get('contract-charges/{contractCharge}', [ContractChargeController::class, 'show']);
         Route::put('contract-charges/{contractCharge}', [ContractChargeController::class, 'update']);
         Route::delete('contract-charges/{contractCharge}', [ContractChargeController::class, 'destroy']);
+        Route::post('contract-charges/{contractCharge}/cancel', [ContractChargeController::class, 'cancel']);
 
         // Acciones específicas
         Route::post('contract-charges/{contractCharge}/register-payment', [ContractChargeController::class, 'registerPayment']);

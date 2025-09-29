@@ -98,6 +98,17 @@ class ContractChargeResource extends JsonResource
                 'sign'          => $signOwner,
                 'signed_amount' => $signedOwner,
             ],
+            'tenantLiquidationVoucher' => $this->whenLoaded('tenantLiquidationVoucher', function () {
+                return [
+                    'id'         => $this->tenantLiquidationVoucher->id,
+                    'number'     => $this->tenantLiquidationVoucher->number,
+                    'date'       => $this->tenantLiquidationVoucher->date,
+                    'amount'     => $this->tenantLiquidationVoucher->amount,
+                    'created_at' => optional($this->tenantLiquidationVoucher->created_at)->toDateTimeString(),
+                    'updated_at' => optional($this->tenantLiquidationVoucher->updated_at)->toDateTimeString(),
+                ];
+            }),
+
 
             'created_at'               => optional($this->created_at)->toDateTimeString(),
             'updated_at'               => optional($this->updated_at)->toDateTimeString(),

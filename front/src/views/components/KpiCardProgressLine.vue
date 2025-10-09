@@ -6,8 +6,9 @@
     @click="$emit('click')"
     :class="{ 'kpi-card--hover': hover }"
   >
+
     <!-- Título + Tooltip -->
-    <div class="text-caption text-medium-emphasis d-flex align-center justify-space-between">
+    <div class="text-caption text-medium-emphasis d-flex align-center justify-space-between mb-1">
       {{ title }}
       <v-tooltip
         v-if="tooltip"
@@ -27,10 +28,7 @@
         </template>
       </v-tooltip>
     </div>
-
-    <!-- Contenido principal: valor o spinner -->
-    <div class="d-flex align-center mt-1">
-      <v-progress-circular
+    <v-progress-circular
         v-if="loading"
         indeterminate
         size="20"
@@ -38,20 +36,27 @@
         color="primary"
         class="me-2"
       />
-
-      <span v-else class="d-flex flex-column">
-        <span class="text-h6">
-          {{ value }}<span v-if="unit">&nbsp;{{ unit }}</span>
-          <small v-if="total"> / {{ total }}</small>
-        </span>
-        <small v-if="subtitle" class="text-medium-emphasis mt-">{{ subtitle }}</small>
-      </span>
-    </div>
+      <div v-else>
+        <div class="d-flex align-center justify-space-between" :class="hasValue ? `text-${currentColor}` : 'text-medium-emphasis'">
+          <div class="text-h6">{{ displayValue }}</div>
+          <small class="text-medium-emphasis">{{ subtitle }}</small>
+        </div>
+        <v-progress-linear
+          v-if="hasValue"
+          :model-value="clamped"
+          :color="currentColor"
+          height="6"
+          class="my-1 rounded-pill"
+        />
+        <div v-else class="text-caption text-medium-emphasis">Sin datos</div>
+      </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   title: {
     type: String,
     required: true
@@ -62,11 +67,8 @@ defineProps({
   },
   value: {
     type: [String, Number],
-    required: true
-  },
-  total: {
-    type: [String, Number],
-    required: true
+    required: false,
+    default: null
   },
   subtitle: { type: String, default: '' },
   unit: { type: String, default: '' },
@@ -82,9 +84,32 @@ defineProps({
   loading: {
     type: Boolean,
     default: false // ✅ Nueva prop: indica si está cargando
+  },
+  thresholds: {
+    type: Array,
+    default: () => ([
+      { lte: 40, color: 'error' },
+      { lte: 80, color: 'warning' },
+      { lte: 100, color: 'success' }
+    ])
   }
 })
-
+const hasValue = computed(() => props.value !== null && props.value !== undefined)
+const clamped = computed(() => {
+  if (!hasValue.value) {
+    return 0
+  }
+  const numeric = typeof props.value === 'string' ? Number(props.value) : props.value
+  return Math.max(0, Math.min(100, Math.round(numeric)))
+})
+const currentColor = computed(() => {
+  if (!hasValue.value) {
+    return 'grey'
+  }
+  const t = props.thresholds.find(t => clamped.value <= t.lte)
+  return t?.color ?? 'primary'
+})
+const displayValue = computed(() => (hasValue.value ? `${clamped.value}%` : 'N/A'))
 defineEmits(['click'])
 </script>
 

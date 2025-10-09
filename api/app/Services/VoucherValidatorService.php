@@ -147,6 +147,7 @@ class VoucherValidatorService
         // ✅ Debe tener ítems y total > 0
         $this->validateItemsRequired($voucher);
 
+        \Log::info('voucher->associations', ['voucher' => $voucher->associations]);
         // ✅ Debe tener exactamente una asociación (a una factura)
         if ($voucher->associations->count() !== 1) {
             throw ValidationException::withMessages([

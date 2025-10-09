@@ -43,6 +43,8 @@ class DemoRealStateSeeder extends Seeder
     private $indexTypes = [];
     private $voucherTypes = [];
     private $booklets = [];
+    private $contractStartDateFrom;
+    private $contractStartDateTo;
 
     public function run(): void
     {
@@ -63,6 +65,9 @@ class DemoRealStateSeeder extends Seeder
 
         $this->command->info('🌱 Iniciando DemoRealStateSeeder...');
 
+        $this->contractStartDateFrom = Carbon::createFromDate(2025, 1, 1);
+        $this->contractStartDateTo = Carbon::createFromDate(2025, 2, 1);
+
         DB::transaction(function () {
             // Desactivar eventos masivos para mejor performance
             DB::statement('SET FOREIGN_KEY_CHECKS=0');
@@ -74,10 +79,10 @@ class DemoRealStateSeeder extends Seeder
             $this->createContracts();
             $this->createContractClients();
             $this->createAdjustments();
-            $this->createCharges();
+            // $this->createCharges();
             $this->createExtraCharges();
-            $this->createLiquidations();
-            $this->createCollections();
+            // $this->createLiquidations();
+            // $this->createCollections();
 
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
         });
@@ -150,21 +155,21 @@ class DemoRealStateSeeder extends Seeder
                 'is_cumulative' => false
             ],
             [
-                'code' => 'UVA',
-                'name' => 'Unidad de Valor Adquisitivo',
+                'code' => 'CREEBBA',
+                'name' => 'IPC CREEBBA',
                 'is_active' => true,
-                'calculation_mode' => \App\Enums\CalculationMode::MULTIPLICATIVE_CHAIN,
+                'calculation_mode' => \App\Enums\CalculationMode::RATIO,
                 'frequency' => \App\Enums\IndexFrequency::DAILY,
                 'is_cumulative' => true
             ],
-            [
-                'code' => 'CER',
-                'name' => 'Coeficiente de Estabilización',
-                'is_active' => true,
-                'calculation_mode' => \App\Enums\CalculationMode::RATIO,
-                'frequency' => \App\Enums\IndexFrequency::MONTHLY,
-                'is_cumulative' => false
-            ],
+            // [
+            //     'code' => 'CER',
+            //     'name' => 'Coeficiente de Estabilización',
+            //     'is_active' => true,
+            //     'calculation_mode' => \App\Enums\CalculationMode::RATIO,
+            //     'frequency' => \App\Enums\IndexFrequency::MONTHLY,
+            //     'is_cumulative' => false
+            // ],
         ];
 
         foreach ($types as $type) {
@@ -323,12 +328,9 @@ class DemoRealStateSeeder extends Seeder
     {
         $this->command->info('📄 Creando contratos...');
 
-        $startDate = Carbon::createFromDate(2025, 1, 1);
-        $endDate = Carbon::createFromDate(2025, 2, 1);
-
         for ($i = 0; $i < 100; $i++) {
             // Fecha de inicio aleatoria entre 2024-01-01 y 2025-02-01
-            $contractStart = $this->faker->dateTimeBetween($startDate, $endDate);
+            $contractStart = $this->faker->dateTimeBetween($this->contractStartDateFrom, $this->contractStartDateTo);
             $contractStart = Carbon::parse($contractStart)->startOfMonth();
 
             // Duración entre 12 y 36 meses

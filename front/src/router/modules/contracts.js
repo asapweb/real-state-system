@@ -20,11 +20,6 @@ const contractRoutes = [
     component: () => import('@/views/contracts/ContractRentDashboard.vue'),
   },
   {
-    path: 'vouchers/generation',
-    name: 'ContractVouchersGeneration',
-    component: () => import('@/views/contracts/ContractVouchersGeneration.vue'),
-  },
-  {
     path: 'create',
     name: 'ContractCreate',
     component: () => import('@/views/contracts/ContractCreate.vue'),

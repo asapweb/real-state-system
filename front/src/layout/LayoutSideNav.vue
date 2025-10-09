@@ -226,7 +226,11 @@ const mainNavGeneral = [
       { title: 'Gestión de Ajustes', to: '/contracts/adjustments', icon: 'mdi-cogs' },
       { title: 'Gestión de Cuotas', to: '/contracts/rents', icon: 'mdi-cogs' },
       { title: 'Gestión de Cargos', to: '/contracts/charges', icon: 'mdi-cogs' },
-      { title: 'Generación de Comprobantes', to: '/contracts/vouchers/generation', icon: 'mdi-calendar-refresh' }
+      {
+    title: 'Liquidaciones Inquilinos',
+    to: '/lqi',
+    icon: 'mdi-clipboard-text-clock',
+  },
     ],
   },
   {
@@ -253,7 +257,7 @@ const mainNavLinks = [
     icon: 'mdi-invoice-text-outline',
   },
   {
-    title: 'Liquidaciones LQI',
+    title: 'Liquidaciones Inquilinos',
     to: '/lqi',
     icon: 'mdi-clipboard-text-clock',
   },

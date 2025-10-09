@@ -40,6 +40,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'generar_informes_cobro', 'description' => 'Permite generar informes sobre el estado de los cobros.', 'group' => 'Pagos y Cobranzas'],
             ['name' => 'generar_liquidaciones', 'description' => 'Permite generar liquidaciones de alquileres para propietarios.', 'group' => 'Pagos y Cobranzas'],
             ['name' => 'ver_liquidaciones', 'description' => 'Permite ver el historial de liquidaciones generadas.', 'group' => 'Pagos y Cobranzas'],
+            ['name' => 'lqi.post_issue_adjustments', 'description' => 'Permite emitir ND/NC posteriores a la liquidación del inquilino.', 'group' => 'Pagos y Cobranzas'],
 
             // Recepción y Agenda
             ['name' => 'registrar_visitas', 'description' => 'Permite registrar nuevas visitas de clientes a propiedades.', 'group' => 'Recepción y Agenda'],
@@ -158,6 +159,7 @@ class RolesAndPermissionsSeeder extends Seeder
             $liquidadorRole->givePermissionTo([
                 'generar_liquidaciones',
                 'ver_liquidaciones',
+                'lqi.post_issue_adjustments',
                 'ver_dashboard',
                 'ver_pagos', // Para ver los pagos relacionados con liquidaciones
                 'ver_contratos', // Para ver contratos relacionados

@@ -207,6 +207,16 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
         Route::post('contract-adjustments/process/bulk', [ContractAdjustmentController::class, 'processBulk']);
 
         // Contratos
+        Route::prefix('lqi')->group(function () {
+            Route::get('/', [LqiController::class, 'overview']);
+            Route::get('kpis', [LqiController::class, 'kpis']);
+            Route::post('generate', [LqiController::class, 'generateBatch']);
+            Route::post('issue', [LqiController::class, 'issueBatch']);
+            Route::post('reopen', [LqiController::class, 'reopenBatch']);
+            Route::post('{period}/post-issue/bulk', [LqiController::class, 'postIssueBulk']);
+            Route::post('{contract}/{period}/{currency}/post-issue', [LqiController::class, 'postIssue']);
+        });
+
         Route::prefix('contracts')->group(function () {
             Route::get('lookup', [ContractController::class, 'lookup']);
             Route::get('uncollected-concepts', [ContractController::class, 'uncollectedConcepts']);

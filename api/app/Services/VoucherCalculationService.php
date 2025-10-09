@@ -15,8 +15,6 @@ class VoucherCalculationService
      */
     public function calculateItem(VoucherItem $item, $letter): VoucherItem
     {
-        \Log::info('calculatItem');
-        \Log::info('debug', ['item' => $item]);
         $item->subtotal = $item->quantity * $item->unit_price;
         $item->subtotal_with_vat = $item->subtotal;
         if ($item->taxRate && $item->taxRate->rate > 0) {
@@ -43,8 +41,6 @@ class VoucherCalculationService
      */
     public function calculateVoucher(Voucher $voucher): void
     {
-        \Log::info('calculateVoucher');
-        \Log::info('debug', ['voucher' => $voucher]);
         $type = strtoupper($voucher->voucher_type_short_name);
 
         if (in_array($type, ['RCB', 'RPG'])) {
@@ -68,19 +64,9 @@ class VoucherCalculationService
         $subtotal = 0;
         $total = 0;
 
-        \Log::info('- ITEMS CALCULATIONNNNN  -------------------------------');
         $items = $voucher->items ?? collect();
-        \Log::info('- ITEMS  -------------------------------');
-        \Log::info('items', ['items' => $items]);
-        \Log::info('- ITEMS  -------------------------------');
-        \Log::info('- ITEMS  -------------------------------');
-        \Log::info('- ITEMS  -------------------------------');
-        \Log::info('- ITEMS  -------------------------------');
+
         foreach ($items as $item) {
-            \Log::info('- ITEM  -------------------------------');
-            \Log::info('item', ['item' => $item]);
-            \Log::info('- ITEM  -------------------------------');
-            \Log::info('- ITEM  -------------------------------');
             $this->calculateItem($item, $voucher->voucher_type_letter);
 
             // Determinar el signo según impact (string o PHP enum)

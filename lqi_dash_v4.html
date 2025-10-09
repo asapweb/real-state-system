@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Liquidaciones (LQI)</title>
+    
+    <!-- Vuetify 3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.css" rel="stylesheet">
+    
+    <!-- Material Design Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css" rel="stylesheet">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Aplicar la fuente Inter y un estilo general limpio */
+        html, body, #app {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F9FA; /* Un gris muy claro para el fondo */
+        }
+        .v-card {
+            border: 1px solid #E0E0E0;
+            box-shadow: none !important;
+            transition: box-shadow 0.2s ease-in-out;
+            height: 100%;
+        }
+        .v-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+        }
+        .kpi-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .kpi-value-small {
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .v-card-subtitle {
+            font-weight: 500;
+        }
+        .v-progress-circular {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <v-app>
+            <v-main>
+                <v-container fluid>
+                    <!-- Encabezado -->
+                    <v-row align="center" class="mb-4">
+                        <v-col>
+                            <h1 class="text-h4 font-weight-bold text-grey-darken-3">Gestión de Liquidaciones (LQI)</h1>
+                            <div class="text-subtitle-1 text-grey">Resumen de indicadores clave de rendimiento</div>
+                        </v-col>
+                    </v-row>
+
+                    <!-- KPIs Generales -->
+                    <v-row>
+                        <v-col cols="12" sm="6" md="3">
+                            <v-card class="pa-2 rounded-lg">
+                                <v-card-item>
+                                    <v-card-subtitle class="text-grey-darken-1">Contratos Activos</v-card-subtitle>
+                                </v-card-item>
+                                <v-card-text class="d-flex align-center">
+                                    <span class="kpi-value text-primary">{{ kpiData.overall.active_contracts }}</span>
+                                    <v-spacer></v-spacer>
+                                    <v-icon size="48" color="grey-lighten-2">mdi-file-document-multiple-outline</v-icon>
+                                </v-card-text>
+                            </v-card>
+                        </v-col>
+                        <v-col cols="12" sm="6" md="3">
+                            <v-card class="pa-2 rounded-lg">
+                                <v-card-item>
+                                    <v-card-subtitle class="text-grey-darken-1">Contratos Elegibles</v-card-subtitle>
+                                </v-card-item>
+                                <v-card-text class="d-flex align-center">
+                                    <span class="kpi-value text-primary">{{ kpiData.overall.contracts_with_eligibles }}</span>
+                                     <v-spacer></v-spacer>
+                                    <v-icon size="48" color="grey-lighten-2">mdi-file-check-outline</v-icon>
+                                </v-card-text>
+                            </v-card>
+                        </v-col>
+                        <v-col cols="12" sm="6" md="3">
+                            <v-card class="pa-2 rounded-lg">
+                                <v-card-item>
+                                    <v-card-subtitle class="text-grey-darken-1">Borradores (General)</v-card-subtitle>
+                                </v-card-item>
+                                <v-card-text>
+                                    <p class="kpi-value text-deep-purple-darken-1">{{ kpiData.overall.draft.count }}</p>
+                                    <p class="text-subtitle-2 text-grey-darken-1">{{ formatCurrency(kpiData.overall.draft.total, 'ARS') }}</p>
+                                </v-card-text>
+                            </v-card>
+                        </v-col>
+                        <v-col cols="12" sm="6" md="3">
+                             <v-card class="pa-2 rounded-lg">
+                                <v-card-item>
+                                    <v-card-subtitle class="text-grey-darken-1">Bloqueado (General)</v-card-subtitle>
+                                </v-card-item>
+                                <v-card-text>
+                                    <p class="kpi-value text-orange-darken-2">{{ kpiData.overall.blocked.missing_rent }}</p>
+                                    <p class="text-subtitle-2 text-grey-darken-1">con Renta Faltante</p>
+                                    <p class="text-subtitle-2 text-grey-darken-1">con Renta Faltante</p>
+                                </v-card-text>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+                    <v-row>
+                        <v-col cols="12" md="8">
+                            <v-card class="pa-2 rounded-lg">
+                                <v-card-item>
+                                    <v-card-title>Total Elegible (General)</v-card-title>
+                                </v-card-item>
+                                <v-card-text>
+                                    <v-row no-gutters>
+                                        <v-col cols="12" md="6" class="pa-2">
+                                            <div class="text-grey-darken-1">en ARS</div>
+                                            <div class="kpi-value-small text-grey-darken-4">{{ formatCurrency(arsData.eligible_total, 'ARS') }}</div>
+                                            <div class="text-caption">en {{ arsData.contracts_with_eligibles }} contratos</div>
+                                        </v-col>
+                                        <v-divider vertical inset class="d-none d-md-block"></v-divider>
+                                         <v-divider class="d-md-none my-2"></v-divider>
+                                        <v-col cols="12" md="6" class="pa-2">
+                                            <div class="text-grey-darken-1">en USD</div>
+                                            <div class="kpi-value-small text-grey-darken-4">{{ formatCurrency(usdData.eligible_total, 'USD') }}</div>
+                                            <div class="text-caption">en {{ usdData.contracts_with_eligibles }} contratos</div>
+                                        </v-col>
+                                    </v-row>
+                                </v-card-text>
+                            </v-card>
+                        </v-col>
+                        <v-col cols="12" md="4">
+                             <v-card class="rounded-lg text-center pa-4">
+                                <v-card-item>
+                                    <v-card-title>Cobertura General</v-card-title>
+                                </v-card-item>
+                                <v-card-text class="d-flex justify-center align-center py-2">
+                                    <v-progress-circular :model-value="kpiData.overall.coverage" :size="110" :width="12" color="primary">
+                                        <span class="font-weight-bold">{{ kpiData.overall.coverage.toFixed(1) }}%</span>
+                                    </v-progress-circular>
+                                </v-card-text>
+                                <v-card-subtitle class="mt-2">{{ kpiData.overall.coverage_detail.issued }} de {{ kpiData.overall.coverage_detail.universe }} contratos</v-card-subtitle>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+
+                    <!-- Créditos y NC General -->
+                    <v-row>
+                        <v-col cols="12" md="6">
+                            <v-card class="rounded-lg">
+                                <v-card-item>
+                                    <v-card-title>Créditos (General)</v-card-title>
+                                </v-card-item>
+                                <v-list-item :title="`${kpiData.overall.credit.total} contratos con crédito`" :subtitle="`${kpiData.overall.credit.only} son solo crédito`" prepend-icon="mdi-credit-card-plus-outline"></v-list-item>
+                            </v-card>
+                        </v-col>
+                        <v-col cols="12" md="6">
+                            <v-card class="rounded-lg">
+                                 <v-card-item>
+                                    <v-card-title>Notas de Crédito (General)</v-card-title>
+                                </v-card-item>
+                                <v-list-item :title="`${kpiData.overall.nc.issued_count} NC emitidas`" :subtitle="`Total: ${formatCurrency(kpiData.overall.nc.issued_total, 'ARS')}`" prepend-icon="mdi-file-undo-outline"></v-list-item>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+
+                    <!-- Alertas -->
+                    <v-row v-if="kpiData.alerts.missing_tenant > 0 || kpiData.alerts.currency_mismatch > 0">
+                        <v-col cols="12" md="6" v-if="kpiData.alerts.missing_tenant > 0">
+                            <v-alert type="warning" variant="tonal" border="start" prominent>
+                                <span class="font-weight-medium">{{ kpiData.alerts.missing_tenant }}</span> Contratos con Inquilino Faltante
+                            </v-alert>
+                        </v-col>
+                        <v-col cols="12" md="6" v-if="kpiData.alerts.currency_mismatch > 0">
+                            <v-alert type="error" variant="tonal" border="start" prominent>
+                                <span class="font-weight-medium">{{ kpiData.alerts.currency_mismatch }}</span> Contratos con Moneda Incorrecta
+                            </v-alert>
+                        </v-col>
+                    </v-row>
+
+                    <!-- Detalle por Moneda (Compacto) -->
+                     <v-row>
+                        <v-col cols="12">
+                             <h2 class="text-h5 font-weight-bold my-4 text-grey-darken-2">Resumen por Moneda</h2>
+                        </v-col>
+                        <!-- Columna ARS -->
+                        <v-col cols="12" md="6" v-if="arsData">
+                            <v-card class="rounded-lg">
+                                <v-list-item>
+                                    <v-list-item-title class="text-h6 font-weight-bold">Detalle ARS</v-list-item-title>
+                                </v-list-item>
+                                <v-divider></v-divider>
+                                <v-list lines="two" class="py-0">
+                                    <v-list-item :title="`${arsData.draft.count} Borradores`" :subtitle="formatCurrency(arsData.draft.total, 'ARS')" prepend-icon="mdi-pencil-box-outline"></v-list-item>
+                                    <v-divider inset></v-divider>
+                                    <v-list-item :title="`${arsData.blocked.missing_rent} Bloqueados`" subtitle="por Renta Faltante" prepend-icon="mdi-lock-outline"></v-list-item>
+                                    <v-divider inset></v-divider>
+                                    <v-list-item :title="`${arsData.credit.total} con Crédito`" :subtitle="`${arsData.credit.only} solo crédito`" prepend-icon="mdi-credit-card-plus-outline"></v-list-item>
+                                    <v-divider inset></v-divider>
+                                    <v-list-item prepend-icon="mdi-chart-donut">
+                                        <v-list-item-title>Cobertura de Emisión</v-list-item-title>
+                                        <v-progress-linear :model-value="arsData.coverage" color="primary" height="8" class="my-1 rounded-pill"></v-progress-linear>
+                                        <v-list-item-subtitle>{{ arsData.coverage.toFixed(1) }}% ({{ arsData.coverage_detail.issued }} de {{ arsData.coverage_detail.universe }})</v-list-item-subtitle>
+                                    </v-list-item>
+                                </v-list>
+                            </v-card>
+                        </v-col>
+
+                        <!-- Columna USD -->
+                        <v-col cols="12" md="6" v-if="usdData">
+                            <v-card class="rounded-lg">
+                                <v-list-item>
+                                    <v-list-item-title class="text-h6 font-weight-bold">Detalle USD</v-list-item-title>
+                                </v-list-item>
+                                <v-divider></v-divider>
+                                 <v-list lines="two" class="py-0">
+                                    <v-list-item :title="`${usdData.draft.count} Borradores`" :subtitle="formatCurrency(usdData.draft.total, 'USD')" prepend-icon="mdi-pencil-box-outline"></v-list-item>
+                                    <v-divider inset></v-divider>
+                                    <v-list-item :title="`${usdData.blocked.missing_rent} Bloqueados`" subtitle="por Renta Faltante" prepend-icon="mdi-lock-outline"></v-list-item>
+                                    <v-divider inset></v-divider>
+                                     <v-list-item :title="`${usdData.credit.total} con Crédito`" :subtitle="`${usdData.credit.only} solo crédito`" prepend-icon="mdi-credit-card-plus-outline"></v-list-item>
+                                    <v-divider inset></v-divider>
+                                    <v-list-item prepend-icon="mdi-chart-donut">
+                                        <v-list-item-title>Cobertura de Emisión</v-list-item-title>
+                                        <v-progress-linear :model-value="usdData.coverage" color="secondary" height="8" class="my-1 rounded-pill"></v-progress-linear>
+                                        <v-list-item-subtitle>{{ usdData.coverage.toFixed(1) }}% ({{ usdData.coverage_detail.issued }} de {{ usdData.coverage_detail.universe }})</v-list-item-subtitle>
+                                    </v-list-item>
+                                </v-list>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+                    
+                    <!-- Acciones, Filtros y Tabla (Placeholders) -->
+                    <v-row>
+                        <v-col cols="12">
+                             <v-card class="rounded-lg mt-4">
+                                <v-toolbar flat color="white">
+                                    <v-toolbar-title class="font-weight-bold">Contratos</v-toolbar-title>
+                                    <v-spacer></v-spacer>
+                                     <v-btn icon="mdi-filter-variant"></v-btn>
+                                     <v-btn icon="mdi-dots-vertical"></v-btn>
+                                </v-toolbar>
+                                <v-divider></v-divider>
+                                <v-card-text>
+                                    <v-alert type="info" variant="tonal" class="mb-4">
+                                        La tabla de contratos, filtros y acciones se implementaría en esta sección.
+                                    </v-alert>
+                                    <v-img src="https://placehold.co/1200x200/FFFFFF/E0E0E0?text=Aqu%C3%AD+ir%C3%ADa+la+tabla+de+datos" height="200px" cover class="rounded-lg border"></v-img>
+                                </v-card-text>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+
+                </v-container>
+            </v-main>
+        </v-app>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Vuetify 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.js"></script>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+        const { createVuetify } = Vuetify;
+
+        const vuetify = createVuetify();
+
+        createApp({
+            setup() {
+                const kpiData = ref({
+                    "currencies": [{
+                        "currency": "ARS", "contracts_with_eligibles": 19, "eligible_total": 3643265.95, "blocked": { "pending_adjustment": 0, "missing_rent": 65 }, "credit": { "total": 14, "only": 8 }, "nc": { "issued_count": 0, "issued_total": 0, "associated_count": 0, "associated_total": 0, "standalone_count": 0, "standalone_total": 0 }, "draft": { "count": 8, "total": 3093157.6 }, "issued": { "count": 0, "total": 0 }, "coverage": 0, "coverage_detail": { "universe": 8, "universe_total": 3093157.6, "issued": 0 }
+                    }, {
+                        "currency": "USD", "contracts_with_eligibles": 11, "eligible_total": 2892.95, "blocked": { "pending_adjustment": 0, "missing_rent": 25 }, "credit": { "total": 7, "only": 2 }, "nc": { "issued_count": 0, "issued_total": 0, "associated_count": 0, "associated_total": 0, "standalone_count": 0, "standalone_total": 0 }, "draft": { "count": 2, "total": 1364 }, "issued": { "count": 0, "total": 0 }, "coverage": 0, "coverage_detail": { "universe": 2, "universe_total": 1364, "issued": 0 }
+                    }],
+                    "overall": { "active_contracts": 100, "contracts_with_eligibles": 30, "eligible_total": 3646158.9, "blocked": { "pending_adjustment": 10, "missing_rent": 90 }, "credit": { "total": 21, "only": 10 }, "nc": { "issued_count": 0, "issued_total": 0, "associated_count": 0, "associated_total": 0, "standalone_count": 0, "standalone_total": 0 }, "draft": { "count": 10, "total": 3094521.6 }, "issued": { "count": 0, "total": 0 }, "coverage": 0, "coverage_detail": { "universe": 10, "universe_total": 3094521.6, "issued": 0 }
+                    },
+                    "alerts": { "missing_tenant": 0, "currency_mismatch": 0 }
+                });
+
+                const arsData = computed(() => {
+                    return kpiData.value.currencies.find(c => c.currency === 'ARS');
+                });
+
+                const usdData = computed(() => {
+                    return kpiData.value.currencies.find(c => c.currency === 'USD');
+                });
+
+                const formatCurrency = (value, currency) => {
+                    if (typeof value !== 'number') return value;
+                    const options = { style: 'currency', currency, minimumFractionDigits: 2 };
+                     // Usamos un locale que funcione para ARS y USD
+                    const locale = currency === 'ARS' ? 'es-AR' : 'en-US';
+                    return new Intl.NumberFormat(locale, options).format(value);
+                };
+
+                return {
+                    kpiData,
+                    arsData,
+                    usdData,
+                    formatCurrency,
+                };
+            }
+        }).use(vuetify).mount('#app');
+    </script>
+</body>
+</html>
+

@@ -1,295 +1,197 @@
-  <template>
-  <v-container fluid class="py-6">
-    <!-- Header / Period Selector (simple, limpio) -->
-    <div class="d-flex align-center justify-space-between mb-6">
-      <div class="d-flex align-center gap-3">
-        <v-btn variant="text" icon @click="goPrevPeriod" :title="'Período anterior'">
-          <v-icon>mdi-chevron-left</v-icon>
-        </v-btn>
-        <div class="text-h6">{{ periodLabel }}</div>
-        <v-select
-          v-model="selectedMonth"
-          :items="months"
-          label="Mes"
-          variant="plain"
-          hide-details
-          density="comfortable"
-          style="max-width: 140px"
-        />
-        <v-select
-          v-model="selectedYear"
-          :items="years"
-          label="Año"
-          variant="plain"
-          hide-details
-          density="comfortable"
-          style="max-width: 120px"
-        />
-        <v-btn variant="text" @click="goToCurrentPeriod">Actual</v-btn>
-      </div>
-
-      <!-- Acciones esenciales -->
-      <div class="d-flex align-center gap-2">
-        <v-btn size="small" variant="tonal" @click="goToAdjustments">Ajustes</v-btn>
-        <v-btn size="small" variant="tonal" @click="openGenerateRents">
-          Rentas
-          <v-badge v-if="kpis.pendingRents" :content="kpis.pendingRents" inline></v-badge>
-        </v-btn>
-        <v-btn size="small" variant="tonal" @click="openGenerateVouchers">
-          Vouchers
-          <v-badge v-if="kpis.chargesWithoutVoucher" :content="kpis.chargesWithoutVoucher" inline></v-badge>
-        </v-btn>
-        <v-btn size="small" variant="tonal" @click="openSendNotices">
-          Avisos
-          <v-badge v-if="kpis.noticesPending" :content="kpis.noticesPending" inline></v-badge>
-        </v-btn>
-      </div>
-    </div>
-
-    <!-- KPIs minimalistas -->
-    <v-row class="mb-4" dense>
-      <v-col v-for="card in kpiCards.slice(0,4)" :key="card.key" cols="12" sm="6" md="3">
-        <v-sheet class="pa-4" rounded="lg" elevation="0" border>
-          <div class="text-caption text-medium-emphasis">{{ card.label }}</div>
-          <div class="text-h4 font-weight-bold mt-1">{{ formatNumber(card.value) }}</div>
-        </v-sheet>
-      </v-col>
-    </v-row>
-
+<template>
+  <v-container fluid>
     <v-row>
-      <!-- Columna izquierda: pendientes clave en bloques simples -->
-      <v-col cols="12" md="7">
-        <v-sheet rounded="lg" elevation="0" border class="mb-4">
-          <div class="d-flex align-center justify-space-between px-4 py-3">
-            <div class="text-subtitle-1">Ajustes pendientes</div>
-            <v-btn variant="text" size="small" @click="goToAdjustments">Ver todo</v-btn>
+      <v-col v-for="kpi in kpis" :key="kpi.title" cols="12" sm="6" md="3">
+        <v-card class="pa-2" flat border>
+          <div class="d-flex align-center">
+            <v-avatar :icon="kpi.icon" :color="kpi.color" variant="tonal" size="40" class="mr-4"></v-avatar>
+            <div>
+              <div class="text-h6 font-weight-bold">{{ kpi.value }}</div>
+              <div class="text-medium-emphasis">{{ kpi.title }}</div>
+            </div>
           </div>
-          <v-divider />
-          <v-data-table
-            :items="lists.adjustments"
-            :headers="headers.adjustments"
-            density="comfortable"
-            hover
-            hide-default-footer
-          />
-        </v-sheet>
-
-        <v-sheet rounded="lg" elevation="0" border class="mb-4">
-          <div class="d-flex align-center justify-space-between px-4 py-3">
-            <div class="text-subtitle-1">Contratos sin renta generada</div>
-            <v-btn variant="text" size="small" @click="openGenerateRents">Generar</v-btn>
-          </div>
-          <v-divider />
-          <v-data-table
-            :items="lists.missingRents"
-            :headers="headers.missingRents"
-            density="comfortable"
-            hover
-            hide-default-footer
-          />
-        </v-sheet>
-
-        <v-sheet rounded="lg" elevation="0" border>
-          <div class="d-flex align-center justify-space-between px-4 py-3">
-            <div class="text-subtitle-1">Cargos sin voucher (incluye rentas)</div>
-            <v-btn variant="text" size="small" @click="openGenerateVouchers">Generar</v-btn>
-          </div>
-          <v-divider />
-          <v-data-table
-            :items="lists.charges"
-            :headers="headers.charges"
-            density="comfortable"
-            hover
-            hide-default-footer
-          />
-        </v-sheet>
-      </v-col>
-
-      <!-- Columna derecha: estado y avisos, sin gráficos intrusivos -->
-      <v-col cols="12" md="5">
-        <v-sheet rounded="lg" elevation="0" border class="mb-4">
-          <div class="d-flex align-center justify-space-between px-4 py-3">
-            <div class="text-subtitle-1">Vouchers no enviados</div>
-            <v-btn variant="text" size="small" @click="openSendNotices">Enviar</v-btn>
-          </div>
-          <v-divider />
-          <v-data-table
-            :items="lists.notices"
-            :headers="headers.notices"
-            density="comfortable"
-            hover
-            hide-default-footer
-          />
-        </v-sheet>
-
-        <v-sheet rounded="lg" elevation="0" border>
-          <div class="px-4 py-3 text-subtitle-1">Alertas</div>
-          <v-divider />
-          <v-list density="comfortable">
-            <v-list-item v-for="a in alerts" :key="a.id" :title="a.title" :subtitle="a.subtitle" />
-          </v-list>
-        </v-sheet>
+        </v-card>
       </v-col>
     </v-row>
+
+    <v-sheet class="my-4" border rounded>
+  <v-toolbar flat color="transparent" class="px-2">
+    <v-toolbar-title class="font-weight-medium">Gestión de Liquidaciones</v-toolbar-title>
+
+    <v-btn
+      @click="filterDrawer = !filterDrawer"
+      prepend-icon="mdi-filter-variant"
+      variant="outlined"
+      color="grey-darken-1"
+    >
+      Filtros
+      <v-badge
+        v-if="activeFilterCount > 0"
+        :content="activeFilterCount"
+        color="primary"
+        floating
+        class="ml-2"
+      ></v-badge>
+    </v-btn>
+
+    <v-spacer></v-spacer>
+
+    <v-btn variant="text" size="small">Generar Liquidación</v-btn>
+    <v-btn variant="text" size="small">Emitir Borradores</v-btn>
+    <v-btn variant="text" size="small">Emitir Ajustes</v-btn>
+    <v-btn variant="text" size="small">Reabrir Borradores</v-btn>
+  </v-toolbar>
+</v-sheet>
+
+    <v-data-table-server
+      v-model="selected"
+      :headers="headers"
+      :items="serverItems"
+      :items-length="totalItems"
+      :loading="loading"
+      item-value="id"
+      show-select
+      @update:options="loadItems"
+    >
+    <template v-slot:item.total="{ item }">
+      <span class="font-weight-bold">{{ item.moneda }} {{ item.total.toLocaleString('es-AR') }}</span>
+    </template>
+    <template v-slot:item.estado="{ item }">
+      <v-chip :color="getStatusColor(item.estado)" size="small" variant="flat">
+        {{ item.estado }}
+      </v-chip>
+    </template>
+      <template v-slot:item.actions="{ item }">
+        <v-icon-button icon="mdi-file-eye-outline" size="small" class="mr-1"></v-icon-button>
+        <v-icon-button icon="mdi-pencil-outline" size="small" class="mr-1"></v-icon-button>
+        <v-icon-button icon="mdi-delete-outline" size="small"></v-icon-button>
+      </template>
+    </v-data-table-server>
+
+    <v-navigation-drawer v-model="filterDrawer" temporary location="right" width="380">
+      <v-list-item title="Filtros Avanzados" subtitle="Refina los resultados de liquidación"></v-list-item>
+      <v-divider></v-divider>
+      <div class="pa-4">
+        <v-text-field
+          label="Periodo"
+          placeholder="YYYY-MM"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+        ></v-text-field>
+        <v-select
+          label="Moneda"
+          :items="['ARS', 'USD', 'EUR']"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+        ></v-select>
+        <v-autocomplete
+          label="Contrato"
+          :items="['Contrato A-123', 'Contrato B-456', 'Contrato C-789']"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+        ></v-autocomplete>
+        <v-select
+          label="Estado"
+          :items="['Borrador', 'Emitido', 'Pagado', 'Ajustado']"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+        ></v-select>
+        <v-select
+          label="Tipo de Cargo"
+          :items="['Fijo', 'Variable', 'Ajuste']"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+        ></v-select>
+        <v-select
+          label="Tipo de Servicio"
+          :items="['Servicio Core', 'Soporte Premium', 'Consultoría']"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+        ></v-select>
+      </div>
+      <template v-slot:append>
+        <div class="pa-2 d-flex">
+          <v-btn block color="primary" class="mr-2">Aplicar Filtros</v-btn>
+          <v-btn block variant="outlined">Limpiar</v-btn>
+        </div>
+      </template>
+    </v-navigation-drawer>
   </v-container>
 </template>
 
-
 <script setup>
-import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue';
 
-const router = useRouter()
+// --- Estado de la UI ---
+const filterDrawer = ref(false);
+const activeFilterCount = ref(1); // Simula 1 filtro activo
+const selected = ref([]);
 
-// --- Period state ---
-const today = new Date()
-const selectedMonth = ref(today.getMonth()) // 0-11
-const selectedYear = ref(today.getFullYear())
+// --- KPIs ---
+const kpis = ref([
+  { title: 'Total Facturado (ARS)', value: '$ 1.250.800', icon: 'mdi-cash-multiple', color: 'success' },
+  { title: 'Liquidaciones en Borrador', value: '15', icon: 'mdi-file-edit-outline', color: 'blue-grey' },
+  { title: 'Pendientes de Pago', value: '8', icon: 'mdi-file-clock-outline', color: 'warning' },
+  { title: 'Ajustes Recientes', value: '4', icon: 'mdi-file-sync-outline', color: 'info' },
+]);
 
-const months = [
-  { title: 'Enero', value: 0 },
-  { title: 'Febrero', value: 1 },
-  { title: 'Marzo', value: 2 },
-  { title: 'Abril', value: 3 },
-  { title: 'Mayo', value: 4 },
-  { title: 'Junio', value: 5 },
-  { title: 'Julio', value: 6 },
-  { title: 'Agosto', value: 7 },
-  { title: 'Septiembre', value: 8 },
-  { title: 'Octubre', value: 9 },
-  { title: 'Noviembre', value: 10 },
-  { title: 'Diciembre', value: 11 },
-]
-const currentYear = today.getFullYear()
-const years = Array.from({ length: 7 }).map((_, i) => currentYear - 3 + i)
+// --- Lógica de la Tabla (Server-Side) ---
+const loading = ref(false);
+const totalItems = ref(0);
+const serverItems = ref([]);
 
-const periodLabel = computed(() => {
-  const m = months.find(m => m.value === selectedMonth.value)?.title || ''
-  return `${m} ${selectedYear.value}`
-})
+const headers = [
+  { title: 'Contrato', key: 'contrato', align: 'start' },
+  { title: 'Periodo', key: 'periodo', align: 'start' },
+  { title: 'Moneda', key: 'moneda', align: 'start' },
+  { title: 'Total', key: 'total', align: 'end' },
+  { title: 'Estado', key: 'estado', align: 'center', sortable: false },
+  { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
+];
 
-function goPrevPeriod() {
-  const d = new Date(selectedYear.value, selectedMonth.value, 1)
-  d.setMonth(d.getMonth() - 1)
-  selectedMonth.value = d.getMonth()
-  selectedYear.value = d.getFullYear()
-}
-function goToCurrentPeriod() {
-  selectedMonth.value = today.getMonth()
-  selectedYear.value = today.getFullYear()
-}
+const fakeApiCall = async ({ page, itemsPerPage, sortBy }) => {
+  // Simula una llamada a la API con datos más realistas
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const start = (page - 1) * itemsPerPage;
+      const items = Array.from({ length: itemsPerPage }, (_, i) => {
+        const id = start + i + 1;
+        return {
+          id: `LIQ-${1000 + id}`,
+          contrato: `Contrato ${String.fromCharCode(65 + (id % 3))}-${id * 7}`,
+          periodo: '2025-10',
+          moneda: ['ARS', 'USD'][id % 2],
+          total: Math.random() * 50000 + 10000,
+          estado: ['Borrador', 'Emitido', 'Pagado', 'Ajustado'][id % 4],
+        };
+      });
+      resolve({ items, total: 120 }); // Simulamos un total de 120 items
+    }, 800);
+  });
+};
 
-// --- KPIs (placeholder data; wireframe only) ---
-const kpis = ref({
-  activeContracts: 124,
-  pendingAdjustments: 18,
-  pendingRents: 42,
-  chargesWithoutVoucher: 23,
-  noticesPending: 15,
-  expiringSoon: 7,
-  vouchersWithIssues: 4,
-})
+const loadItems = async ({ page, itemsPerPage, sortBy }) => {
+  loading.value = true;
+  selected.value = [];
+  const { items, total } = await fakeApiCall({ page, itemsPerPage, sortBy });
+  serverItems.value = items;
+  totalItems.value = total;
+  loading.value = false;
+};
 
-const kpiCards = computed(() => [
-  { key: 'activeContracts', label: 'Contratos activos', value: kpis.value.activeContracts, icon: 'mdi-home-city', color: 'primary' },
-  { key: 'pendingAdjustments', label: 'Pendientes de ajuste', value: kpis.value.pendingAdjustments, icon: 'mdi-tune', color: 'secondary' },
-  { key: 'pendingRents', label: 'Pendientes de generar renta', value: kpis.value.pendingRents, icon: 'mdi-cash', color: 'success' },
-  { key: 'chargesWithoutVoucher', label: 'Cargos sin voucher', value: kpis.value.chargesWithoutVoucher, icon: 'mdi-file-document-outline', color: 'warning' },
-  { key: 'noticesPending', label: 'Avisos sin enviar', value: kpis.value.noticesPending, icon: 'mdi-send', color: 'info' },
-  { key: 'expiringSoon', label: 'Próximos a expirar', value: kpis.value.expiringSoon, icon: 'mdi-timer-sand', color: 'error' },
-  { key: 'vouchersWithIssues', label: 'Vouchers en revisión', value: kpis.value.vouchersWithIssues, icon: 'mdi-alert-circle', color: 'error' },
-])
-
-function formatNumber(n) {
-  return new Intl.NumberFormat('es-AR').format(n)
-}
-
-// --- Lists (wireframe) ---
-const lists = ref({
-  adjustments: [
-    { contract: 'ALQ-0012', due: '10/09/2025', type: 'IPC', status: 'pendiente' },
-    { contract: 'ALQ-0341', due: '15/09/2025', type: 'ICL', status: 'pendiente' },
-  ],
-  missingRents: [
-    { contract: 'ALQ-0203', tenant: 'García S.A.', month: 'Sep 2025' },
-    { contract: 'ALQ-0457', tenant: 'López Juan', month: 'Sep 2025' },
-  ],
-  notices: [
-    { voucher: 'COB-0001-00002341', tenant: 'Martínez Ana', method: 'Email', status: 'no enviado' },
-  ],
-  charges: [
-    { contract: 'ALQ-0203', item: 'Renta', currency: 'ARS', amount: 1500000 },
-    { contract: 'ALQ-0203', item: 'Expensas', currency: 'ARS', amount: 120000 },
-  ],
-})
-
-const headers = {
-  adjustments: [
-    { title: 'Contrato', key: 'contract' },
-    { title: 'Vence', key: 'due' },
-    { title: 'Índice', key: 'type' },
-    { title: 'Estado', key: 'status' },
-  ],
-  missingRents: [
-    { title: 'Contrato', key: 'contract' },
-    { title: 'Inquilino', key: 'tenant' },
-    { title: 'Período', key: 'month' },
-  ],
-  notices: [
-    { title: 'Comprobante', key: 'voucher' },
-    { title: 'Inquilino', key: 'tenant' },
-    { title: 'Canal', key: 'method' },
-    { title: 'Estado', key: 'status' },
-  ],
-  charges: [
-    { title: 'Contrato', key: 'contract' },
-    { title: 'Ítem', key: 'item' },
-    { title: 'Moneda', key: 'currency' },
-    { title: 'Importe', key: 'amount', value: (v) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v.amount) },
-  ],
-}
-
-// --- Actions (navigation placeholders) ---
-function goToAdjustments() {
-  router.push({ path: '/contracts/adjustments', query: { month: selectedMonth.value + 1, year: selectedYear.value } })
-}
-function openGenerateRents() {
-  // Navega a la pantalla existente de generación de rentas / cuotas
-  router.push({ path: '/contracts/rents/generation', query: { month: selectedMonth.value + 1, year: selectedYear.value } })
-}
-function openGenerateVouchers() {
-  // Navega a la pantalla existente de generación de vouchers (COB/LIQ/FAC/ND/NC)
-  router.push({ path: '/contracts/vouchers/generation', query: { month: selectedMonth.value + 1, year: selectedYear.value } })
-}
-function openSendNotices() {
-  router.push({ path: '/vouchers/notices', query: { month: selectedMonth.value + 1, year: selectedYear.value } })
-}
-function refresh() {
-  // Placeholder: Aquí se dispararían fetchers a la API para el período seleccionado
-}
-
-// React to period change (wireframe)
-watch([selectedMonth, selectedYear], () => {
-  refresh()
-})
+const getStatusColor = (status) => {
+  const colors = {
+    'Borrador': 'blue-grey',
+    'Emitido': 'primary',
+    'Pagado': 'success',
+    'Ajustado': 'info',
+  };
+  return colors[status] || 'default';
+};
 </script>
-
-<style scoped>
-.kpi-card {
-  background: linear-gradient(180deg, rgba(250,250,252,1) 0%, rgba(245,245,250,1) 100%);
-}
-.chart-placeholder {
-  height: 220px;
-  border: 1px dashed var(--v-theme-outline-variant);
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95rem;
-  color: rgba(var(--v-theme-on-surface), 0.6);
-}
-/* Small gap utility */
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.gap-4 { gap: 16px; }
-</style>

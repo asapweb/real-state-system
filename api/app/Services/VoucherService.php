@@ -3,13 +3,7 @@
 namespace App\Services;
 
 use App\Models\Voucher;
-use App\Models\VoucherItem;
-use App\Models\PaymentMethod;
 use App\Models\AccountMovement;
-use App\Models\VoucherApplication;
-use App\Models\VoucherAssociation;
-use App\Models\VoucherPayment;
-use App\Models\CashAccount;
 use App\Models\CashMovement;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -54,17 +48,14 @@ class VoucherService
 
             // Identificar LQI por code o short_name (ajustá a tus valores reales)
             $isLqi = ($type?->short === 'LQI') || (strtoupper($type?->short_name ?? '') === 'LQI');
-\Log::info('- isLqi', ['isLqi' => $isLqi]);
             if ($isLqi) {
                 // Cargar items con contract_charge_id
                 $voucher->loadMissing('items');
-\Log::info('- items', ['items' => $voucher->items]);
                 $chargeIds = $voucher->items
                     ->pluck('contract_charge_id')
                     ->filter()
                     ->unique()
                     ->values();
-\Log::info('- chargeIds', ['chargeIds' => $chargeIds]);
                 if ($chargeIds->isNotEmpty()) {
                     \App\Models\ContractCharge::whereIn('id', $chargeIds)
                         ->whereNull('tenant_liquidation_settled_at') // idempotencia suave
@@ -251,8 +242,6 @@ class VoucherService
 
     public function updateFromArray(Voucher $voucher, array $data): Voucher
     {
-        \Log::info('- updateFromArray : UPDATE FROM ARRAY  -------------------------------');
-        \Log::info('- updateFromArray : data', ['data' => $data]);
 
         $request = new \App\Http\Requests\UpdateVoucherRequest();
         $request->replace($data);
@@ -358,7 +347,6 @@ class VoucherService
                 });
                 $voucher->setRelation('payments', $payments);
             }
-            \Log::info('- updateFromArray : ITEMS pre calculo', ['items' => $voucher->items]);
             // Calcular totales en base a ítems y pagos en memoria
             app(\App\Services\VoucherCalculationService::class)->calculateVoucher($voucher);
 

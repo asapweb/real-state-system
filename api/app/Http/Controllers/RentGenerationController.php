@@ -300,7 +300,9 @@ class RentGenerationController extends Controller
                 'pending_adjustments' => $pendingAdjustments,
                 'rents_generated'     => $rentsGenerated,
                 'pending_generation'  => $pendingGeneration,
-                'coverage_ratio'      => $coverageRatio, // 0..1 (formateá en % en el front)
+                'coverage_den'        => $coverageDen,
+                'coverage_ratio'      => $coverageRatio, // ,0..1 (formateá en % en el front)
+                'coverage_ratio_percentage' => $coverageRatio * 100, // 0..100 (formateá en % en el front)
             ],
         ]);
     }

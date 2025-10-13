@@ -1,5 +1,6 @@
 // src/utils/date-formatter.js
 import { format, parseISO, isValid, getYear, getMonth, getDate } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 // -------- Helpers --------
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/
@@ -36,7 +37,7 @@ function toDate(value) {
 
 export function formatPeriodWithMonthName(value) {
   const d = toDate(value)
-  return d ? format(d, 'MMMM yyyy') : ''
+  return d ? format(d, 'MMMM yyyy', { locale: es }) : ''
 }
 
 /**
@@ -46,12 +47,12 @@ export function formatPeriodWithMonthName(value) {
  */
 export function formatDate(value, formatString = 'dd/MM/yyyy') {
   const d = toDate(value)
-  return d ? format(d, formatString) : ''
+  return d ? format(d, formatString, { locale: es }) : ''
 }
 
 export function formatDateTime(value) {
   const d = toDate(value)
-  return d ? format(d, 'd MMM yyyy HH:mm') : ''
+  return d ? format(d, 'd MMM yyyy HH:mm', { locale: es }) : ''
 }
 
 /**
@@ -70,9 +71,9 @@ export function formatReducedDateTime(value) {
     getMonth(now) === getMonth(d) &&
     getDate(now) === getDate(d)
 
-  if (sameDay) return format(d, 'HH:mm')
-  if (getYear(now) === getYear(d)) return format(d, 'dd/MM HH:mm')
-  return format(d, 'dd/MM/yyyy HH:mm')
+  if (sameDay) return format(d, 'HH:mm', { locale: es })
+  if (getYear(now) === getYear(d)) return format(d, 'dd/MM HH:mm', { locale: es })
+  return format(d, 'dd/MM/yyyy HH:mm', { locale: es })
 }
 
 /** Utilidades opcionales para ida/vuelta con la API */

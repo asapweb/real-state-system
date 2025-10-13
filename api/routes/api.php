@@ -33,7 +33,6 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\ContractExpenseAttachmentController;
-use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\ContractExpenseController;
 use App\Http\Controllers\IndexTypeController;
@@ -231,9 +230,7 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
             Route::get('vouchers/list', [VoucherGenerationController::class, 'list']);
             Route::post('vouchers/generate', [VoucherGenerationController::class, 'generate']);
 
-            Route::post('{contract}/vouchers/generate', [VoucherController::class, 'generateVouchers']); // Genera los comprobantes
             Route::get('{contract}/rents/generate', [RentGenerationController::class, 'generateForContract']);
-            Route::post('{contract}/rent-summary', [VoucherController::class, 'generateRentSummary']); // Genera el resumen de alquiler
             Route::get('{contract}', [ContractController::class, 'show']);
             Route::put('{contract}', [ContractController::class, 'update']);
             Route::delete('{contract}', [ContractController::class, 'destroy']);
@@ -287,11 +284,7 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
             Route::put('{contract}/services/{contractService}', [ContractServiceController::class, 'update']);
             Route::delete('{contract}/services/{contractService}', [ContractServiceController::class, 'destroy']);
 
-            Route::get('{contract}/pending-charges', [VoucherController::class, 'pendingCharges']);
-            Route::post('{contract}/generate-vouchers', [VoucherController::class, 'generateVouchers']);
             Route::get('{contract}/collections/preview', [VoucherController::class, 'previewForPeriod']);
-            Route::post('{contract}/collections/generate', [VoucherController::class, 'generate']);
-            Route::get('{contract}/collections', [VoucherController::class, 'collectionsIndex']);
             Route::get('collections/{voucher}', [VoucherController::class, 'show']);
             Route::get('collections/{voucher}/print', [VoucherController::class, 'print']);
         });
@@ -334,18 +327,6 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
         });
 
 
-        Route::prefix('collections')->group(function () {
-            Route::get('/', [CollectionController::class, 'index']);
-            Route::get('{contract}/editor', [CollectionController::class, 'editor']);
-            Route::get('{contract}/view', [CollectionController::class, 'view']);
-            Route::post('{contract}/generate', [CollectionController::class, 'generate']);
-            // Route::get('{collection}', [CollectionController::class, 'show']);
-            // Route::post('/', [CollectionController::class, 'store']);
-            // Route::post('generate', [VoucherCollectionController::class, 'generate']);
-            // Route::post('preview', [VoucherCollectionController::class, 'preview']);
-            // Route::post('{collection}/mark-as-paid', [CollectionController::class, 'markAsPaid']);
-            // Route::post('{collection}/cancel', [CollectionController::class, 'cancel']);
-        });
 
         // Rutas para vouchers (nuevo sistema unificado)
         Route::prefix('vouchers')->group(function () {
@@ -357,10 +338,7 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
             Route::put('{voucher}', [VoucherController::class, 'update']);
             Route::delete('{voucher}', [VoucherController::class, 'destroy']);
             Route::post('{voucher}/issue', [VoucherController::class, 'issue']);
-            Route::post('{voucher}/mark-as-paid', [VoucherController::class, 'markAsPaid']);
             Route::post('{voucher}/cancel', [VoucherController::class, 'cancel']);
-            Route::post('generate-collections', [VoucherController::class, 'generateCollections']);
-            Route::post('preview-collections', [VoucherController::class, 'previewCollections']);
             Route::post('preview-totals', [VoucherCalculationController::class, 'previewTotals']);
         });
 

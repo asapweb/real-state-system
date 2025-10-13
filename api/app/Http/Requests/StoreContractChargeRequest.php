@@ -73,7 +73,7 @@ class StoreContractChargeRequest extends FormRequest
                     $v->errors()->add('counterparty_contract_client_id', 'La contraparte debe pertenecer al mismo contrato.');
                     return;
                 }
-                $role = strtolower($cc->role); // 'tenant' | 'owner'
+                $role = strtolower($cc->role->value); // 'tenant' | 'owner'
                 if ($req !== $role) {
                     $v->errors()->add('counterparty_contract_client_id', "La contraparte debe ser de tipo {$req}.");
                 }

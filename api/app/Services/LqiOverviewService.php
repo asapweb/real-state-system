@@ -452,8 +452,9 @@ class LqiOverviewService
         $periodUniverseCharges = $this->fetchPeriodCharges($contractIds, $period, $currencyFilter);
 
         $pendingAdjustments = $this->detectPendingAdjustments($contractIds, $period);
-        $missingRent = $this->detectMissingRent($contractIds, $period);
-
+        $missingRent = $this->detectMissingRent($contractIds, $period, $contracts);
+        $requireRentBeforeAny = (bool) config('features.lqi.require_rent_before_any_lqi', false);
+        
         Log::info('LqiOverviewService.buildContext.datasets', [
             'contracts' => count($contractIds),
             'charges_rows' => $charges->count(),
@@ -500,17 +501,17 @@ class LqiOverviewService
             'charges' => $charges,
         ]);
         $eligibilityPairs = [];
-        \Log::info('===============================================');
-        \Log::info('LqiOverviewService.buildContext.pendingAdjustments', [
-            'pendingAdjustments' => $pendingAdjustments,
-        ]);
-        \Log::info('LqiOverviewService.buildContext.missingRent', [
-            'missingRent' => $missingRent,
-        ]);
-        $blockedContractIds = array_merge(
+        $missingRentContracts = [];
+        foreach ($missingRent as $id => $rentInfo) {
+            if ($this->isContractMissingRent($rentInfo, $requireRentBeforeAny)) {
+                $missingRentContracts[(int) $id] = true;
+            }
+        }
+
+        $blockedContractIds = array_values(array_unique(array_merge(
             array_map('intval', array_keys($pendingAdjustments)),
-            array_map('intval', array_keys($missingRent))
-        );
+            array_map('intval', array_keys($missingRentContracts))
+        )));
 
         $issuanceUniverse = [
             'pairs' => [],
@@ -555,7 +556,7 @@ class LqiOverviewService
             $rows[$key]['only_credits'] = $rows[$key]['only_credit'];
             $rows[$key]['can_sync'] = $addCount > 0;
 
-            $this->applyContractBlocks($rows[$key], $contractIdRow, $pendingAdjustments, $missingRent);
+            $this->applyContractBlocks($rows[$key], $contractIdRow, $pendingAdjustments, $missingRent, $requireRentBeforeAny);
 
             $currencies[$currency] = $currency;
             $chargeCurrenciesByContract[$contractIdRow][$currency] = true;
@@ -586,7 +587,7 @@ class LqiOverviewService
             $rows[$key]['can_issue'] = $voucher->status === 'draft' && $voucher->items_count > 0 && abs((float) $voucher->total) >= 0.01;
             $rows[$key]['can_reopen'] = $voucher->status === 'issued' && !$rows[$key]['voucher_has_collections'];
 
-            $this->applyContractBlocks($rows[$key], $contractIdRow, $pendingAdjustments, $missingRent);
+            $this->applyContractBlocks($rows[$key], $contractIdRow, $pendingAdjustments, $missingRent, $requireRentBeforeAny);
 
             $currencies[$currency] = $currency;
             $voucherCurrenciesByContract[$contractIdRow][$currency] = true;
@@ -637,7 +638,8 @@ class LqiOverviewService
             }
 
             $blockedPending = isset($pendingAdjustments[$contractIdRow]);
-            $blockedMissing = isset($missingRent[$contractIdRow]);
+            $rentInfoForRow = $missingRent[$contractIdRow] ?? [];
+            $blockedMissing = $this->isRowMissingRent($rentInfoForRow, $currency, $requireRentBeforeAny);
             $isBlocked = $blockedPending || $blockedMissing;
 
             if (!isset($eligibilityPairs[$key])) {
@@ -776,7 +778,7 @@ class LqiOverviewService
                 $key = $this->rowKey($contractIdValue, $targetCurrency);
                 if (!isset($rows[$key])) {
                     $rows[$key] = $this->makeBaseRow($contract, $targetCurrency);
-                    $this->applyContractBlocks($rows[$key], $contractIdValue, $pendingAdjustments, $missingRent);
+                    $this->applyContractBlocks($rows[$key], $contractIdValue, $pendingAdjustments, $missingRent, $requireRentBeforeAny);
                 }
                 if ($autoCurrency) {
                     $currencies[$targetCurrency] = $targetCurrency;
@@ -1256,6 +1258,7 @@ class LqiOverviewService
             'credit_note_items_count'=> 0,
             'missing_rent'           => false,
             'pending_adjustment'     => false,
+            'info_badges'            => [],
         ];
     }
 
@@ -1305,13 +1308,14 @@ class LqiOverviewService
         return array_keys($set);
     }
 
-    private function applyContractBlocks(array &$row, int $contractId, array $pendingAdjustments, array $missingRent): void
+    private function applyContractBlocks(array &$row, int $contractId, array $pendingAdjustments, array $rentStatus, bool $requireRentBeforeAny): void
     {
         $row['alerts'] = $row['alerts'] ?? [];
         $row['blocked_reasons'] = $row['blocked_reasons'] ?? [];
         $row['blocked'] = $row['blocked'] ?? false;
         $row['pending_adjustment'] = $row['pending_adjustment'] ?? false;
         $row['missing_rent'] = $row['missing_rent'] ?? false;
+        $row['info_badges'] = $row['info_badges'] ?? [];
 
         if (isset($pendingAdjustments[$contractId])) {
             if (!in_array('pending_adjustment', $row['blocked_reasons'], true)) {
@@ -1324,7 +1328,12 @@ class LqiOverviewService
             $row['pending_adjustment'] = true;
         }
 
-        if (isset($missingRent[$contractId])) {
+        $rentInfo = $rentStatus[$contractId] ?? null;
+        $currency = $row['currency'] ?? null;
+
+        $missing = $this->isRowMissingRent($rentInfo ?? [], $currency ?? '', $requireRentBeforeAny);
+
+        if ($missing) {
             if (!in_array('missing_rent', $row['blocked_reasons'], true)) {
                 $row['blocked_reasons'][] = 'missing_rent';
             }
@@ -1333,7 +1342,63 @@ class LqiOverviewService
             }
             $row['blocked'] = true;
             $row['missing_rent'] = true;
+            return;
         }
+
+        $rentCurrency = $rentInfo['rent_currency'] ?? ($row['contract_currency'] ?? null);
+        if (!$requireRentBeforeAny && $rentCurrency && $currency !== $rentCurrency) {
+            $existing = array_filter($row['info_badges'], function ($badge) {
+                return ($badge['key'] ?? null) === 'missing_rent_other_currency';
+            });
+
+            if (empty($existing)) {
+                $row['info_badges'][] = [
+                    'key' => 'missing_rent_other_currency',
+                    'message' => "Primera LQI en {$currency} (sin RENT en {$currency})",
+                    'rent_currency' => $rentCurrency,
+                ];
+            }
+        }
+    }
+
+    private function isContractMissingRent(array $rentInfo, bool $requireRentBeforeAny): bool
+    {
+        if (empty($rentInfo)) {
+            return $requireRentBeforeAny;
+        }
+
+        if ($requireRentBeforeAny) {
+            return !($rentInfo['has_any_rent'] ?? false);
+        }
+
+        $rentCurrency = $rentInfo['rent_currency'] ?? null;
+        if ($rentCurrency) {
+            return ($rentInfo['missing_per_currency'][$rentCurrency] ?? false) === true;
+        }
+
+        return !($rentInfo['has_any_rent'] ?? false);
+    }
+
+    private function isRowMissingRent(array $rentInfo, string $currency, bool $requireRentBeforeAny): bool
+    {
+        if (empty($rentInfo)) {
+            return $requireRentBeforeAny;
+        }
+
+        if ($requireRentBeforeAny) {
+            return $this->isContractMissingRent($rentInfo, true);
+        }
+
+        $rentCurrency = $rentInfo['rent_currency'] ?? null;
+        if ($rentCurrency) {
+            if ($currency === $rentCurrency) {
+                return ($rentInfo['missing_per_currency'][$rentCurrency] ?? false) === true;
+            }
+
+            return false;
+        }
+
+        return !($rentInfo['has_any_rent'] ?? false);
     }
 
     private function detectPendingAdjustments(array $contractIds, Carbon $period): array
@@ -1354,7 +1419,7 @@ class LqiOverviewService
             ->all();
     }
 
-    private function detectMissingRent(array $contractIds, Carbon $period): array
+    private function detectMissingRent(array $contractIds, Carbon $period, EloquentCollection $contracts): array
     {
         if (empty($contractIds)) {
             return [];
@@ -1363,8 +1428,11 @@ class LqiOverviewService
         $start = $period->copy()->startOfMonth();
         $end = $start->copy()->addMonth();
 
-        $withRent = ContractCharge::query()
-            ->select('contract_id')
+        $rentCharges = ContractCharge::query()
+            ->select([
+                'contract_id',
+                DB::raw('UPPER(currency) as currency'),
+            ])
             ->whereIn('contract_id', $contractIds)
             ->whereDate('effective_date', '>=', $start->toDateString())
             ->whereDate('effective_date', '<', $end->toDateString())
@@ -1372,22 +1440,38 @@ class LqiOverviewService
             ->whereHas('chargeType', function ($query) {
                 $query->where('code', ChargeType::CODE_RENT);
             })
-            ->pluck('contract_id')
-            ->unique()
-            ->mapWithKeys(function ($id) {
-                return [(int) $id => true];
+            ->groupBy('contract_id', DB::raw('UPPER(currency)'))
+            ->get()
+            ->groupBy('contract_id')
+            ->map(function ($rows) {
+                return $rows->pluck('currency')->unique()->values()->all();
             })
             ->all();
 
-        $missing = [];
+        $status = [];
+        $contractsById = $contracts->keyBy('id');
+
         foreach ($contractIds as $id) {
             $contractId = (int) $id;
-            if (!isset($withRent[$contractId])) {
-                $missing[$contractId] = true;
+            $contract = $contractsById->get($contractId);
+            $rentCurrency = $contract && $contract->currency ? strtoupper($contract->currency) : null;
+            $currencies = $rentCharges[$contractId] ?? [];
+            $hasAny = !empty($currencies);
+
+            $missingPerCurrency = [];
+            if ($rentCurrency) {
+                $missingPerCurrency[$rentCurrency] = !in_array($rentCurrency, $currencies, true);
             }
+
+            $status[$contractId] = [
+                'rent_currency' => $rentCurrency,
+                'currencies' => $currencies,
+                'has_any_rent' => $hasAny,
+                'missing_per_currency' => $missingPerCurrency,
+            ];
         }
 
-        return $missing;
+        return $status;
     }
 
     public function issueCreditNote(Contract $contract, Carbon $period, string $currency, ?Voucher $associatedVoucher = null): bool

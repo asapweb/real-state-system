@@ -88,9 +88,13 @@ const props = defineProps({
   thresholds: {
     type: Array,
     default: () => ([
+      // { lte: 40, color: 'error' },
+      // { lte: 80, color: 'warning' },
+      // { lte: 100, color: 'success' }
       { lte: 40, color: 'error' },
       { lte: 80, color: 'warning' },
-      { lte: 100, color: 'success' }
+      { lte: 100, color: 'info' },
+      { lte: 101, color: 'success' }
     ])
   }
 })
@@ -106,7 +110,7 @@ const currentColor = computed(() => {
   if (!hasValue.value) {
     return 'grey'
   }
-  const t = props.thresholds.find(t => clamped.value <= t.lte)
+  const t = props.thresholds.find(t => clamped.value < t.lte)
   return t?.color ?? 'primary'
 })
 const displayValue = computed(() => (hasValue.value ? `${clamped.value}%` : 'N/A'))

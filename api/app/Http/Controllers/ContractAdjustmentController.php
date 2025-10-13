@@ -44,14 +44,25 @@ class ContractAdjustmentController extends Controller
             ->selectRaw('
                 COUNT(*) as total_adjustments,
                 COUNT(CASE WHEN value IS NULL THEN 1 END) as adjustments_without_value,
+                COUNT(CASE WHEN value IS NOT NULL THEN 1 END) as adjustments_with_value,
                 COUNT(CASE WHEN applied_at IS NULL THEN 1 END) as adjustments_not_applied,
-                COUNT(CASE WHEN applied_at IS NULL THEN 1 END) as adjustments_not_applied
+                COUNT(CASE WHEN applied_at IS NOT NULL THEN 1 END) as adjustments_applied
             ')
             ->first();
 
+        $coverageRatio = (int) $adjustmentStats->total_adjustments > 0 ? round((int) $adjustmentStats->adjustments_applied / (int) $adjustmentStats->total_adjustments, 4) : 1;
+        $coverageApplyRatio = (int) $adjustmentStats->adjustments_with_value > 0 ? round((int) $adjustmentStats->adjustments_applied / (int) $adjustmentStats->adjustments_with_value, 4) : 1;
+        
+        $totals['debug'] =  (int) $adjustmentStats->adjustments_applied ;
+        $totals['debug_1'] =  (int) $adjustmentStats->adjustments_applied > 0 ;
         $totals['adjustments'] = $adjustmentStats->total_adjustments ?? 0;
         $totals['adjustments_pending_value'] = $adjustmentStats->adjustments_without_value ?? 0;
         $totals['adjustments_pending_apply'] = $adjustmentStats->adjustments_not_applied ?? 0;
+        $totals['adjustments_with_value'] = $adjustmentStats->adjustments_with_value ?? 0;
+        $totals['adjustments_applied'] = $adjustmentStats->adjustments_applied ?? 0;
+        $totals['adjustments_coverege'] = $coverageRatio;
+        $totals['adjustments_with_value_coverege'] = $coverageApplyRatio;
+
 
         return response()->json([
             'period' => $period->format('Y-m'),

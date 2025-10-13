@@ -1,4 +1,5 @@
 <template>
+
   <v-autocomplete
     v-model="selected"
     :items="vouchers"
@@ -19,6 +20,7 @@ import axios from '@/services/axios'
 const props = defineProps({
   modelValue: [String, Number, null],
   clientId: [String, Number],
+  currency: [String, Number],
   excludeVoucherId: [String, Number, null],
 })
 
@@ -43,6 +45,7 @@ async function fetchVouchers() {
       params: {
         client_id: props.clientId,
         has_balance: true,
+        currency: props.currency,
         per_page: 100,
       }
     })

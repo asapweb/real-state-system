@@ -123,7 +123,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import axios from '@/services/axios'
-import VoucherAutocomplete from '@/components/VoucherAutocomplete.vue'
+import VoucherAutocomplete from '@/views/components/VoucherAutocomplete.vue'
 import { formatDate } from '@/utils/date-formatter'
 
 const props = defineProps({

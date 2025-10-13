@@ -36,6 +36,21 @@
         >
           Contrato {{ item.contract_currency }}
         </v-chip>
+        <div
+          v-if="Array.isArray(item.info_badges) && item.info_badges.length"
+          class="d-flex flex-wrap mt-1"
+          style="gap: 4px;"
+        >
+          <v-chip
+            v-for="badge in item.info_badges"
+            :key="`${item.row_key}-${badge.key ?? badge.message}`"
+            size="x-small"
+            color="info"
+            variant="tonal"
+          >
+            {{ badge.message || 'Información' }}
+          </v-chip>
+        </div>
       </template>
 
       <template #item.eligibles="{ item }">
@@ -553,6 +568,7 @@ async function fetchRows() {
         only_credit: Boolean(row?.only_credit),
         nc_suggested: Boolean(row?.nc_suggested),
         blocked: Boolean(row?.blocked),
+        info_badges: Array.isArray(row?.info_badges) ? row.info_badges : [],
       }
     })
     total.value = data.meta?.total ?? rows.value.length
@@ -581,7 +597,8 @@ async function handleSync(item) {
   }
 
   if (item.blocked_reasons?.includes('missing_rent')) {
-    snackbar.info('Falta la cuota RENT del período — no se puede generar.')
+    const rentCurrency = item.contract_currency || item.currency
+    snackbar.info(`No se puede generar la liquidación: falta la cuota de renta del período en ${rentCurrency}.`)
     return
   }
 
@@ -610,16 +627,23 @@ async function handleSync(item) {
 }
 
 function syncTooltip(item) {
-  if (!actionDisabled(item, 'sync')) {
-    return ''
-  }
-
   if (item.blocked_reasons?.includes('pending_adjustment')) {
     return 'Ajuste pendiente del período'
   }
 
   if (item.blocked_reasons?.includes('missing_rent')) {
-    return 'Falta la cuota de renta del período'
+    const rentCurrency = item.contract_currency || item.currency
+    return `Falta la cuota de renta del período en ${rentCurrency}`
+  }
+
+  const infoBadge = findInfoBadge(item, 'missing_rent_other_currency')
+  if (infoBadge) {
+    const rentCurrency = infoBadge?.rent_currency || item.contract_currency || 'la moneda de renta'
+    return `Se generará LQI de gastos en ${item.currency}; RENT del período está en ${rentCurrency}`
+  }
+
+  if (!actionDisabled(item, 'sync')) {
+    return ''
   }
 
   if ((item.add_count ?? 0) === 0) {
@@ -636,6 +660,11 @@ function syncTooltip(item) {
   return ''
 }
 
+function findInfoBadge(item, key) {
+  const badges = Array.isArray(item?.info_badges) ? item.info_badges : []
+  return badges.find((badge) => badge?.key === key)
+}
+
 async function handleIssue(item) {
   if (item.blocked_reasons?.includes('pending_adjustment')) {
     snackbar.info('Ajuste pendiente del período — no se puede generar.')
@@ -643,7 +672,8 @@ async function handleIssue(item) {
   }
 
   if (item.blocked_reasons?.includes('missing_rent')) {
-    snackbar.info('Falta la cuota RENT del período — no se puede generar.')
+    const rentCurrency = item.contract_currency || item.currency
+    snackbar.info(`No se puede generar la liquidación: falta la cuota de renta del período en ${rentCurrency}.`)
     return
   }
 

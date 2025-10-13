@@ -189,3 +189,29 @@ const debouncedSearch = debounce((val) => {
 
 watch(search, (val) => debouncedSearch(val))
 </script>
+<style scoped>
+/* Mejorar visualización de texto largo en el drawer */
+:deep( .v-list-item__content) {
+  white-space: normal !important;
+  word-wrap: break-word;
+  line-height: 1.3;
+  padding: 12px 20px !important;
+}
+
+:deep( .v-autocomplete .v-field__input) {
+  white-space: normal !important;
+  word-wrap: break-word;
+  line-height: 1.3;
+  max-height: auto !important;
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+}
+
+:deep( .v-autocomplete .v-list-item) {
+  white-space: normal !important;
+  word-wrap: break-word;
+  line-height: 1.3;
+  min-height: auto !important;
+  padding: 12px 20px !important;
+}
+</style>

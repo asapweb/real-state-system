@@ -137,7 +137,8 @@ class StoreVoucherRequest extends FormRequest
         }
 
         if (in_array($type, ['N/C', 'N/D'])) {
-            $rules['associated_voucher_ids'] = ['required', 'array', 'min:1'];
+            // $rules['associated_voucher_ids'] = ['required', 'array', 'min:1'];
+            $rules['associated_voucher_ids'] = ['nullable'];
         } else {
             $rules['associated_voucher_ids'] = ['nullable'];
         }

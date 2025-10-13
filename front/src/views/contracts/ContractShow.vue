@@ -27,9 +27,6 @@
         Gastos?
       </v-col>
       <v-col cols="12" md="12">
-        <ContractCollectionManager :contract-id="contract?.id" :period="selectedPeriod" />
-      </v-col>
-      <v-col cols="12" md="12">
         <AttachmentManager :attachable-type="'contract'" :attachable-id="contract.id" />
       </v-col>
       <v-col cols="12">
@@ -54,8 +51,6 @@ import AttachmentManager from '@/views/components/AttachmentManager.vue'
 import ContractServiceTable from './components/ContractServiceTable.vue'
 import ContractClientTable from './components/ContractClientTable.vue'
 import ContractAdjustmentTable from './components/ContractAdjustmentTable.vue'
-import ContractRentSummary from './components/ContractRentSummary.vue'
-import ContractCollectionManager from './components/ContractCollectionManager.vue'
 
 
 

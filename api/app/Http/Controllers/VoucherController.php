@@ -7,26 +7,12 @@ use App\Http\Requests\UpdateVoucherRequest;
 use App\Http\Resources\VoucherResource;
 use App\Models\Voucher;
 use App\Models\Contract;
-use App\Models\Client;
-use App\Models\Booklet;
-use App\Models\VoucherItem;
-use App\Models\VoucherPayment;
-use App\Models\VoucherType;
-use App\Models\VoucherAssociation;
-use App\Models\VoucherApplication;
-use App\Models\AccountMovement;
-use App\Models\CashMovement;
 use App\Services\VoucherCalculationService;
 use App\Services\VoucherService;
 use App\Services\VoucherGenerationService;
 use App\Services\VoucherPreviewService;
-use App\Enums\ContractClientRole;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
-use Carbon\Carbon;
 
 class VoucherController extends Controller
 {
@@ -34,252 +20,6 @@ class VoucherController extends Controller
         protected VoucherCalculationService $calculationService,
         protected VoucherService $voucherService,
     ) {}
-
-    public function pendingCharges(Request $request, Contract $contract)
-    {
-        $period = Carbon::createFromFormat('Y-m', $request->get('period'))->startOfMonth();
-        $currency = $contract->currency;
-        $result = [];
-
-        $voucherTypeAlq = VoucherType::where('short_name', 'ALQ')->first();
-        $voucherTypeFac = VoucherType::where('short_name', 'FAC')->where('letter', 'X')->first();
-
-        // 1. ALQ no generado
-        $alq = $contract->vouchers()
-            ->where('voucher_type_id', $voucherTypeAlq->id)
-            ->where('period', $period)
-            ->where('currency', $currency)
-            ->where('status', '!=', 'cancelled')
-            ->first();
-
-            $alq =null;
-        if (! $alq) {
-            $period_amount = $contract->calculateRentForPeriod($period);
-            $result[] = [
-                'id' => 'rent-' . $period->format('Y-m'),
-                'type' => 'rent',
-                'description' => 'Alquiler ' . $period->translatedFormat('F Y'),
-                'period' => $period->format('Y-m'),
-                'suggested_amount' => $period_amount['amount'],
-                'final_amount' => $period_amount['amount'],
-                'currency' => $currency,
-                'locked' => false,
-                'voucher_full_number' => null,
-                'voucher_status' => null,
-            ];
-        }
-
-        // 2. Expenses sin voucher
-        $expenses = $contract->expenses()
-            ->where('included_in_collection', true)
-            ->whereNull('voucher_id')
-            ->get();
-
-        foreach ($expenses as $expense) {
-            $result[] = [
-                'id' => 'expense-' . $expense->id,
-                'type' => 'expense',
-                'description' => $expense->description,
-                'period' => optional($expense->period)->format('Y-m') ?? '',
-                'suggested_amount' => $expense->amount,
-                'final_amount' => $expense->amount,
-                'currency' => $expense->currency,
-                'locked' => false,
-                'voucher_full_number' => null,
-                'voucher_status' => null,
-            ];
-        }
-
-        // 3. Punitorio si ALQ emitido y vencido
-        if ($alq && $alq->status === 'issued' && now()->greaterThan(Carbon::parse($alq->due_date))) {
-            $daysLate = now()->diffInDays(Carbon::parse($alq->due_date));
-            $amount = 1;//$contract->calculatePenalty($alq, $daysLate);
-
-            $result[] = [
-                'id' => 'penalty-' . $alq->id,
-                'type' => 'penalty',
-                'description' => 'Punitorio mora ' . $period->translatedFormat('F Y'),
-                'period' => $period->format('Y-m'),
-                'suggested_amount' => $amount,
-                'final_amount' => $amount,
-                'currency' => $alq->currency,
-                'locked' => false,
-                'voucher_full_number' => null,
-                'voucher_status' => null,
-            ];
-        }
-
-        // 3b. Vouchers en estado draft (ALQ o FAC X)
-        $vouchersDraft = $contract->vouchers()
-        ->whereIn('voucher_type_id', [$voucherTypeAlq->id, $voucherTypeFac->id])
-        ->where('period', $period)
-        ->where('currency', $currency)
-        ->where('status', 'draft')
-        ->get();
-
-        foreach ($vouchersDraft as $voucher) {
-        foreach ($voucher->items as $item) {
-            $result[] = [
-                'id' => 'voucheritem-' . $item->id,
-                'type' => $item->type,
-                'description' => $item->description,
-                'period' => $voucher->period,
-                'suggested_amount' => $item->subtotal_with_vat ?? $item->unit_price,
-                'final_amount' => $item->subtotal_with_vat ?? $item->unit_price,
-                'currency' => $voucher->currency,
-                'locked' => false,
-                'voucher_id' => $voucher->id,
-                'voucher_full_number' => $voucher->full_number,
-                'voucher_status' => $voucher->status,
-            ];
-        }
-        }
-
-        // 4. Vouchers emitidos sin cobrar (ALQ / FAC X)
-        $vouchers = $contract->vouchers()
-            ->whereIn('voucher_type_id', [$voucherTypeAlq->id, $voucherTypeFac->id])
-            ->where('period', $period)
-            ->where('currency', $currency)
-            ->where('status', 'issued')
-            ->get();
-
-        foreach ($vouchers as $voucher) {
-            $applied = $voucher->applicationsReceived()->sum('amount');
-            $pending = $voucher->total - $applied;
-
-            if ($pending > 0) {
-                $result[] = [
-                    'id' => 'voucher-' . $voucher->id,
-                    'type' => strtolower($voucher->voucher_type_short_name),
-                    'description' => $voucher->items->pluck('description')->implode(', '),
-                    'period' => $voucher->period,
-                    'suggested_amount' => $pending,
-                    'final_amount' => $pending,
-                    'currency' => $voucher->currency,
-                    'locked' => true,
-                    'voucher_id' => $voucher->id,
-                    'voucher_full_number' => $voucher->full_number,
-                    'voucher_status' => $voucher->status,
-                    'applied' => $applied,
-                    'pending' => $pending,
-                ];
-            }
-        }
-
-        return response()->json($result);
-    }
-
-
-    public function generateVouchers(Request $request, Contract $contract)
-    {
-        $validated = $request->validate([
-            'period' => ['required', 'date_format:Y-m'],
-            'items' => ['required', 'array'],
-            'items.*.type' => ['required', 'in:rent,expense,penalty'],
-            'items.*.id' => ['required'],
-            'items.*.amount' => ['required', 'numeric', 'min:0'],
-        ]);
-
-        $period = Carbon::createFromFormat('Y-m', $validated['period'])->startOfMonth();
-        $items = collect($validated['items']);
-        $currency = $contract->currency;
-
-        $voucherTypeALQ = VoucherType::where('short_name', 'ALQ')->firstOrFail();
-        $voucherTypeFAC = VoucherType::where('short_name', 'FAC')->where('letter', 'X')->firstOrFail();
-
-        $alq = $contract->vouchers()
-            ->where('voucher_type_id', $voucherTypeALQ->id)
-            ->where('period', $period)
-            ->where('currency', $currency)
-            ->where('status', '!=', 'cancelled')
-            ->first();
-
-        $alqDraft = $alq && $alq->status === 'draft';
-        $alqIssued = $alq && $alq->status === 'issued';
-
-        $bookletALQ = Booklet::where('voucher_type_id', $voucherTypeALQ->id)->firstOrFail();
-        $bookletFAC = Booklet::where('voucher_type_id', $voucherTypeFAC->id)->firstOrFail();
-
-        $voucherAlq = $alqDraft ? $alq : null;
-        $voucherFac = null;
-
-        DB::beginTransaction();
-
-        // Crear o agregar al ALQ
-        if (! $alq && $items->where('type', '!=', 'penalty')->isNotEmpty()) {
-            $voucherAlq = new Voucher([
-                'booklet_id' => $bookletALQ->id,
-                'voucher_type_id' => $voucherTypeALQ->id,
-                'voucher_type_short_name' => 'ALQ',
-                'voucher_type_letter' => 'X',
-                'sale_point_number' => $bookletALQ->salePoint->number,
-                'number' => null,
-                'status' => 'draft',
-                'period' => $period->format('Y-m'),
-                'currency' => $currency,
-                'issue_date' => now(),
-                'due_date' => $contract->getDueDateForPeriod($period),
-                'contract_id' => $contract->id,
-                'client_id' => $contract->mainTenant()?->id,
-            ]);
-            $voucherAlq->save();
-        }
-
-        // Agregar ítems al ALQ
-        if ($voucherAlq) {
-            foreach ($items->whereIn('type', ['rent', 'expense']) as $item) {
-                $voucherAlq->items()->create([
-                    'type' => $item['type'],
-                    'description' => $item['type'] === 'expense-rent'
-                        ? 'Alquiler ' . $period->translatedFormat('F Y')
-                        : 'Gasto asociado',
-                    'quantity' => 1,
-                    'unit_price' => $item['amount'],
-                    'meta' => ['source' => 'manual'],
-                ]);
-            }
-        }
-
-        // Crear FAC X si ALQ ya emitido y hay conceptos adicionales
-        if ($alqIssued && $items->whereIn('type', ['expense', 'penalty'])->isNotEmpty()) {
-            $voucherFac = new Voucher([
-                'booklet_id' => $bookletFAC->id,
-                'voucher_type_id' => $voucherTypeFAC->id,
-                'voucher_type_short_name' => 'FAC',
-                'voucher_type_letter' => 'X',
-                'sale_point_number' => $bookletFAC->salePoint->number,
-                'number' => null,
-                'status' => 'draft',
-                'period' => $period->format('Y-m'),
-                'currency' => $currency,
-                'issue_date' => now(),
-                'due_date' => now()->addDays(5),
-                'contract_id' => $contract->id,
-                'client_id' => $contract->mainTenant()?->id,
-            ]);
-            $voucherFac->save();
-
-            foreach ($items->whereIn('type', ['expense', 'penalty']) as $item) {
-                $voucherFac->items()->create([
-                    'type' => $item['type'],
-                    'description' => $item['type'] === 'penalty'
-                        ? 'Punitorio por mora ' . $period->translatedFormat('F Y')
-                        : 'Gasto asociado',
-                    'quantity' => 1,
-                    'unit_price' => $item['amount'],
-                    'meta' => ['source' => 'manual'],
-                ]);
-            }
-        }
-
-        DB::commit();
-
-        return response()->json([
-            'alq_id' => $voucherAlq?->id,
-            'fac_x_id' => $voucherFac?->id,
-        ]);
-    }
-
 
     public function applicable(Request $request)
     {
@@ -292,8 +32,6 @@ class VoucherController extends Controller
         $clientId = $request->client_id;
         $currency = $request->currency;
         $voucherTypeShortName = $request->voucher_type_short_name;
-
-
 
         $vouchers = Voucher::where('client_id', $clientId)
             ->where('currency', $currency)
@@ -332,14 +70,11 @@ class VoucherController extends Controller
                             return true;
                     }
                 }
-
                 return true;
             })
             ->map(function ($voucher) {
                 $appliedTo = $voucher->total_applied_to ?? 0; // Aplicaciones HACIA este voucher
                 $pending = $voucher->total - $appliedTo;
-
-
 
                 return [
                     'id' => $voucher->id,
@@ -352,9 +87,6 @@ class VoucherController extends Controller
                 ];
             })
             ->values();
-
-
-
         return response()->json($vouchers);
     }
 
@@ -477,8 +209,6 @@ class VoucherController extends Controller
         return (new VoucherResource($voucher))->response();
     }
 
-
-
     /**
      * Remove the specified voucher
      */
@@ -488,40 +218,8 @@ class VoucherController extends Controller
         return response()->json(['message' => 'Voucher eliminado correctamente']);
     }
 
-    public function generateRentSummary(Request $request, Contract $contract)
-    {
-
-        $validated = $request->validate([
-            'period' => ['required', 'date_format:Y-m'],
-        ]);
-
-        $voucher = app(VoucherGenerationService::class)
-            ->generateRentSummary($contract, $validated['period']);
-
-        return response()->json($voucher->load('items'), 201);
-    }
 
 
-    /**
-     * Mark voucher as paid
-     */
-    public function markAsPaid(Request $request, Voucher $voucher): JsonResponse
-    {
-        $request->validate([
-            'payment_date' => 'required|date',
-            'paid_by_user_id' => 'nullable|exists:users,id'
-        ]);
-
-        $voucher->update([
-            'status' => 'issued',
-            'meta' => array_merge($voucher->meta ?? [], [
-                'paid_at' => $request->payment_date,
-                'paid_by_user_id' => $request->paid_by_user_id
-            ])
-        ]);
-
-        return (new VoucherResource($voucher))->response();
-    }
 
     /**
      * Issue voucher (change status from draft to issued)
@@ -540,29 +238,6 @@ class VoucherController extends Controller
         return (new VoucherResource($voucher))->response();
     }
 
-    public function collectionsIndex(Contract $contract, Request $request): JsonResponse
-    {
-        $request->validate([
-            'period' => ['required', 'date_format:Y-m'],
-            'per_page' => ['integer', 'min:1'],
-            'page' => ['integer', 'min:1'],
-            'sort_by' => ['nullable', 'string'],
-            'sort_direction' => ['nullable', 'in:asc,desc'],
-        ]);
-
-        $period = $request->input('period');
-        $perPage = $request->input('per_page', 10);
-        $sortBy = $request->input('sort_by', 'issue_date');
-        $sortDir = $request->input('sort_direction', 'desc');
-
-        $vouchers = $contract->vouchers()
-            // ->where('period', $period)
-            ->whereHas('voucherType', fn ($q) => $q->where('short_name', 'COB'))
-            ->orderBy($sortBy, $sortDir)
-            ->paginate($perPage);
-
-        return response()->json($vouchers);
-    }
 
     /**
      * Cancel voucher
@@ -601,55 +276,6 @@ class VoucherController extends Controller
         return response()->json($items);
     }
 
-    // POST /contracts/{contract}/collections/generate
-    // Genera el voucher tipo COB con todos los ítems del período
-    public function generate(Request $request, Contract $contract)
-    {
-        $period = $request->input('period');
-        $voucher = app(VoucherGenerationService::class)->generateForMonth($contract, $period);
-        return response()->json($voucher, 201);
-    }
-
-
-
-        /**
-     * Generate collections for a period
-     */
-    public function generateCollections(Request $request): JsonResponse
-    {
-        $request->validate([
-            'period' => 'required|date_format:Y-m',
-            'contract_id' => 'required|exists:contracts,id'
-        ]);
-
-        $contract = Contract::findOrFail($request->contract_id);
-        $service = new VoucherGenerationService();
-        $period = $request->period;
-
-        $generated = $service->generateForMonth($contract, $period);
-
-        return response()->json([
-            'message' => 'Vouchers de cobranza generados correctamente',
-            'generated_count' => count($generated),
-            'generated' => VoucherResource::collection($generated)
-        ]);
-    }
-
-
-    /**
-     * Preview collections for a period
-     */
-    public function previewCollections(Request $request): JsonResponse
-    {
-        $request->validate([
-            'period' => 'required|date_format:Y-m'
-        ]);
-
-        // TODO: Implement previewForMonth method in VoucherGenerationService
-        return response()->json([
-            'preview' => []
-        ]);
-    }
 
     /**
      * Handle canceled collection voucher

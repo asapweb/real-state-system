@@ -36,8 +36,10 @@ class LqiBuilderService
         $from = Carbon::parse($period . '-01')->startOfMonth();
         $to   = (clone $from)->addMonth();
 
+        $currency = strtoupper($currency);
+
         return DB::transaction(function () use ($contract, $from, $to, $currency) {
-            $this->assertNotBlocked($contract, $from);
+            $this->assertNotBlocked($contract, $from, $currency);
 
             // 0) Tipo LQI
             $voucherTypeId = VoucherType::query()
@@ -199,7 +201,7 @@ class LqiBuilderService
         ];
     }
 
-    protected function assertNotBlocked(Contract $contract, Carbon $period): void
+    protected function assertNotBlocked(Contract $contract, Carbon $period, string $currency): void
     {
         if ($contract->adjustments()->blockingForPeriod($period)->exists()) {
             throw ValidationException::withMessages([
@@ -207,14 +209,46 @@ class LqiBuilderService
             ]);
         }
 
-        if (!$this->hasRentChargeForPeriod($contract->id, $period)) {
-            throw ValidationException::withMessages([
-                'missing_rent' => 'No se puede generar la liquidación: falta la cuota de renta del período.',
+        $requireRentBeforeAny = config('features.lqi.require_rent_before_any_lqi', false);
+        $rentCurrency = $this->rentCurrencyForContract($contract);
+
+        if ($requireRentBeforeAny) {
+            if (!$this->hasRentChargeForPeriod($contract->id, $period)) {
+                throw ValidationException::withMessages([
+                    'missing_rent' => 'No se puede generar la liquidación: falta la cuota de renta del período.',
+                ]);
+            }
+
+            return;
+        }
+
+        if ($rentCurrency && $currency === $rentCurrency) {
+            if (!$this->hasRentChargeForPeriod($contract->id, $period, $rentCurrency)) {
+                throw ValidationException::withMessages([
+                    'missing_rent' => "No se puede generar la liquidación: falta la cuota de renta del período en {$rentCurrency}.",
+                ]);
+            }
+
+            return;
+        }
+
+        if ($rentCurrency && $currency !== $rentCurrency) {
+            \Log::info('LqiBuilderService.missing_rent.allowed_other_currency', [
+                'contract_id' => $contract->id,
+                'period' => $period->format('Y-m'),
+                'lqi_currency' => $currency,
+                'rent_currency' => $rentCurrency,
             ]);
         }
     }
 
-    protected function hasRentChargeForPeriod(int $contractId, Carbon $period): bool
+    protected function rentCurrencyForContract(Contract $contract): ?string
+    {
+        $currency = $contract->currency ? strtoupper($contract->currency) : null;
+        return $currency ?: null;
+    }
+
+    protected function hasRentChargeForPeriod(int $contractId, Carbon $period, ?string $currency = null): bool
     {
         $start = $period->copy()->startOfMonth();
         $end = $start->copy()->addMonth();
@@ -224,6 +258,9 @@ class LqiBuilderService
             ->whereDate('effective_date', '>=', $start->toDateString())
             ->whereDate('effective_date', '<', $end->toDateString())
             ->where('is_canceled', false)
+            ->when($currency, function ($query) use ($currency) {
+                $query->where(DB::raw('UPPER(currency)'), strtoupper($currency));
+            })
             ->whereNull('tenant_liquidation_settled_at')
             ->whereHas('chargeType', function ($query) {
                 $query->where('code', ChargeType::CODE_RENT);

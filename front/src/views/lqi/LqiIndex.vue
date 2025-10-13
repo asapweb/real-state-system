@@ -1,14 +1,17 @@
 <template>
   <div class="mb-8 d-flex align-center justify-space-between">
     <div>
-      <h2 class="text-h5">Gestión de Liquidaciones Inquilinos</h2>
+      <h2 class="text-h5"><a href="/contracts" class="text-medium-emphasis text-decoration-none font-weight-light">Contratos </a >/ Gestión de Liquidaciones Inquilinos</h2>
     </div>
+    <div class="text-h6">
+      <span class=" text-grey text-decoration-none font-weight-light">PERIODO </span ><span class=" font-weight-bold text-uppercase">{{ formatPeriodWithMonthName(filters.period) }}</span>
+      </div>
     <!-- <div class="text-h6 me-2">{{ formatPeriodWithMonthName(period).charAt(0).toUpperCase() + formatPeriodWithMonthName(period).slice(1) }}</div> -->
   </div>
   <div>
 
 
-    <v-row dense class="mb-12" v-if="kpis.overall">
+    <v-row dense class="mb-8" v-if="kpis.overall">
       <v-col cols="12" sm="6" md="2">
         <KpiCard
           title="Contratos activos"
@@ -24,7 +27,7 @@
           title="Bloqueados"
           tooltip="Contratos omitidos por falta de RENT o ajustes pendientes."
           :subtitle="`${kpis.overall.blocked.pending_adjustment || 0} ajustes y ${kpis.overall.blocked.missing_rent || 0} cuotas pendientes`"
-          :value="`${kpis.overall.blocked.total}`"
+          :value="kpis.overall.blocked.total || 0"
           :loading="loadingKpis"
         />
       </v-col>
@@ -183,12 +186,12 @@
         </v-card-text>
       </v-card>
     </v-dialog>
-    <v-sheet class="my-4" border rounded>
+    <v-sheet class="mb-4" border rounded>
     <v-toolbar flat color="transparent" class="px-2">
-
       <v-btn
         @click="filterDrawer = !filterDrawer"
         prepend-icon="mdi-filter-variant"
+      size="small"
         variant="outlined"
         color="grey-darken-1"
       >
@@ -202,11 +205,9 @@
         ></v-badge>
       </v-btn>
 
-      <v-spacer></v-spacer>
-
-
       <v-btn
         icon
+        size="small"
         color="primary"
         @click="showStatsDialog = true"
         :title="'Ver resumen de KPIs'"
@@ -214,9 +215,13 @@
       >
         <v-icon>mdi-chart-bar</v-icon>
       </v-btn>
+      <v-spacer></v-spacer>
+
+
+
       <v-btn
         color="primary"
-        variant="text"
+        variant="tonal"
         size="small"
         :loading="generating"
         :disabled="!canGenerate || rowsEmpty || generating || issuing || reopening || postIssuing"
@@ -224,7 +229,8 @@
       >Generar Liquidaciones</v-btn>
       <v-btn
         color="success"
-        variant="text"
+        variant="tonal"
+        class="ml-1"
         size="small"
         :loading="generating"
         :disabled="!canGenerate || rowsEmpty || generating || issuing || reopening || postIssuing"
@@ -232,7 +238,8 @@
       >Emitir borradores</v-btn>
       <v-btn
         color="info"
-        variant="text"
+        variant="tonal"
+        class="ml-1"
         size="small"
         :loading="generating"
         :disabled="!canGenerate || rowsEmpty || generating || issuing || reopening || postIssuing"
@@ -240,7 +247,8 @@
       >Emitir ajustes post-liquidación</v-btn>
       <v-btn
         color="warning"
-        variant="text"
+        variant="tonal"
+        class="ml-1"
         size="small"
         :loading="generating"
         :disabled="!canGenerate || rowsEmpty || generating || issuing || reopening || postIssuing"
@@ -249,94 +257,112 @@
 
     </v-toolbar>
   </v-sheet>
-    <v-card class="mb-4">
-      <v-card-text>
-        <v-row dense>
-          <v-col cols="12" sm="4" md="3">
-            <v-text-field
-              v-model="filters.period"
-              type="month"
-              label="Período (YYYY-MM)"
-              variant="solo-filled"
-              hide-details
-              required
-            />
-          </v-col>
-          <v-col cols="12" sm="4" md="3">
-            <v-select
-              v-model="filters.currency"
-              :items="currencyOptions"
-              item-title="title"
-              item-value="value"
-              label="Moneda"
-              variant="solo-filled"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="4" md="3">
-            <ContractAutocomplete
-              v-model="filters.contract_id"
-              label="Contrato"
-              variant="solo-filled"
-              flat
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="4" md="3">
-            <v-select
-              v-model="filters.status"
-              :items="statusOptions"
-              item-title="title"
-              item-value="value"
-              label="Estado"
-              variant="solo-filled"
-              hide-details
-              clearable
-            />
-          </v-col>
-          <v-col cols="12" class="pt-4">
-            <div class="d-flex align-center" style="gap: 12px;">
-              <span class="text-medium-emphasis text-caption">Filtros rápidos:</span>
-              <v-chip
-                :color="filters.has_eligibles === true ? 'primary' : undefined"
-                :variant="filters.has_eligibles === true ? 'elevated' : 'tonal'"
-                size="small"
-                @click="toggleEligibles()"
-              >
-                Con elegibles
-              </v-chip>
-              <v-chip
-                :color="filters.status === 'draft' ? 'primary' : undefined"
-                :variant="filters.status === 'draft' ? 'elevated' : 'tonal'"
-                size="small"
-                @click="setStatusQuick('draft')"
-              >
-                Borrador
-              </v-chip>
-              <v-chip
-                :color="filters.status === 'issued' ? 'primary' : undefined"
-                :variant="filters.status === 'issued' ? 'elevated' : 'tonal'"
-                size="small"
-                @click="setStatusQuick('issued')"
-              >
-                Emitido
-              </v-chip>
-              <v-chip
-                v-if="filters.has_eligibles === true || ['draft','issued'].includes(filters.status)"
-                class="ml-2"
-                color="grey"
-                size="small"
-                variant="tonal"
-                prepend-icon="mdi-close"
-                @click="resetQuickFilters"
-              >
-                Limpiar
-              </v-chip>
-            </div>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
+
+  <!-- Drawer de filtros -->
+  <v-navigation-drawer
+    v-model="filterDrawer"
+    temporary
+    location="right"
+    width="600"
+  >
+    <v-toolbar color="transparent">
+      <v-toolbar-title>Filtros</v-toolbar-title>
+      <v-spacer></v-spacer>
+      <v-btn icon @click="filterDrawer = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-toolbar>
+
+    <v-card-text class="pa-4">
+      <v-form>
+        <!-- Filtro de Período -->
+        <v-text-field
+          v-model="filters.period"
+          label="Período"
+          type="month"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+          hide-details
+        ></v-text-field>
+
+        <!-- Filtro de Moneda -->
+        <v-select
+          v-model="filters.currency"
+          :items="[
+            { title: 'Todas las monedas', value: 'ALL' },
+            { title: 'ARS', value: 'ARS' },
+            { title: 'USD', value: 'USD' }
+          ]"
+          label="Moneda"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+          hide-details
+        ></v-select>
+
+        <!-- Filtro de Contrato -->
+        <ContractAutocomplete
+          v-model="filters.contract_id"
+          label="Contrato"
+          variant="outlined"
+          density="compact"
+          class="mb-4"
+          :menu-props="{ maxHeight: '300px' }"
+          :item-props="{ style: 'white-space: normal; line-height: 1.2; padding: 12px 20px;' }"
+        />
+
+        <!-- Filtro de Estado -->
+        <v-select
+          v-model="filters.status"
+          :items="[
+            { title: 'Todos los estados', value: null },
+            { title: 'Borrador', value: 'draft' },
+            { title: 'Emitido', value: 'issued' }
+          ]"
+          label="Estado"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+          hide-details
+        ></v-select>
+
+        <!-- Filtro de Elegibles -->
+        <v-select
+          v-model="filters.has_eligibles"
+          :items="[
+            { title: 'Todos', value: null },
+            { title: 'Con elegibles', value: true },
+            { title: 'Sin elegibles', value: false }
+          ]"
+          label="Elegibles"
+          variant="outlined"
+          density="compact"
+          class="mb-3"
+        ></v-select>
+      </v-form>
+    </v-card-text>
+
+    <v-card-actions class="pa-4">
+      <v-btn
+        variant="outlined"
+        color="grey"
+        @click="clearFilters"
+        class="mr-2"
+      >
+        Limpiar
+      </v-btn>
+      <v-spacer></v-spacer>
+      <v-btn
+        color="primary"
+        @click="filterDrawer = false"
+      >
+        Aplicar
+      </v-btn>
+    </v-card-actions>
+  </v-navigation-drawer>
+
+
 
     <LqiTable
       ref="tableRef"
@@ -404,6 +430,7 @@ import ContractAutocomplete from '@/views/components/ContractAutocomplete.vue'
 import LqiTable from './components/LqiTable.vue'
 import KpiCard from '@/views/components/KpiCard.vue'
 import KpiCardProgressLine from '@/views/components/KpiCardProgressLine.vue'
+import { formatPeriodWithMonthName } from '@/utils/date-formatter'
 import {
   fetchKpis,
   generateBatch,
@@ -426,6 +453,19 @@ const rowsMeta = reactive({ total: 0 })
 const bulkDialog = reactive({ open: false, action: null, summary: defaultPostIssueSummary() })
 const postIssueFeatureEnabled = ref(false)
 const SUMMARY_EPSILON = 0.0001
+
+// Filtros drawer
+const filterDrawer = ref(false)
+
+// Contar filtros activos
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filters.currency !== 'ALL') count++
+  if (filters.contract_id) count++
+  if (filters.status) count++
+  if (filters.has_eligibles !== null) count++
+  return count
+})
 
 const filters = reactive({
   period: currentPeriod(),
@@ -856,7 +896,8 @@ function summarizeSkipped(skipped = []) {
 
     const reasons = Array.from(new Set(baseReasons.filter(Boolean)))
     reasons.forEach((reason) => {
-      summary.counts[reason] = (summary.counts[reason] || 0) + 1
+      const normalized = reason === 'missing_rent' ? 'missing_rent_same_currency' : reason
+      summary.counts[normalized] = (summary.counts[normalized] || 0) + 1
     })
   })
 
@@ -867,15 +908,15 @@ function formatGenerateSummary(updated, summary, creditSuggested, creditOnly) {
   const total = summary.total || 0
   const counts = summary.counts || {}
   const pending = counts.pending_adjustment || 0
-  const missing = counts.missing_rent || 0
+  const missingSameCurrency = counts.missing_rent_same_currency || counts.missing_rent || 0
   const noEligibles = counts.no_eligibles || 0
   const creditOnlySkipped = counts.credit_only || 0
-  const accounted = pending + missing + noEligibles + creditOnlySkipped
+  const accounted = pending + missingSameCurrency + noEligibles + creditOnlySkipped
   const others = Math.max(0, total - accounted)
 
   const detailsParts = [
     `Ajuste pendiente: ${pending}`,
-    `Falta RENT: ${missing}`,
+    `Falta RENT (misma moneda): ${missingSameCurrency}`,
     `Sin elegibles: ${noEligibles}`,
   ]
 
@@ -909,7 +950,7 @@ function formatPostIssueSummary(result) {
   const summary = summarizeSkipped(result?.skipped)
   const counts = summary.counts || {}
   const pending = counts.pending_adjustment || 0
-  const missing = counts.missing_rent || 0
+  const missing = counts.missing_rent_same_currency || counts.missing_rent || 0
   const nothing = counts.nothing_to_issue || 0
   const missingLqi = counts.missing_lqi_for_adds || 0
   const lqiRequired = counts.lqi_required || 0
@@ -921,7 +962,7 @@ function formatPostIssueSummary(result) {
 
   const omitParts = [
     `ajustes: ${pending}`,
-    `falta RENT: ${missing}`,
+    `falta RENT (misma moneda): ${missing}`,
     `nada para emitir: ${nothing}`,
   ]
 
@@ -984,4 +1025,39 @@ function formatCoverage(value) {
   }
   return `${value}%`
 }
+
+// Función para limpiar filtros
+function clearFilters() {
+  filters.currency = 'ALL'
+  filters.contract_id = null
+  filters.status = null
+  filters.has_eligibles = null
+}
 </script>
+
+<style scoped>
+/* Mejorar visualización de texto largo en el drawer */
+:deep(.v-navigation-drawer .v-list-item__content) {
+  white-space: normal !important;
+  word-wrap: break-word;
+  line-height: 1.3;
+  padding: 12px 20px !important;
+}
+
+:deep(.v-navigation-drawer .v-autocomplete .v-field__input) {
+  white-space: normal !important;
+  word-wrap: break-word;
+  line-height: 1.3;
+  max-height: auto !important;
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+}
+
+:deep(.v-navigation-drawer .v-autocomplete .v-list-item) {
+  white-space: normal !important;
+  word-wrap: break-word;
+  line-height: 1.3;
+  min-height: auto !important;
+  padding: 12px 20px !important;
+}
+</style>

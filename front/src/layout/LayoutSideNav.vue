@@ -233,11 +233,6 @@ const mainNavGeneral = [
   },
     ],
   },
-  {
-    title: 'Cobranzas',
-    to: '/collections',
-    icon: 'mdi-hand-coin-outline',
-  },
 ]
 
 const cashNavLinks = [

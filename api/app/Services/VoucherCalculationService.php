@@ -70,9 +70,11 @@ class VoucherCalculationService
             $this->calculateItem($item, $voucher->voucher_type_letter);
 
             // Determinar el signo según impact (string o PHP enum)
-            $sign = $item->impact instanceof VoucherItemImpact
-            ? $item->impact->sign()
-            : (strtolower((string)($item->impact ?? 'add')) === 'subtract' ? -1 : 1);
+            // Los vouchers siempre son add y luego se aplica el signo en la cuenta corriente
+            // $sign = $item->impact instanceof VoucherItemImpact
+            // ? $item->impact->sign()
+            // : (strtolower((string)($item->impact ?? 'add')) === 'subtract' ? -1 : 1);
+            $sign = 1;
 
             // Subtotales "base"
             $subtotal += $sign * $item->subtotal;

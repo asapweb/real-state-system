@@ -8,7 +8,6 @@ import rentalOfferRoutes from './modules/rentalOffers'
 import rentalApplicationRoutes from './modules/rentalApplications'
 import contractRoutes from './modules/contracts'
 import contractAdjustmentRoutes from './modules/contractAdjustments'
-import collectionRoutes from './modules/collections'
 import collectionReceiptRoutes from './modules/collectionReceipts'
 import contractServiceRoutes from './modules/contractServices'
 import contractChargesRoutes from './modules/contractCharges'
@@ -40,7 +39,6 @@ const router = createRouter({
         },
         { path: '/admin/commands', children: adminCommandRoutes },
         { path: '/clients', children: clientRoutes },
-        { path: '/collections', children: collectionRoutes },
         { path: '/lqi', children: lqiRoutes },
         { path: '/collection-receipts', children: collectionReceiptRoutes },
         { path: '/contracts', children: contractRoutes },

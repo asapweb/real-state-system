@@ -149,11 +149,11 @@ class VoucherValidatorService
 
         \Log::info('voucher->associations', ['voucher' => $voucher->associations]);
         // ✅ Debe tener exactamente una asociación (a una factura)
-        if ($voucher->associations->count() !== 1) {
-            throw ValidationException::withMessages([
-                'associated_voucher_ids' => 'La nota de débito debe estar asociada a un único comprobante.',
-            ]);
-        }
+        // if ($voucher->associations->count() !== 1) {
+        //     throw ValidationException::withMessages([
+        //         'associated_voucher_ids' => 'La nota de débito debe estar asociada a un único comprobante.',
+        //     ]);
+        // }
 
          // ❌ No puede asociarse a NC, RCB, RPG, ND (solo factura)
          foreach ($voucher->associations as $assoc) {

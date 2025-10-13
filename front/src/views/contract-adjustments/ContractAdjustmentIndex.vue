@@ -3,78 +3,138 @@
     <div>
       <h2 class="text-h5"><a href="/contracts" class="text-medium-emphasis text-decoration-none font-weight-light">Contratos </a >/ Gestion de Ajustes</h2>
     </div>
-    <div class="text-h6 me-2">{{ formatPeriodWithMonthName(period).charAt(0).toUpperCase() + formatPeriodWithMonthName(period).slice(1) }}</div>
+    <div class="text-h6">
+      <span class=" text-grey text-decoration-none font-weight-light">PERIODO </span ><span class=" font-weight-bold text-uppercase">{{ formatPeriodWithMonthName(period) }}</span>
+    </div>
   </div>
 
   <!-- Kpis -->
-  <v-row dense class="mb-12">
-    <v-col cols="12" sm="auto" class="flex-grow-1">
+  <v-row dense class="mb-8">
+    <v-col cols="12" sm="6" md="3">
       <KpiCard
         title="Contratos activos"
-        tooltip="Contratos en estado activo para el período seleccionado"
+        tooltip="Total de contratos que están vigentes durante el período seleccionado."
         :value="summary.totals.active_contracts || 0"
         :loading="loading.summary"
       />
     </v-col>
-    <v-col cols="12" sm="auto" class="flex-grow-1">
+    <v-col cols="12" sm="6" md="3">
       <KpiCard
         title="Ajustes"
-        tooltip="Cantidad de contratos con ajuste para el período seleccionado"
+        tooltip="Número total de contratos que tienen un ajuste de alquiler configurado para el período seleccionado."
         :value="summary.totals.adjustments || 0"
         :loading="loading.summary"
       />
     </v-col>
-    <v-col cols="12" sm="auto" class="flex-grow-1">
-      <KpiCard
-        title="Sin Valor"
-        tooltip="Cantidad de Ajustes sin valor"
-        :value="summary.totals.adjustments_pending_value || 0"
-        :loading="loading.summary"
+   
+    <v-col cols="12" sm="6" md="3">
+      <KpiCardProgressLine
+      title="Cobertura"
+      tooltip="Porcentaje de ajustes que tienen un valor asignado y han sido aplicados."
+      :value="summary.totals.adjustments_with_value_coverege * 100 || 0"
+      :subtitle="summary.totals.adjustments_applied + ' de ' + (summary.totals.adjustments_with_value)"
+      :loading="loading.summary"
       />
-
     </v-col>
-    <v-col cols="12" sm="auto" class="flex-grow-1">
-      <KpiCard
-      title="Sin aplicar"
-      tooltip="Cantidad de Ajustes con valor sin aplicar"
-      :value="summary.totals.adjustments_pending_apply || 0"
+    <v-col cols="12" sm="6" md="3">
+      <KpiCardProgressLine
+      title="Cobertura del período"
+      tooltip="Porcentaje de todos los ajustes del período que han sido aplicados exitosamente. "
+      :value="summary.totals.adjustments_coverege * 100 || 0"
+      :subtitle="summary.totals.adjustments_applied + ' de ' + (summary.totals.adjustments)"
       :loading="loading.summary"
       />
     </v-col>
   </v-row>
 
   <!-- Acciones -->
-  <div class="d-flex justify-space-between">
-    <div>
-      <v-btn-toggle v-model="showFilters" color="secondary" density="compact" divided>
-        <v-btn  icon="mdi-filter" value="filters" density="comfortable" class=""></v-btn>
-      </v-btn-toggle>
-      <v-btn-group color="secondary" density="compact" class="mr-2" >
-        </v-btn-group>
-        <v-btn-group color="secondary" density="compact" divided>
-          <v-btn  icon="mdi-chevron-left" color="secondary" density="comfortable" @click="changePeriod(-1)"></v-btn>
-          <v-btn  icon="mdi-chevron-right" color="secondary" density="comfortable"  @click="changePeriod(1)"></v-btn>
-        </v-btn-group>
-        <v-btn-group color="secondary" density="compact" class="ml-1" divided>
-          <v-btn  color="secondary" density="comfortable"  @click="resetToCurrentMonth">ESTE MES</v-btn>
-        </v-btn-group>
-    </div>
-    <div>   
-      <v-btn-group color="secondary" density="compact" class="ml-1" divided>
-        <v-btn  color="secondary" density="comfortable" @click="adjustmentTable.openBulkDialog('assign')">Asignar</v-btn>
-        <v-btn  color="secondary" density="comfortable" @click="adjustmentTable.openBulkDialog('apply')">Aplicar</v-btn>
-        <v-btn color="primary" density="comfortable" @click="adjustmentTable.openBulkDialog('process')">Asignar y aplicar</v-btn>
-      </v-btn-group>
-    </div>
-  </div>
+  <v-sheet class="mb-4" border rounded>
+      <v-toolbar flat color="transparent" class="px-2">
+        <v-btn
+          @click="filterDrawer = !filterDrawer"
+          prepend-icon="mdi-filter-variant"
+        size="small"
+          variant="outlined"
+          color="grey-darken-1"
+        >
+          Filtros
+          <v-badge
+            v-if="activeFilterCount > 0"
+            :content="activeFilterCount"
+            color="primary"
+            floating
+            class="ml-2"
+          ></v-badge>
+        </v-btn>
 
-  <!-- Filtros -->
-  <div class="d-flex align-center mt-4" v-if="showFilters === 'filters'">
-    <v-select density="compact" v-model="filters.type" :items="typeOptions" item-title="title" item-value="value" label="Tipo" variant="solo-filled" flat hide-details clearable style="max-width: 180px" class="" />
-    <ContractAutocomplete v-model="filters.contract_id" label="Contrato" variant="solo-filled" flat hide-details class="ml-2" style="min-width: 300px" />
-    <v-text-field v-model="periodInput" label="Período (YYYY-MM)" type="month" variant="solo-filled" hide-details class="ml-2" flat style="max-width: 220px" />
-    <v-select v-model="filters.status" :items="statusOptions" item-title="title" item-value="value" label="Estado" variant="solo-filled" flat hide-details clearable style="max-width: 220px" class="ml-2" />
-  </div>
+        
+        <v-spacer></v-spacer>
+        <v-btn  color="secondary" 
+          variant="tonal"
+          size="small"
+           @click="adjustmentTable.openBulkDialog('assign')">
+          Asignar
+        </v-btn>
+        <v-btn  color="secondary" 
+          variant="tonal"
+          size="small"
+           @click="adjustmentTable.openBulkDialog('apply')"
+          class="ml-1">
+          Aplicar
+        </v-btn>
+        <v-btn color="primary" 
+          variant="tonal"
+          size="small"
+           @click="adjustmentTable.openBulkDialog('process')"
+          class="ml-1">
+          Asignar y aplicar
+        </v-btn>
+
+        </v-toolbar>
+    </v-sheet>
+
+  <!-- Drawer de filtros -->
+  <v-navigation-drawer
+    v-model="filterDrawer"
+    temporary
+    location="right"
+    width="600"
+  >
+    <v-toolbar color="transparent">
+      <v-toolbar-title>Filtros</v-toolbar-title>
+      <v-spacer></v-spacer>
+      <v-btn icon @click="filterDrawer = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-toolbar>
+
+    <v-card-text class="pa-4">
+      <v-form>
+        <v-text-field v-model="periodInput" label="Período (YYYY-MM)" type="month" variant="outlined" hide-details class="mb-4 " flat />
+        <v-select density="compact" v-model="filters.type" :items="typeOptions" item-title="title" item-value="value" label="Tipo" variant="outlined" flat hide-details clearable class="mb-4 " />
+    <ContractAutocomplete v-model="filters.contract_id" label="Contrato" variant="outlined" flat hide-details class="mb-4 " />
+    
+      </v-form>
+    </v-card-text>
+
+    <v-card-actions class="pa-4">
+      <v-btn
+        variant="outlined"
+        color="grey"
+        @click="clearFilters"
+        class="mr-2"
+      >
+        Limpiar
+      </v-btn>
+      <v-spacer></v-spacer>
+      <v-btn
+        color="primary"
+        @click="filterDrawer = false"
+      >
+        Aplicar
+      </v-btn>
+    </v-card-actions>
+  </v-navigation-drawer>
 
 
   <!-- Tabla -->
@@ -86,6 +146,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, reactive, onBeforeMount } from 'vue'
 import KpiCard from '@/views/components/KpiCard.vue'
+import KpiCardProgressLine from '@/views/components/KpiCardProgressLine.vue'
 import ContractAutocomplete from '@/views/components/ContractAutocomplete.vue'
 import ContractAdjustmentTable from './components/ContractAdjustmentTable.vue'
 import { useRoute } from 'vue-router'
@@ -102,6 +163,19 @@ const period = computed(() => periodInput.value || null)
 const showFilters = ref(false)
 const route = useRoute()
 const filters = reactive({ status: null, type: null, contract_id: null, client_id: null, effective_date_from: null, effective_date_to: null })
+
+// Filtros drawer
+const filterDrawer = ref(false)
+
+// Contar filtros activos
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filters.status) count++
+  if (filters.type) count++
+  if (filters.contract_id) count++
+  
+  return count
+})
 // Opciones de filtros
 const statusOptions = [
   { title: 'Pendiente', value: 'pending' },
@@ -131,7 +205,7 @@ const resetToCurrentMonth = () => {
   periodInput.value = new Date().toISOString().slice(0, 7)
 }
 
- watch(periodInput, () => { 
+ watch(periodInput, () => {
   fetchSummary() }, { deep: true })
 
 
@@ -159,4 +233,37 @@ const fetchSummary = async () => {
     loading.summary = false
   }
 }
+
+// Función para limpiar filtros
+function clearFilters() {
+  filters.status = null
+  filters.type = null
+  filters.contract_id = null
+  filters.client_id = null
+  filters.effective_date_from = null
+  filters.effective_date_to = null
+}
 </script>
+
+<style scoped>
+/* Mejorar visualización de texto largo en el drawer */
+:deep(.v-navigation-drawer .v-list-item__content) {
+  white-space: normal !important;
+  word-wrap: break-word;
+  line-height: 1.3;
+}
+
+:deep(.v-navigation-drawer .v-autocomplete .v-field__input) {
+  white-space: normal !important;
+  word-wrap: break-word;
+  line-height: 1.3;
+}
+
+:deep(.v-navigation-drawer .v-autocomplete .v-list-item) {
+  white-space: normal !important;
+  word-wrap: break-word;
+  line-height: 1.3;
+  min-height: auto !important;
+  padding: 12px 20px !important;
+}
+</style>

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\VoucherStatus;
 use App\Models\ChargeType;
 use App\Models\Contract;
 use App\Models\ContractCharge;
@@ -58,12 +59,12 @@ class LqiBuilderService
                 ->where('contract_id', $contract->id)
                 ->whereDate('period', $from->toDateString())
                 ->where('currency', strtoupper($currency))
-                ->whereIn('status', ['draft', 'issued'])
+                ->whereIn('status', [VoucherStatus::Draft->value, VoucherStatus::Issued->value])
                 ->orderByDesc('id')
                 ->get();
 
             /** @var Voucher|null $issued */
-            $issued = $active->firstWhere('status', 'issued');
+            $issued = $active->first(fn (Voucher $voucher) => $voucher->status === VoucherStatus::Issued);
             if ($issued) {
                 // v1: si está emitido, solo se permite reabrir por endpoint específico (y sin recibos).
                 throw ValidationException::withMessages([
@@ -72,7 +73,7 @@ class LqiBuilderService
             }
 
             /** @var Voucher|null $draft */
-            $draft = $active->firstWhere('status', 'draft');
+            $draft = $active->first(fn (Voucher $voucher) => $voucher->status === VoucherStatus::Draft);
 
             // 1.5) Determinar cargos elegibles antes de crear/actualizar el draft
             $eligible = $this->eligibleCharges($contract->id, $from, $to, $currency);

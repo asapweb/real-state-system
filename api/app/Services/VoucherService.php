@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\VoucherStatus;
 use App\Models\Voucher;
 use App\Models\AccountMovement;
 use App\Models\CashMovement;
@@ -23,7 +24,7 @@ class VoucherService
     public function issue(Voucher $voucher): Voucher
     {
         return DB::transaction(function () use ($voucher) {
-            if ($voucher->status !== 'draft') {
+            if ($voucher->status !== VoucherStatus::Draft) {
                 throw new Exception('Solo se pueden emitir vouchers en estado draft.');
             }
 
@@ -40,7 +41,7 @@ class VoucherService
 
             // ✅ Validación funcional por tipo (RCB, NC, FAC...) con lógica completa
             $this->validatorService->validateBeforeIssue($voucher);
-            $voucher->status = 'issued';
+            $voucher->status = VoucherStatus::Issued;
             $voucher->save();
 
             // +++ INICIO PARCHE LQI +++
@@ -175,7 +176,7 @@ class VoucherService
             $voucherData['voucher_type_letter'] = $booklet->voucherType->letter;
             $voucherData['sale_point_number'] = $booklet->salePoint->number;
             $voucherData['number'] = null; // Se asignará al emitir
-            $voucherData['status'] = 'draft';
+            $voucherData['status'] = VoucherStatus::Draft->value;
             $voucherData['service_date_from'] = $validatedData['service_date_from'] ?? null;
             $voucherData['service_date_to'] = $validatedData['service_date_to'] ?? null;
             $voucherData['afip_operation_type_id'] = $validatedData['afip_operation_type_id'] ?? null;
@@ -254,7 +255,7 @@ class VoucherService
 
         $validatedData = $validator->validated();
 
-        if ($voucher->status !== 'draft') {
+        if ($voucher->status !== VoucherStatus::Draft) {
             throw new \Exception('Solo se pueden editar comprobantes en estado borrador.');
         }
 
@@ -397,7 +398,7 @@ class VoucherService
         if (!$isLqi) {
             throw new \Exception('Solo LQI puede reabrirse con este servicio.');
         }
-        if ($voucher->status !== 'issued') {
+        if ($voucher->status !== VoucherStatus::Issued) {
             throw new \Exception('Solo se puede reabrir un voucher emitido.');
         }
 
@@ -417,7 +418,7 @@ class VoucherService
         }
 
         // Devolver a draft
-        $voucher->status = 'draft';
+        $voucher->status = VoucherStatus::Draft;
         $voucher->notes = trim(($voucher->notes ?? '')."\nReapertura LQI: ".$reason);
         $voucher->save();
 

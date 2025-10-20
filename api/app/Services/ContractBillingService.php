@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\VoucherStatus;
 use App\Models\Contract;
 use App\Models\ContractExpense;
+use App\Models\Voucher;
 use App\Exceptions\PendingAdjustmentException;
 use Carbon\Carbon;
 
@@ -108,8 +110,8 @@ class ContractBillingService
             ->whereDate('period', $period->toDateString())
             ->get();
 
-        $hasDraft = $vouchers->where('status', 'draft')->isNotEmpty();
-        $hasIssued = $vouchers->where('status', 'issued')->isNotEmpty();
+        $hasDraft = $vouchers->filter(fn (Voucher $voucher) => $voucher->status === VoucherStatus::Draft)->isNotEmpty();
+        $hasIssued = $vouchers->filter(fn (Voucher $voucher) => $voucher->status === VoucherStatus::Issued)->isNotEmpty();
         $unlinkedExpenses = $this->hasUnlinkedExpenses($contract, $period);
 
         if ($hasDraft || ($hasIssued && $unlinkedExpenses)) {

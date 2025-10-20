@@ -18,5 +18,8 @@ export default {
   },
   issue(id) {
     return axios.post(`/api/vouchers/${id}/issue`)
+  },
+  cancel(id, reason) {
+    return axios.post(`/api/vouchers/${id}/cancel`, { reason })
   }
 }

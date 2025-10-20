@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\VoucherStatus;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use App\Http\Resources\VoucherResource;
@@ -46,7 +47,7 @@ class VoucherAssociationController extends Controller
         $query = Voucher::query()
             ->where('client_id', $validated['client_id'])
             ->where('voucher_type_letter', $validated['letter'])
-            ->where('status', 'issued');
+            ->where('status', VoucherStatus::Issued->value);
 
         // Filtrar por búsqueda si se proporciona
         if ($request->has('search') && $request->search) {

@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Casts\VoucherStatusCast;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\AccountMovement;
+use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
 class Voucher extends Model
 {
@@ -45,6 +46,9 @@ class Voucher extends Model
         'subtotal',
         'total',
         'generated_from_collection',
+        'canceled_at',
+        'canceled_by',
+        'canceled_reason',
     ];
 
     protected $casts = [
@@ -63,6 +67,8 @@ class Voucher extends Model
         'subtotal_vat' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'meta' => 'array',
+        'status' => VoucherStatusCast::class,
+        'canceled_at' => 'datetime',
     ];
 
     // --- Relaciones ---
@@ -156,5 +162,10 @@ class Voucher extends Model
         $number = str_pad($this->number, 8, '0', STR_PAD_LEFT);
 
         return "{$this->voucher_type_short_name} {$this->voucher_type_letter} {$prefix}-{$number}";
+    }
+
+    public function canceledBy()
+    {
+        return $this->belongsTo(User::class, 'canceled_by');
     }
 }

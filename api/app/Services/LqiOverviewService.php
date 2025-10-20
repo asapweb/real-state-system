@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\VoucherStatus;
 use App\Models\Booklet;
 use App\Models\ChargeType;
 use App\Models\Contract;
@@ -575,7 +576,12 @@ class LqiOverviewService
             $contract = $contractMap->get($contractIdRow);
             $rows[$key] = $rows[$key] ?? $this->makeBaseRow($contract, $currency);
 
-            $rows[$key]['status'] = $voucher->status;
+            $statusEnum = $this->normalizeVoucherStatus($voucher->status);
+            $statusValue = $statusEnum?->value ?? (is_string($voucher->status)
+                ? ($voucher->status === 'canceled' ? VoucherStatus::Cancelled->value : $voucher->status)
+                : null);
+
+            $rows[$key]['status'] = $statusValue;
             $rows[$key]['voucher_id'] = $voucher->id;
             $rows[$key]['voucher_total'] = (float) $voucher->total;
             $rows[$key]['lqi_total'] = (float) $voucher->total;
@@ -583,9 +589,9 @@ class LqiOverviewService
             $rows[$key]['voucher_items_count'] = (int) $voucher->items_count;
             $rows[$key]['voucher_has_collections'] = ($voucher->applications_count > 0) || ($voucher->payments_count > 0);
             $rows[$key]['has_voucher'] = true;
-            $rows[$key]['can_sync'] = $voucher->status !== 'issued';
-            $rows[$key]['can_issue'] = $voucher->status === 'draft' && $voucher->items_count > 0 && abs((float) $voucher->total) >= 0.01;
-            $rows[$key]['can_reopen'] = $voucher->status === 'issued' && !$rows[$key]['voucher_has_collections'];
+            $rows[$key]['can_sync'] = $statusEnum !== VoucherStatus::Issued;
+            $rows[$key]['can_issue'] = $statusEnum === VoucherStatus::Draft && $voucher->items_count > 0 && abs((float) $voucher->total) >= 0.01;
+            $rows[$key]['can_reopen'] = $statusEnum === VoucherStatus::Issued && !$rows[$key]['voucher_has_collections'];
 
             $this->applyContractBlocks($rows[$key], $contractIdRow, $pendingAdjustments, $missingRent, $requireRentBeforeAny);
 
@@ -608,8 +614,13 @@ class LqiOverviewService
             $contract = $contractMap->get($contractIdRow);
             $rows[$key] = $rows[$key] ?? $this->makeBaseRow($contract, $currency);
 
+            $creditStatusEnum = $this->normalizeVoucherStatus($creditNote->status);
+            $creditStatusValue = $creditStatusEnum?->value ?? (is_string($creditNote->status)
+                ? ($creditNote->status === 'canceled' ? VoucherStatus::Cancelled->value : $creditNote->status)
+                : null);
+
             $rows[$key]['credit_note_id'] = $creditNote->id;
-            $rows[$key]['credit_note_status'] = $creditNote->status;
+            $rows[$key]['credit_note_status'] = $creditStatusValue;
             $rows[$key]['credit_note_total'] = (float) $creditNote->total;
             $rows[$key]['credit_note_issue_date'] = optional($creditNote->issue_date)->toDateString();
             $rows[$key]['credit_note_items_count'] = (int) $creditNote->items_count;
@@ -681,7 +692,7 @@ class LqiOverviewService
         }
 
         foreach ($vouchers as $voucher) {
-            if (($voucher->status ?? null) !== 'issued') {
+            if ($this->normalizeVoucherStatus($voucher->status) !== VoucherStatus::Issued) {
                 continue;
             }
 
@@ -719,7 +730,7 @@ class LqiOverviewService
         ];
 
         foreach ($creditNotes as $creditNote) {
-            if (($creditNote->status ?? null) !== 'issued') {
+            if ($this->normalizeVoucherStatus($creditNote->status) !== VoucherStatus::Issued) {
                 continue;
             }
 
@@ -1267,6 +1278,20 @@ class LqiOverviewService
         $id = $contractId ?? 0;
         $currency = $currency ? strtoupper($currency) : 'ARS';
         return $id . '|' . $currency;
+    }
+
+    private function normalizeVoucherStatus(null|string|VoucherStatus $status): ?VoucherStatus
+    {
+        if ($status instanceof VoucherStatus) {
+            return $status;
+        }
+
+        if (is_string($status)) {
+            $normalized = $status === 'canceled' ? VoucherStatus::Cancelled->value : $status;
+            return VoucherStatus::tryFrom($normalized);
+        }
+
+        return null;
     }
 
     private function contractCurrencyMismatch(Contract $contract, string $currency): bool

@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\ContractExpenseStatus;
+use App\Enums\VoucherStatus;
 use App\Models\Contract;
 use App\Models\Booklet;
-use App\Enums\ContractExpenseStatus;
 use App\Models\ContractExpense;
 use App\Models\Voucher;
 use App\Models\VoucherItem;
@@ -75,7 +76,7 @@ class VoucherGenerationService
                 $existingVoucher = $contract->vouchers()
                     ->where('period', $period)
                     ->where('currency', $currency)
-                    ->where('status', 'draft')
+                    ->where('status', VoucherStatus::Draft->value)
                     ->where('generated_from_collection', true)
                     ->first();
 
@@ -147,7 +148,7 @@ class VoucherGenerationService
 
             $existingVouchers = $contract->vouchers()
                 ->where('period', $period)
-                ->where('status', 'draft')
+                ->where('status', VoucherStatus::Draft->value)
                 ->where('generated_from_collection', true)
                 ->get();
 
@@ -204,7 +205,7 @@ class VoucherGenerationService
     protected function validateNoGap(Contract $contract, Carbon $period): void
     {
         $lastVoucherPeriod = $contract->vouchers()
-            ->where('status', 'issued')
+            ->where('status', VoucherStatus::Issued->value)
             ->max('period');
 
         if ($lastVoucherPeriod) {
@@ -234,7 +235,7 @@ class VoucherGenerationService
                 'client_id' => $contract->mainTenant->client_id,
                 'currency' => $contract->currency,
                 'period' => $period,
-                'status' => 'draft',
+                'status' => VoucherStatus::Draft->value,
                 'issue_date' => now(),
                 'due_date' => now()->endOfMonth(),
                 'total' => 0,
@@ -296,7 +297,7 @@ class VoucherGenerationService
                         'client_id' => $contract->mainTenant->client_id,
                         'currency' => $expense['currency'],
                         'period' => $period,
-                        'status' => 'draft',
+                        'status' => VoucherStatus::Draft->value,
                         'issue_date' => now(),
                         'due_date' => now()->endOfMonth(),
                         'total' => $expense['amount'],
@@ -353,7 +354,7 @@ class VoucherGenerationService
                 // Buscar voucher borrador existente por contrato, período y moneda
                 $voucher = $contract->vouchers()
                     ->where('voucher_type_id', $voucherType->id)
-                    ->where('status', 'draft')
+                    ->where('status', VoucherStatus::Draft->value)
                     ->whereDate('period', $period)
                     ->where('currency', $currency)
                     ->first();

@@ -2,23 +2,29 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\VoucherStatus;
+use App\Exceptions\VoucherCancellationConflictException;
 use App\Http\Requests\StoreVoucherRequest;
 use App\Http\Requests\UpdateVoucherRequest;
 use App\Http\Resources\VoucherResource;
 use App\Models\Voucher;
 use App\Models\Contract;
+use App\Services\VoucherCancellationService;
 use App\Services\VoucherCalculationService;
 use App\Services\VoucherService;
-use App\Services\VoucherGenerationService;
 use App\Services\VoucherPreviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class VoucherController extends Controller
 {
+    use AuthorizesRequests;
+
     public function __construct(
         protected VoucherCalculationService $calculationService,
         protected VoucherService $voucherService,
+        protected VoucherCancellationService $voucherCancellationService,
     ) {}
 
     public function applicable(Request $request)
@@ -35,7 +41,7 @@ class VoucherController extends Controller
 
         $vouchers = Voucher::where('client_id', $clientId)
             ->where('currency', $currency)
-            ->where('status', 'issued')
+            ->where('status', VoucherStatus::Issued->value)
             ->whereHas('voucherType', fn ($q) => $q->where('affects_account', true))
             ->with('voucherType')
             ->withSum('applications as total_applied', 'amount')
@@ -226,7 +232,7 @@ class VoucherController extends Controller
      */
     public function issue(Request $request, Voucher $voucher): JsonResponse
     {
-        if ($voucher->status !== 'draft') {
+        if ($voucher->status !== VoucherStatus::Draft) {
             return response()->json([
                 'message' => 'Solo se pueden emitir vouchers en estado draft.'
             ], 422);
@@ -242,20 +248,39 @@ class VoucherController extends Controller
     /**
      * Cancel voucher
      */
-    public function cancel(Voucher $voucher): JsonResponse
+    public function cancel(Request $request, Voucher $voucher): JsonResponse
     {
-        if ($voucher->status === 'canceled') {
-            return response()->json(['message' => 'El voucher ya está cancelado']);
+        $this->authorize('cancel', $voucher);
+
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'min:10'],
+        ]);
+
+        try {
+            $result = $this->voucherCancellationService->cancel(
+                $voucher,
+                $data['reason'],
+                $request->user()
+            );
+        } catch (VoucherCancellationConflictException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'reasons' => $exception->reasons(),
+            ], 409);
         }
 
-        $voucher->update(['status' => 'canceled']);
+        $voucher->refresh();
 
-        // Si es un voucher de tipo COB, manejar gastos incluidos
-        if ($voucher->booklet->voucherType->code === 'COB') {
-            $this->handleCanceledCollectionVoucher($voucher);
-        }
+        $status = $voucher->status instanceof VoucherStatus
+            ? $voucher->status->value
+            : $voucher->status;
 
-        return (new VoucherResource($voucher))->response();
+        return response()->json([
+            'data' => array_merge([
+                'id' => $voucher->id,
+                'status' => $status,
+            ], $result),
+        ]);
     }
 
     // GET /collections/{voucher}/print

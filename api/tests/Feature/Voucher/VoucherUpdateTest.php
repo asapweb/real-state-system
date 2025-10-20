@@ -3,6 +3,7 @@
 namespace Tests\Feature\Voucher;
 
 use App\Enums\ContractClientRole;
+use App\Enums\VoucherStatus;
 use App\Models\Booklet;
 use App\Models\Client;
 use App\Models\Contract;
@@ -142,7 +143,7 @@ class VoucherUpdateTest extends TestCase
         $voucher = $this->createBasicVoucher();
 
         // Cambiar estado a issued
-        $voucher->update(['status' => 'issued']);
+        $voucher->update(['status' => VoucherStatus::Issued->value]);
 
         $user = \App\Models\User::create([
             'name' => 'Test User',
@@ -180,7 +181,7 @@ class VoucherUpdateTest extends TestCase
         $voucher = $this->createBasicVoucher();
 
         // Cambiar estado a cancelled
-        $voucher->update(['status' => 'cancelled']);
+        $voucher->update(['status' => VoucherStatus::Cancelled->value]);
 
         $user = \App\Models\User::create([
             'name' => 'Test User',
@@ -230,7 +231,7 @@ class VoucherUpdateTest extends TestCase
         ]);
 
         // Cambiar estado a issued
-        $voucher->update(['status' => 'issued']);
+        $voucher->update(['status' => VoucherStatus::Issued->value]);
 
         $user = \App\Models\User::create([
             'name' => 'Test User',
@@ -320,7 +321,7 @@ class VoucherUpdateTest extends TestCase
             'state_id' => $state->id,
             'city_id' => $city->id,
             'neighborhood_id' => $neighborhood->id,
-            'status' => 'draft',
+            'status' => VoucherStatus::Draft->value,
         ]);
 
         // Crear Client
@@ -364,7 +365,7 @@ class VoucherUpdateTest extends TestCase
             'client_id' => $client->id,
             'contract_id' => $contract->id,
             'currency' => 'ARS',
-            'status' => 'draft',
+            'status' => VoucherStatus::Draft->value,
             'client_name' => 'Test Client',
         ]);
     }
@@ -456,7 +457,7 @@ class VoucherUpdateTest extends TestCase
     {
         // Crear voucher original para asociar
         $originalVoucher = $this->createFiscalVoucher('FAC');
-        $originalVoucher->update(['status' => 'issued']);
+        $originalVoucher->update(['status' => VoucherStatus::Issued->value]);
 
         // Crear voucher de crédito/débito
         $voucher = $this->createFiscalVoucher('N/C');
@@ -663,7 +664,7 @@ class VoucherUpdateTest extends TestCase
 
         // Crear voucher aplicable
         $applicableVoucher = $this->createFiscalVoucher('FAC');
-        $applicableVoucher->update(['status' => 'issued']);
+        $applicableVoucher->update(['status' => VoucherStatus::Issued->value]);
 
         $payload = [
             'issue_date' => now()->toDateString(),

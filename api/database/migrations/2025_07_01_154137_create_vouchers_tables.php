@@ -117,7 +117,7 @@ return new class extends Migration {
 
             $table->foreignId('contract_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('afip_operation_type_id')->nullable()->constrained()->nullOnDelete();
-            $table->enum('status', ['draft', 'issued', 'cancelled'])->default('draft');
+            $table->string('status', 20)->default('draft');
             $table->string('currency', 3);
             $table->text('notes')->nullable();
             $table->json('meta')->nullable();
@@ -130,6 +130,9 @@ return new class extends Migration {
             $table->decimal('subtotal_other_taxes', 15, 2)->nullable();
             $table->decimal('subtotal', 15, 2)->nullable();
             $table->decimal('total', 15, 2)->default(0);
+            $table->timestamp('canceled_at')->nullable();
+            $table->foreignId('canceled_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('canceled_reason')->nullable();
             $table->timestamps();
             $table->unique(['booklet_id', 'number']);
         });

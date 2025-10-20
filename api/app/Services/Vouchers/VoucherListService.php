@@ -2,6 +2,7 @@
 
 namespace App\Services\Vouchers;
 
+use App\Enums\VoucherStatus;
 use App\Models\Contract;
 use App\Models\ContractAdjustment;
 use App\Models\ContractCharge;
@@ -98,7 +99,7 @@ class VoucherListService
             $draftVoucherId = Voucher::query()
                 ->where('contract_id', $contract->id)
                 ->whereDate('period', $start->toDateString())
-                ->where('status', 'draft')
+                ->where('status', VoucherStatus::Draft->value)
                 ->where('voucher_type_short_name', 'COB')
                 ->value('id');
 
@@ -131,4 +132,3 @@ class VoucherListService
         );
     }
 }
-

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Lqi;
 
 use App\Enums\ChargeImpact;
+use App\Enums\VoucherStatus;
 use App\Enums\ContractAdjustmentType;
 use App\Enums\ContractClientRole;
 use App\Models\Booklet;
@@ -69,7 +70,7 @@ class LqiPostIssueServiceTest extends TestCase
 
         $debitVoucher = Voucher::findOrFail($result['nd']['voucher_id']);
         $this->assertSame('N/D', $debitVoucher->voucher_type_short_name);
-        $this->assertSame('issued', $debitVoucher->status);
+        $this->assertSame(VoucherStatus::Issued, $debitVoucher->status);
         $this->assertEquals([$charge->id], $debitVoucher->items()->pluck('contract_charge_id')->all());
         $this->assertEquals([$lqiVoucher->id], $debitVoucher->associatedVouchers()->pluck('vouchers.id')->all());
 
@@ -213,7 +214,7 @@ class LqiPostIssueServiceTest extends TestCase
             'client_tax_condition_name' => $client->tax_condition_name,
             'client_tax_id_number' => $client->tax_id_number,
             'contract_id' => $contract->id,
-            'status' => 'draft',
+            'status' => VoucherStatus::Draft->value,
             'currency' => 'ARS',
             'subtotal_taxed' => 0,
             'subtotal' => 0,
@@ -472,7 +473,7 @@ class LqiPostIssueServiceTest extends TestCase
             'client_tax_condition_name' => $client->tax_condition_name,
             'client_tax_id_number' => $client->tax_id_number,
             'contract_id' => $contract->id,
-            'status' => 'issued',
+            'status' => VoucherStatus::Issued->value,
             'currency' => $currency,
             'subtotal_taxed' => 1000,
             'subtotal' => 1000,

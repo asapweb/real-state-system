@@ -21,13 +21,13 @@
           Emitir
         </v-btn>
         <v-btn
-          v-if="voucher.status !== 'canceled'"
+          v-if="!['canceled', 'cancelled'].includes(voucher.status)"
           color="error"
           prepend-icon="mdi-cancel"
           @click="cancelVoucher"
           :loading="canceling"
         >
-          Cancelar
+          Cancelar este
         </v-btn>
         <v-spacer />
         <v-btn
@@ -356,16 +356,37 @@ async function cancelVoucher() {
     return
   }
 
+  const reason = prompt('Ingresá el motivo de la cancelación (mínimo 10 caracteres):')?.trim() ?? ''
+  if (!reason) {
+    snackbar.info('Se canceló la acción. No se ingresó motivo.')
+    return
+  }
+
+  if (reason.length < 10) {
+    snackbar.error('El motivo debe tener al menos 10 caracteres.')
+    return
+  }
+
   canceling.value = true
   try {
-    await axios.post(`/api/vouchers/${voucher.value.id}/cancel`)
-    snackbar.success('Voucher cancelado correctamente')
-    // Recargar el voucher para mostrar el nuevo estado
-    const { data } = await axios.get(`/api/vouchers/${route.params.id}`)
-    voucher.value = data.data || data
+    const { data } = await axios.post(`/api/vouchers/${voucher.value.id}/cancel`, { reason })
+    const responseVoucher = data?.data ?? {}
+    const message = responseVoucher.already_cancelled
+      ? 'El voucher ya se encontraba cancelado.'
+      : 'Voucher cancelado correctamente'
+    snackbar.success(message)
+
+    const refreshed = await axios.get(`/api/vouchers/${route.params.id}`)
+    voucher.value = refreshed.data.data || refreshed.data
   } catch (error) {
     console.error('Error canceling voucher:', error)
-    snackbar.error(error.response?.data?.message || 'Error al cancelar el voucher')
+    const { response } = error
+    if (response?.data?.message) {
+      const reasons = Array.isArray(response.data.reasons) ? response.data.reasons.join(', ') : null
+      snackbar.error(reasons ? `${response.data.message}: ${reasons}` : response.data.message)
+    } else {
+      snackbar.error('Error al cancelar el voucher')
+    }
   } finally {
     canceling.value = false
   }

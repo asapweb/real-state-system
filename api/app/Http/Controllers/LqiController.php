@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\VoucherStatus;
 use App\Http\Requests\LqiSyncRequest;
 use App\Http\Requests\LqiIssueRequest;
 use App\Http\Requests\LqiReopenRequest;
@@ -255,7 +256,7 @@ class LqiController extends Controller
             ->where('contract_id', $contract->id)
             ->whereDate('period', $periodCarbon->toDateString())
             ->where('currency', $currency)
-            ->where('status', 'draft')
+            ->where('status', VoucherStatus::Draft->value)
             ->firstOrFail();
 
         if ($request->filled('issue_date')) {
@@ -288,7 +289,7 @@ class LqiController extends Controller
             ->where('contract_id', $contract->id)
             ->whereDate('period', $period.'-01')
             ->where('currency', $currency)
-            ->where('status', 'issued')
+            ->where('status', VoucherStatus::Issued->value)
             ->firstOrFail();
 
         $draft = $this->voucherService->reopenLqi($voucher, (string) $request->input('reason'));

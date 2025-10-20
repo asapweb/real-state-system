@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\VoucherStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,6 +15,19 @@ class VoucherResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $statusRaw = $this->status;
+        if ($statusRaw instanceof VoucherStatus) {
+            $statusEnum = $statusRaw;
+            $statusValue = $statusEnum->value;
+        } elseif (is_string($statusRaw)) {
+            $normalized = $statusRaw === 'canceled' ? VoucherStatus::Cancelled->value : $statusRaw;
+            $statusEnum = VoucherStatus::tryFrom($normalized);
+            $statusValue = $statusEnum?->value ?? $normalized;
+        } else {
+            $statusEnum = null;
+            $statusValue = null;
+        }
+
         return [
             'id' => $this->id,
             'booklet_id' => $this->booklet_id,
@@ -30,7 +44,7 @@ class VoucherResource extends JsonResource
             'client_tax_condition_name' => $this->client_tax_condition_name,
             'client_tax_id_number' => $this->client_tax_id_number,
             'contract_id' => $this->contract_id,
-            'status' => $this->status,
+            'status' => $statusValue,
             'currency' => $this->currency,
             'total' => $this->total,
             'notes' => $this->notes,
@@ -48,6 +62,9 @@ class VoucherResource extends JsonResource
             'afip_operation_type_id' => $this->afip_operation_type_id,
             'service_date_from' => $this->service_date_from?->format('Y-m-d'),
             'service_date_to' => $this->service_date_to?->format('Y-m-d'),
+            'canceled_at' => $this->canceled_at?->format('Y-m-d H:i:s'),
+            'canceled_by' => $this->canceled_by,
+            'canceled_reason' => $this->canceled_reason,
 
             // Totales calculados
             'applications_total' => $this->whenLoaded('applications', function () {
@@ -107,8 +124,8 @@ class VoucherResource extends JsonResource
             'voucher_type' => $this->booklet?->voucherType?->code,
             'voucher_type_name' => $this->booklet?->voucherType?->name,
             'is_collection' => $this->booklet?->voucherType?->code === 'COB',
-            'is_paid' => $this->status === 'issued',
-            'is_canceled' => $this->status === 'canceled',
+            'is_paid' => $statusEnum === VoucherStatus::Issued,
+            'is_canceled' => $statusEnum === VoucherStatus::Cancelled,
             'paid_at' => $this->meta['paid_at'] ?? null,
             'paid_by_user_id' => $this->meta['paid_by_user_id'] ?? null,
         ];

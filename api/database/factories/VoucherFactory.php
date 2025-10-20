@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\VoucherStatus;
 use App\Models\Voucher;
 use App\Models\VoucherType;
 use App\Models\Client;
@@ -35,7 +36,7 @@ class VoucherFactory extends Factory
             'client_tax_id_number' => (string) $this->faker->numberBetween(20000000000, 20999999999),
             'contract_id' => null, // opcional según tipo
             'afip_operation_type_id' => 1,
-            'status' => 'draft',
+            'status' => VoucherStatus::Draft->value,
             'currency' => 'ARS',
             'notes' => $this->faker->sentence,
             'meta' => [],
@@ -111,7 +112,7 @@ class VoucherFactory extends Factory
     public function draft(): static
     {
         return $this->state([
-            'status' => 'draft',
+            'status' => VoucherStatus::Draft->value,
         ]);
     }
 }

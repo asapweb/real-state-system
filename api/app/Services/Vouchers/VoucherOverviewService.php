@@ -5,6 +5,7 @@ namespace App\Services\Vouchers;
 use App\Models\Contract;
 use App\Models\ContractAdjustment;
 use App\Models\ContractCharge;
+use App\Enums\VoucherStatus;
 use App\Models\Voucher;
 use App\Models\ChargeType;
 use Carbon\Carbon;
@@ -93,7 +94,7 @@ class VoucherOverviewService
         // Draft COB vouchers count (per period)
         $draftCobCount = Voucher::query()
             ->whereDate('period', $start->toDateString())
-            ->where('status', 'draft')
+            ->where('status', VoucherStatus::Draft->value)
             ->where('voucher_type_short_name', 'COB')
             ->count();
 
@@ -145,4 +146,3 @@ class VoucherOverviewService
         ];
     }
 }
-

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\VoucherStatus;
 use App\Models\Voucher;
 use Illuminate\Validation\ValidationException;
 
@@ -25,7 +26,7 @@ class VoucherValidatorService
      */
     public function validateBeforeIssue(Voucher $voucher): void
     {
-        if ($voucher->status !== 'draft') {
+        if ($voucher->status !== VoucherStatus::Draft) {
             throw ValidationException::withMessages([
                 'status' => 'Solo se pueden emitir comprobantes en estado borrador.',
             ]);
@@ -87,7 +88,7 @@ class VoucherValidatorService
     protected function validateNoEarlierIssueDate(Voucher $voucher): void
     {
         $comprobantePosterior = Voucher::where('booklet_id', $voucher->booklet_id)
-            ->where('status', 'issued')
+            ->where('status', VoucherStatus::Issued->value)
             ->where('issue_date', '>', $voucher->issue_date)
             ->exists();
 
@@ -110,7 +111,7 @@ class VoucherValidatorService
 
         $haySaltos = Voucher::where('booklet_id', $voucher->booklet_id)
             ->where('number', '<', $voucher->number)
-            ->where('status', '!=', 'issued')
+            ->where('status', '!=', VoucherStatus::Issued->value)
             ->exists();
 
         if ($haySaltos) {

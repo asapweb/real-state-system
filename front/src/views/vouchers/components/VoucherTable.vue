@@ -1,4 +1,5 @@
 <template>
+  tabla de vouchers
   <div class="d-flex align-center mb-5">
     <v-select
       v-model="searchType"
@@ -97,6 +98,16 @@
           color="success"
         >
           mdi-check-circle
+        </v-icon>
+        <v-icon
+          v-if="item.status !== 'canceled' && item.status !== 'cancelled'"
+          class="me-2"
+          size="small"
+          color="error"
+          @click="cancelVoucher(item)"
+          title="Cancelar Voucher"
+        >
+          mdi-cancel
         </v-icon>
         <v-icon class="me-2" size="small" @click="goToEdit(item)" title="Editar Voucher">
           mdi-pencil
@@ -275,6 +286,48 @@ async function issueVoucher(voucher) {
       snackbar.error(error.response.data.message)
     } else {
       snackbar.error('No se pudo emitir el voucher')
+    }
+  }
+}
+
+async function cancelVoucher(voucher) {
+  if (voucher.status === 'canceled' || voucher.status === 'cancelled') {
+    snackbar.info('El voucher ya está cancelado.')
+    return
+  }
+
+  if (!confirm('¿Estás seguro de que deseas cancelar este voucher?')) {
+    return
+  }
+
+  const reason = prompt('Ingresá el motivo de la cancelación (mínimo 10 caracteres):')?.trim() ?? ''
+  if (!reason) {
+    snackbar.info('Se canceló la acción. No se ingresó motivo.')
+    return
+  }
+
+  if (reason.length < 10) {
+    snackbar.error('El motivo debe tener al menos 10 caracteres.')
+    return
+  }
+
+  try {
+    const { data } = await voucherService.cancel(voucher.id, reason)
+    const result = data?.data ?? {}
+    if (result.already_cancelled) {
+      snackbar.info('El voucher ya se encontraba cancelado.')
+    } else {
+      snackbar.success('Voucher cancelado correctamente')
+    }
+    fetchVouchers()
+  } catch (error) {
+    console.error('Error canceling voucher:', error)
+    const { response } = error
+    if (response?.data?.message) {
+      const reasons = Array.isArray(response.data.reasons) ? response.data.reasons.join(', ') : null
+      snackbar.error(reasons ? `${response.data.message}: ${reasons}` : response.data.message)
+    } else {
+      snackbar.error('No se pudo cancelar el voucher')
     }
   }
 }

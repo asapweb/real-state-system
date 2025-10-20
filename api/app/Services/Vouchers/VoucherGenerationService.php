@@ -162,7 +162,7 @@ class VoucherGenerationService
                                     ->where('contract_id', $contract->id)
                                     ->whereDate('period', $period->copy()->startOfMonth()->toDateString())
                                     ->where('currency', $currency)
-                                    ->where('status', 'draft')
+                                    ->where('status', VoucherStatus::Draft->value)
                                     ->where('voucher_type_short_name', 'COB')
                                     ->first();
                             }

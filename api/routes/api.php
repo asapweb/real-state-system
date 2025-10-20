@@ -338,7 +338,7 @@ Route::middleware(AddApiVersionHeader::class)->group(function () {
             Route::put('{voucher}', [VoucherController::class, 'update']);
             Route::delete('{voucher}', [VoucherController::class, 'destroy']);
             Route::post('{voucher}/issue', [VoucherController::class, 'issue']);
-            Route::post('{voucher}/cancel', [VoucherController::class, 'cancel']);
+            Route::post('{voucher}/cancel', [VoucherController::class, 'cancel'])->name('vouchers.cancel');
             Route::post('preview-totals', [VoucherCalculationController::class, 'previewTotals']);
         });
 

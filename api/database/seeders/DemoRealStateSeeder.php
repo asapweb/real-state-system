@@ -31,6 +31,7 @@ use App\Enums\ContractChargeStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\ServiceType as ServiceTypeEnum;
 use App\Enums\VoucherItemType;
+use App\Enums\VoucherStatus;
 
 class DemoRealStateSeeder extends Seeder
 {
@@ -775,7 +776,7 @@ class DemoRealStateSeeder extends Seeder
             'period' => $period->format('Y-m'),
             'total' => $totalAmount,
             'subtotal' => $totalAmount,
-            'status' => 'draft',
+            'status' => VoucherStatus::Draft->value,
             'number' => Voucher::where('booklet_id', $booklet->id)->max('number') + 1,
         ]);
 

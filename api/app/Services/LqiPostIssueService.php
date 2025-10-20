@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ChargeImpact;
+use App\Enums\VoucherStatus;
 use App\Models\Booklet;
 use App\Models\ChargeType;
 use App\Models\Contract;
@@ -275,7 +276,7 @@ class LqiPostIssueService
             ->where('contract_id', $contractId)
             ->whereDate('period', $period->toDateString())
             ->where('currency', $currency)
-            ->where('status', 'issued')
+            ->where('status', VoucherStatus::Issued->value)
             ->lockForUpdate()
             ->first();
     }
